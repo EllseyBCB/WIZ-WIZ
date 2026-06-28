@@ -19,7 +19,9 @@ const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatf
 const plat = () => (cap()?.getPlatform?.() === 'android' ? 'android' : 'ios');
 const admob = () => cap()?.Plugins?.AdMob || null;
 
-// "Werbefrei"-Kauf (vorerst ohne echtes Bezahlsystem – ein Klick schaltet frei).
+// "Werbefrei"-Status. Gekauft wird per echtem IAP in iap.js (RevenueCat);
+// setAdFree() spiegelt das aktive Entitlement lokal, damit die Werbung sofort
+// reagiert. Beim App-Start synchronisiert initIAP() den Status erneut.
 const LS_ADFREE = 'wizard_adfree';
 export function isAdFree() { return localStorage.getItem(LS_ADFREE) === '1'; }
 export function setAdFree(on) {
