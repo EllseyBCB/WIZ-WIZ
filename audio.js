@@ -102,8 +102,21 @@ export function sfxWin() {             // Spielende: kurze Fanfare
 }
 
 // Vibration (nur Mobil, an den Effekt-Schalter gekoppelt).
+// Im nativen iOS/Android-WebView gibt es navigator.vibrate nicht -> Capacitor
+// Haptics. Im Browser/PWA unveraendert ueber navigator.vibrate.
 export function haptic(pattern) {
   if (!sfxOn) return;
+  try {
+    const cap = window.Capacitor;
+    if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
+      const H = cap.Plugins && cap.Plugins.Haptics;
+      if (H) {
+        const dur = Array.isArray(pattern) ? pattern.reduce((a, b) => a + b, 0) : (pattern || 30);
+        H.vibrate({ duration: Math.min(Math.max(dur, 10), 300) }).catch(() => {});
+        return;
+      }
+    }
+  } catch (_) {}
   try { navigator.vibrate && navigator.vibrate(pattern); } catch (_) {}
 }
 

@@ -1042,10 +1042,26 @@ function wireSettings() {
 }
 
 // --- Benachrichtigungen ("du bist dran") -----------------------------------
+// Im nativen iOS/Android-WebView gibt es die Web-Notification-API nicht ->
+// Capacitor LocalNotifications. Im Browser/PWA unveraendert ueber Notification.
 let notifEnabled = localStorage.getItem('wizard_notif_on') === '1';
+const capNative = () => { const c = window.Capacitor; return !!(c && c.isNativePlatform && c.isNativePlatform()); };
+const localNotif = () => window.Capacitor?.Plugins?.LocalNotifications || null;
+
 function notifyYourTurn() {
-  if (!notifEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
-  if (!document.hidden) return;   // nur wenn die App im Hintergrund ist
+  if (!notifEnabled || !document.hidden) return;   // nur wenn die App im Hintergrund ist
+  if (capNative()) {
+    const LN = localNotif(); if (!LN) return;
+    try {
+      LN.schedule({ notifications: [{
+        id: Date.now() % 100000,
+        title: 'Zaubertisch – du bist dran! 🧙',
+        body: 'Tippe, um weiterzuspielen.'
+      }] }).catch(() => {});
+    } catch (_) {}
+    return;
+  }
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
     const n = new Notification('Zaubertisch – du bist dran! 🧙', { body: 'Tippe, um weiterzuspielen.', tag: 'wiz-turn', icon: './icon-192.png' });
     n.onclick = () => { window.focus(); n.close(); };
@@ -1053,6 +1069,15 @@ function notifyYourTurn() {
 }
 async function enableNotifications(on) {
   if (!on) { notifEnabled = false; localStorage.setItem('wizard_notif_on', '0'); return false; }
+  if (capNative()) {
+    const LN = localNotif();
+    if (!LN) { toast('Benachrichtigungen werden hier nicht unterstützt', 'err'); return false; }
+    try {
+      const res = await LN.requestPermissions();
+      if (res && res.display && res.display !== 'granted') { toast('Benachrichtigungen wurden blockiert', 'err'); return false; }
+    } catch (_) {}
+    notifEnabled = true; localStorage.setItem('wizard_notif_on', '1'); return true;
+  }
   if (!('Notification' in window)) { toast('Benachrichtigungen werden hier nicht unterstützt', 'err'); return false; }
   let perm = Notification.permission;
   if (perm === 'default') perm = await Notification.requestPermission();
