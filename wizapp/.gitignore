@@ -1,0 +1,7 @@
+# Capacitor / native Build-Artefakte (werden auf dem Mac generiert)
+node_modules/
+www/
+ios/
+android/
+package-lock.json
+.DS_Store
