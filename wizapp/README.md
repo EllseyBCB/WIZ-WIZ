@@ -1,4 +1,4 @@
-# Zauberstich – App-Store-Version mit AdMob-Werbung
+# Zaubertisch – App-Store-Version mit AdMob-Werbung
 
 Diese Anleitung verpackt die Web-App (`../wizard`) mit **Capacitor** zu einer
 echten iOS-/Android-App und blendet **AdMob-Werbung** ein. Die Werbe-Logik

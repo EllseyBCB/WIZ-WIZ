@@ -1,4 +1,4 @@
-# Zauberstich – Online-Kartenspiel
+# Zaubertisch – Online-Kartenspiel
 
 Eigenständiges Stich-/Ansage-Kartenspiel als Web-App (Vanilla HTML/JS, kein
 Build-Schritt) mit Supabase-Backend.
@@ -20,7 +20,7 @@ eigenen Gerät, server-autoritativ über Postgres-Funktionen + Realtime).
   Migrationen (Profile/Avatare, Freunde, Gruppen, Einladungen, Avatar-Storage,
   Account-Löschung).
 - **wizapp/** – Capacitor-Gerüst für die native App-Store-Version
-  (de.alphablueprint.zauberstich).
+  (de.alphablueprint.zaubertisch).
 
 ## Setup
 

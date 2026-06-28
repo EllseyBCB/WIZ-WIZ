@@ -1,7 +1,7 @@
 {
-  "name": "Zauberstich",
-  "short_name": "Zauberstich",
-  "description": "Zauberstich – das Stichspiel: Solo gegen Computer oder online mit Freunden.",
+  "name": "Zaubertisch",
+  "short_name": "Zaubertisch",
+  "description": "Zaubertisch – das Stichspiel: Solo gegen Computer oder online mit Freunden.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

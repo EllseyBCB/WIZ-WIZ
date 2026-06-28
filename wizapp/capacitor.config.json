@@ -1,6 +1,6 @@
 {
-  "appId": "de.alphablueprint.zauberstich",
-  "appName": "Zauberstich",
+  "appId": "de.alphablueprint.zaubertisch",
+  "appName": "Zaubertisch",
   "webDir": "www",
   "server": {
     "androidScheme": "https"
