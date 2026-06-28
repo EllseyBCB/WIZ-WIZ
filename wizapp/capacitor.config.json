@@ -1,6 +1,6 @@
 {
-  "appId": "de.alphablueprint.wizwiz",
-  "appName": "Wiz Wiz",
+  "appId": "de.alphablueprint.zauberstich",
+  "appName": "Zauberstich",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

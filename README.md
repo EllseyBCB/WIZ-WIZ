@@ -1,6 +1,7 @@
-# Wiz Wiz – Online-Kartenspiel (Wizard-Klon)
+# Zauberstich – Online-Kartenspiel
 
-Eigenständige Web-App (Vanilla HTML/JS, kein Build-Schritt) mit Supabase-Backend.
+Eigenständiges Stich-/Ansage-Kartenspiel als Web-App (Vanilla HTML/JS, kein
+Build-Schritt) mit Supabase-Backend.
 Spielbar **solo gegen Computer-Gegner** oder **online mit Freunden** (jeder am
 eigenen Gerät, server-autoritativ über Postgres-Funktionen + Realtime).
 
@@ -19,7 +20,7 @@ eigenen Gerät, server-autoritativ über Postgres-Funktionen + Realtime).
   Migrationen (Profile/Avatare, Freunde, Gruppen, Einladungen, Avatar-Storage,
   Account-Löschung).
 - **wizapp/** – Capacitor-Gerüst für die native App-Store-Version
-  (de.alphablueprint.wizwiz).
+  (de.alphablueprint.zauberstich).
 
 ## Setup
 
@@ -33,7 +34,7 @@ eigenen Gerät, server-autoritativ über Postgres-Funktionen + Realtime).
 
 ## Features (Stand dieses Backups)
 
-- Offizielle Wizard-Regeln inkl. Hook-/Vorhand-Regel (Ansagesumme ≠ Stichzahl).
+- Klassische Stich-/Ansage-Regeln inkl. Hook-/Vorhand-Regel (Ansagesumme ≠ Stichzahl).
 - Zauberer als Trumpf = Farbe des Zauberers (Z1 Blau, Z2 Rot, Z3 Gelb, Z4 Grün).
 - Tisch mit Spielern rundherum, Profilbildern/Avataren (Solo + Online),
   Austeil-Animation (Karten erscheinen erst nach dem Austeilen),

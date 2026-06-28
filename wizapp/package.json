@@ -1,8 +1,8 @@
 {
-  "name": "wizwiz-app",
+  "name": "zauberstich-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Native Verpackung (Capacitor) der Wiz-Wiz-Web-App inkl. AdMob",
+  "description": "Native Verpackung (Capacitor) der Zauberstich-Web-App inkl. AdMob",
   "scripts": {
     "sync:web": "node sync-web.mjs",
     "add:ios": "npm run sync:web && npx cap add ios",
