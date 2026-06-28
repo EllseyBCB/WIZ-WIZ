@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Wiz Wiz – Online spielen</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#100a22">
+<meta name="apple-mobile-web-app-title" content="Wiz Wiz">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%A7%99%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --akzent: #a78bfa;
+    --akzent-weich: rgba(167,139,250,.16);
+    --text: rgba(255,255,255,.90);
+    --muted: rgba(255,255,255,.52);
+    --karte: rgba(24,16,46,.60);
+    --rand: rgba(255,255,255,.12);
+    --font-myth: 'Cinzel', Georgia, 'Times New Roman', serif;
+    --gold: #e9c873;
+    --goldline: #c6a24c;
+    --goldsoft: rgba(214,176,86,.8);
+  }
+  /* touch-action vererbt nicht -> auf JEDES Element, sonst zoomt iOS beim
+     Doppeltipp auf Elemente, die noch 'auto' haben. */
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  html, body { touch-action: manipulation; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0a0716;
+    color: var(--text); min-height: 100vh;
+    /* Notch / Dynamic Island: oben + seitlich auf die sichere Flaeche einruecken,
+       damit nichts hinter der iPhone-Aussparung verschwindet. */
+    padding:
+      env(safe-area-inset-top)
+      calc(14px + env(safe-area-inset-right))
+      0
+      calc(14px + env(safe-area-inset-left));
+    overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+    -webkit-user-select: none; user-select: none;   /* App-Gefühl: keine Auswahl-Highlights */
+  }
+  input, textarea, .code-big { -webkit-user-select: text; user-select: text; }
+  main { max-width: 640px; margin: 0 auto; }
+
+  /* Thematischer Sternenhimmel-Hintergrund (fix hinter allem) */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -2;
+    background: url('./lobby/bg.jpg?v=2') center top / cover no-repeat;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: -1;
+    background: linear-gradient(180deg, rgba(20,14,44,.50) 0%, rgba(10,7,22,.74) 60%, rgba(8,5,18,.86) 100%);
+  }
+
+  /* ===== Lobby-Kopf (Titel + Aktionen) ===== */
+  header.lobby-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; max-width: 640px; margin: 0 auto; padding: 14px 2px 4px;
+  }
+  .lh-text h1 {
+    font-size: 1.95rem; font-weight: 800; letter-spacing: .3px; line-height: 1.1;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .lh-text h1 .wiz { font-size: 1.5rem; filter: drop-shadow(0 0 10px rgba(167,139,250,.7)); }
+  .lh-text p { color: var(--muted); font-size: .8rem; margin-top: 4px; }
+  .lh-actions { display: flex; gap: 8px; margin-top: 4px; flex-shrink: 0; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--rand);
+    background: rgba(255,255,255,.06); color: var(--text); font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .2s;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,.13); }
+
+  /* Titel-Banner (Bild ersetzt Schrift + Untertitel) */
+  header.banner-head { position: relative; display: block; padding: 6px 0 2px; }
+  .title-banner {
+    width: 100%; max-width: 640px; display: block; margin: 0 auto; border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  header.banner-head .lh-actions { position: absolute; top: 16px; right: 12px; margin: 0; z-index: 2; }
+
+  .view { display: none; }
+  .view.active { display: block; animation: fade .3s ease; }
+  @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+  .panel {
+    background: var(--karte); border: 2px solid var(--goldline);
+    border-radius: 16px; padding: 16px; margin: 12px 0;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.5), inset 0 0 20px rgba(0,0,0,.32), 0 5px 16px rgba(0,0,0,.45);
+  }
+  /* Frosted-Glass ueber dem thematischen Hintergrund */
+  .panel, .name-panel, .friend, .group-item, .hist, .account-card,
+  #profile-card, #identity-card {
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  /* Sternenhimmel auf den schlichten Kacheln (passend zum Banner) */
+  .panel:not(.deco), .friend, .group-item, .hist {
+    background-image:
+      linear-gradient(rgba(20,13,40,.52), rgba(12,8,26,.66)),
+      url('./lobby/stars.jpg?v=2');
+    background-size: cover; background-position: center;
+  }
+  .panel h2 { font-size: 1.15rem; margin-bottom: 6px; }
+  .panel h3 { font-size: .98rem; margin-bottom: 10px; }
+  .muted { color: var(--muted); font-size: .85rem; }
+  label { display: block; font-size: .8rem; color: var(--muted); margin: 10px 0 4px; }
+
+  input, select {
+    width: 100%; padding: 12px; border-radius: 11px;
+    border: 1.5px solid var(--goldsoft); background: rgba(6,4,16,.5);
+    color: var(--text); font-size: 1rem;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(233,200,115,.25); }
+  input::placeholder { color: rgba(255,255,255,.3); }
+
+  .btn {
+    display: inline-block; padding: 12px 18px; border: 1.5px solid var(--goldsoft); border-radius: 30px;
+    font-size: .95rem; font-weight: 700; cursor: pointer;
+    background: var(--akzent); color: #1a1033; transition: opacity .2s, filter .2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .btn:hover { opacity: .92; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.sekundaer { background: rgba(255,255,255,.12); color: var(--text); }
+  .small-btn { font-size: .82rem; padding: 9px 14px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+
+  .code-big {
+    font-size: 2.2rem; font-weight: 800; letter-spacing: .35rem;
+    text-align: center; color: var(--akzent); margin: 6px 0 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .roster { list-style: none; margin: 8px 0; }
+  .roster li { padding: 7px 4px; border-bottom: 1px solid var(--rand); }
+  .you { color: var(--akzent); font-size: .8rem; }
+
+  /* ===== Lobby (Startseite) ===== */
+  #home-view { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .pane { display: none; }
+  .pane.active { display: block; animation: fade .25s ease; }
+  .pane-title { font-size: 1.2rem; font-weight: 700; margin: 14px 2px 6px; display: flex; align-items: center; gap: 9px;
+    font-family: var(--font-myth); color: var(--gold); letter-spacing: .4px; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .pane-title.sub { font-size: 1.02rem; margin-top: 20px; }
+  img.title-ic { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+  /* Mystische Schrift + Gold fuer Ueberschriften */
+  .panel h2, .panel h3, .modal-card h2 {
+    font-family: var(--font-myth); color: var(--gold); letter-spacing: .3px; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+  }
+  .parchment h3 { color: #3a280f; text-shadow: none; }   /* auf Pergament dunkel lassen */
+  /* Gold-Rahmen fuer Listenkarten + Gold-Flourish hinter den Titeln */
+  .friend, .group-item, .hist { border: 1.5px solid var(--goldsoft); }
+  .pane-title::after, .panel.deco h2::after {
+    content: ""; flex: 1; height: 2px; align-self: center; margin-left: 9px; border-radius: 2px; min-width: 16px;
+    background: linear-gradient(90deg, var(--goldsoft), rgba(214,176,86,0));
+  }
+  .pane-sub { margin: 0 2px 6px; }
+  .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+  /* Verlauf-Karten */
+  .hist {
+    background: var(--karte); border: 1px solid var(--rand); border-radius: 16px; padding: 14px;
+  }
+  .hist-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .hist-date { color: var(--muted); font-size: .76rem; }
+  .hist-winner { font-weight: 700; font-size: .98rem; }
+  .hist-winner .crown { margin-right: 5px; }
+  .hist-winner .pts { color: var(--akzent); font-weight: 800; }
+  .hist-players { list-style: none; margin: 8px 0 0; }
+  .hist-players li {
+    display: flex; justify-content: space-between; gap: 8px; padding: 5px 2px;
+    border-top: 1px solid var(--rand); font-size: .88rem;
+  }
+  .hist-players li:first-child { border-top: none; }
+  .hist-players .rank { color: var(--muted); width: 1.6em; flex-shrink: 0; }
+  .hist-players .pname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-players .pscore { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hist-players li.me { color: var(--akzent); }
+  .hist-players li.me .pscore { color: var(--akzent); }
+  .hist-players li.top .pname::after { content: " 👑"; }
+
+  /* Profil + Freunde */
+  .code-share { display: flex; align-items: center; gap: 10px; }
+  .code-pill {
+    flex: 1; text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: .3rem;
+    color: var(--akzent); background: rgba(0,0,0,.28); border: 1px solid var(--rand);
+    border-radius: 12px; padding: 10px 6px; font-variant-numeric: tabular-nums;
+    -webkit-user-select: all; user-select: all;
+  }
+  .add-friend-row { display: flex; gap: 8px; align-items: stretch; }
+  .add-friend-row input { flex: 1; }
+  .add-friend-row .btn, .code-share .btn { white-space: nowrap; align-self: stretch; }
+
+  .friend {
+    display: flex; align-items: center; gap: 12px; background: var(--karte);
+    border: 1px solid var(--rand); border-radius: 14px; padding: 11px 14px;
+  }
+  .friend-av {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--akzent-weich); color: var(--akzent); font-weight: 800;
+  }
+  .friend-main { flex: 1; min-width: 0; }
+  .friend-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .friend-stats { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+  .friend-rm { color: var(--muted); background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; }
+  .friend-rm:hover { color: #f4878b; }
+
+  .empty-note { color: var(--muted); text-align: center; padding: 22px 10px; font-size: .9rem; }
+
+  /* Gruppen */
+  .group-item {
+    display: flex; align-items: center; gap: 12px; background: var(--karte);
+    border: 1px solid var(--rand); border-radius: 14px; padding: 12px 14px; cursor: pointer;
+    transition: background .15s;
+  }
+  .group-item:hover { background: rgba(255,255,255,.10); }
+  .group-ic { font-size: 1.3rem; flex-shrink: 0; }
+  .group-main { flex: 1; min-width: 0; }
+  .group-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group-sub { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+  .group-chev { color: var(--muted); font-size: 1.1rem; }
+
+  .gm-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .gm-head h2 { font-size: 1.2rem; }
+  .gm-head .icon-btn { width: 34px; height: 34px; font-size: .95rem; }
+  .standings { list-style: none; margin: 4px 0 14px; }
+  .standings li {
+    display: flex; align-items: center; gap: 10px; padding: 8px 4px;
+    border-top: 1px solid var(--rand); font-size: .92rem;
+  }
+  .standings li:first-child { border-top: none; }
+  .standings .place { width: 1.7em; text-align: center; font-weight: 800; flex-shrink: 0; }
+  .standings .st-av { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; background: var(--akzent-weich); font-size: .95rem; }
+  .standings .st-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .standings .st-name.me { color: var(--akzent); font-weight: 700; }
+  .standings .st-wins { font-weight: 800; }
+  .standings .st-games { color: var(--muted); font-size: .78rem; margin-left: 6px; }
+  .standings .st-rm { color: var(--muted); background: none; border: none; font-size: 1rem; cursor: pointer; padding: 2px 4px; }
+  .standings .st-rm:hover { color: #f4878b; }
+  .gm-add { display: flex; gap: 8px; margin: 4px 0 14px; }
+  .gm-add select { flex: 1; }
+
+  /* Identitaet: Avatar + Benutzername */
+  .ident-head { display: flex; gap: 14px; align-items: flex-start; }
+  .ident-avatar {
+    width: 62px; height: 62px; border-radius: 50%; flex-shrink: 0; line-height: 1;
+    border: 1px solid var(--rand); background: var(--akzent-weich);
+    font-size: 2rem; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: filter .15s, box-shadow .15s; position: relative;
+  }
+  .ident-avatar:hover { filter: brightness(1.12); }
+  .ident-avatar::after {
+    content: "✎"; position: absolute; right: -2px; bottom: -2px;
+    width: 22px; height: 22px; border-radius: 50%; font-size: .7rem;
+    background: var(--akzent); color: #1a1033; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }
+  .ident-main { flex: 1; min-width: 0; }
+  .ident-name-row { display: flex; gap: 8px; }
+  .ident-name-row input { flex: 1; min-width: 0; }
+  .ident-name-row .btn { white-space: nowrap; }
+  #avatar-tools[hidden] { display: none; }
+  .avatar-or { text-align: center; color: var(--muted); font-size: .76rem; margin: 12px 0 8px; }
+  .avatar-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+  .av-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  .friend-av { overflow: hidden; }
+  .friend-invite {
+    background: var(--akzent); color: #1a1033; border: none; border-radius: 20px;
+    font-size: .95rem; padding: 7px 11px; cursor: pointer; flex-shrink: 0;
+  }
+  .friend-invite:hover { filter: brightness(1.08); }
+  .friend-invite:disabled { opacity: .5; cursor: default; }
+
+  /* Einladungs-Banner (eingehende Einladung) */
+  .invite-banner {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    top: calc(env(safe-area-inset-top) + 8px); z-index: 70;
+    width: calc(100% - 24px); max-width: 460px;
+    background: linear-gradient(180deg, #2a1f54, #1d1640);
+    border: 1px solid var(--akzent); border-radius: 16px; padding: 12px 14px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.55);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    animation: fade .25s ease;
+  }
+  .invite-banner[hidden] { display: none; }
+  .ib-text { flex: 1; min-width: 140px; font-size: .92rem; }
+  .ib-actions { display: flex; gap: 8px; }
+  .avatar-opt {
+    aspect-ratio: 1; border: 1px solid var(--rand); border-radius: 12px; padding: 0;
+    background: rgba(0,0,0,.22); font-size: 1.5rem; cursor: pointer; line-height: 1;
+    display: flex; align-items: center; justify-content: center; transition: background .15s, box-shadow .15s;
+  }
+  .avatar-opt:hover { background: var(--akzent-weich); }
+  .avatar-opt.sel { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent); background: var(--akzent-weich); }
+
+  /* Konto / E-Mail-Login */
+  .acct-status { display: flex; align-items: center; gap: 8px; font-size: .92rem; margin-bottom: 4px; }
+  .acct-status .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .acct-status .dot.on { background: #6ee7a8; box-shadow: 0 0 8px rgba(110,231,168,.6); }
+  .acct-status .dot.off { background: rgba(255,255,255,.32); }
+  .acct-status b { word-break: break-all; }
+  .acct-pending { color: #ffd66b; font-size: .82rem; margin: 4px 0 10px; }
+  .acct-note { color: var(--muted); font-size: .8rem; margin-top: 10px; line-height: 1.4; }
+  .auth-fields label { margin-top: 10px; }
+  .auth-fields .row { margin-top: 12px; }
+  .auth-fields .btn { flex: 1; }
+  .field-label { display: block; font-size: .82rem; color: var(--muted); margin: 14px 2px 6px; }
+
+  /* Namensfeld mit Zauberer-Icon + Stift */
+  .name-panel { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin: 0 0 4px; }
+  .name-panel .np-emoji { font-size: 1.3rem; filter: drop-shadow(0 0 6px rgba(167,139,250,.6)); }
+  img.np-emoji { width: 38px; height: 38px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 0 6px rgba(167,139,250,.45)); }
+  .name-panel input {
+    flex: 1; border: none; background: transparent; padding: 4px 0; font-size: 1.05rem;
+    font-weight: 600; color: var(--text);
+  }
+  .name-panel input:focus { outline: none; }
+  .name-panel .np-pencil { font-size: 1rem; opacity: .6; }
+
+  /* Aktions-Panels als durchgehende Kachel-Bilder (Sternenhimmel + Motiv) */
+  .panel.deco {
+    position: relative; overflow: hidden; min-height: 140px;
+    background-color: #160f2e;
+    background-repeat: no-repeat; background-size: cover; background-position: right center;
+    border-color: rgba(255,255,255,.08);
+  }
+  .panel.deco .panel-body { position: relative; z-index: 2; max-width: 62%; }
+  .panel.deco h2 { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .panel.deco h2 .ph-ic { font-size: 1.05rem; }
+  img.ph-ic { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+  .deco-solo   { background-image: url('./lobby/solo_tile.jpg?v=2'); }
+  .deco-online { background-image: url('./lobby/online_tile.jpg?v=2'); }
+  .deco-join   { background-image: url('./lobby/join_tile.jpg?v=2'); }
+  /* Solo: Auswahlfelder breiter, rechts bleibt Platz fuer Kugel/Karten */
+  .panel.deco.wide-body .panel-body { max-width: 100%; padding-right: 96px; }
+  .panel.deco.wide-body .panel-body > p,
+  .panel.deco.wide-body .panel-body > .btn { max-width: 66%; }
+
+  .two-col { display: flex; gap: 8px; position: relative; z-index: 2; }
+  .two-col > div { flex: 1; min-width: 0; }
+  .two-col select { padding-left: 9px; padding-right: 6px; }
+  /* Beschriftungen einzeilig + gleiche Hoehe -> beide Auswahlfelder sitzen
+     exakt auf einer Zeile nebeneinander. */
+  .two-col label { margin-top: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .panel.deco .btn { margin-top: 14px; }
+  .btn .b-ic { margin-right: 5px; }
+
+  /* Untere Tab-Leiste */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; justify-content: space-around; align-items: stretch;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(16,10,34,.93); border-top: 1px solid var(--rand);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  }
+  .tab {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: .7rem; font-weight: 600; padding: 4px 20px;
+  }
+  .tab .tab-ic { width: 30px; height: 30px; object-fit: contain; display: block; opacity: .58; filter: saturate(.85) brightness(.92); transition: opacity .15s, filter .15s, transform .15s; }
+  .tab.active { color: var(--akzent); }
+  .tab.active .tab-ic { opacity: 1; transform: translateY(-1px); filter: drop-shadow(0 0 7px rgba(167,139,250,.75)); }
+
+  /* Hilfe-Overlay */
+  .modal {
+    position: fixed; inset: 0; z-index: 60; display: flex; align-items: center;
+    justify-content: center; padding: 22px;
+    background: rgba(8,5,18,.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  }
+  .modal[hidden] { display: none; }
+  .modal-card {
+    background: linear-gradient(180deg, #1c1440, #140d2c); border: 1px solid var(--rand);
+    border-radius: 20px; padding: 22px; max-width: 420px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .modal-card { position: relative; }
+  .modal-x {
+    position: sticky; top: -4px; float: right; margin: -6px -6px 4px 8px;
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid var(--rand); background: rgba(255,255,255,.08); color: var(--text);
+    font-size: .95rem; cursor: pointer; z-index: 3; line-height: 1;
+  }
+  .modal-x:hover { background: rgba(255,255,255,.16); }
+  .modal-card h2 { font-size: 1.2rem; margin-bottom: 12px; }
+  .modal-card ul { margin: 0 0 16px 18px; }
+  .modal-card li { font-size: .88rem; color: var(--text); margin: 7px 0; line-height: 1.4; }
+  .modal-card .btn { width: 100%; }
+
+  /* Einstellungen */
+  .set-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 16px 0; }
+  .set-label { font-size: .98rem; color: var(--text); font-weight: 600; }
+  .set-note { font-size: .78rem; margin: 4px 0 16px; }
+  .set-row input[type=range] {
+    flex: 1; height: 6px; -webkit-appearance: none; appearance: none;
+    background: linear-gradient(90deg, var(--gold), var(--goldline)); border-radius: 6px; outline: none;
+  }
+  .set-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: #f3e7c4; border: 2px solid var(--goldline); box-shadow: 0 2px 6px rgba(0,0,0,.5); cursor: pointer;
+  }
+  .set-row input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%; background: #f3e7c4;
+    border: 2px solid var(--goldline); box-shadow: 0 2px 6px rgba(0,0,0,.5); cursor: pointer;
+  }
+  .switch {
+    width: 56px; height: 30px; border-radius: 16px; border: 2px solid var(--goldline);
+    background: #2a2147; position: relative; cursor: pointer; padding: 0; flex-shrink: 0;
+    transition: background .18s ease;
+  }
+  .switch[aria-checked="true"] { background: linear-gradient(90deg, var(--goldline), var(--gold)); }
+  .switch-knob {
+    position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%;
+    background: #f3e7c4; transition: left .18s ease; box-shadow: 0 1px 4px rgba(0,0,0,.5);
+  }
+  .switch[aria-checked="true"] .switch-knob { left: 30px; }
+
+  /* Rechtliches / Konto */
+  .set-subtitle { font-family: var(--font-myth); color: var(--gold); font-size: 1rem;
+    margin: 20px 0 8px; letter-spacing: .3px; }
+  .legal-links { display: flex; flex-direction: column; gap: 8px; }
+  .legal-link {
+    display: block; width: 100%; text-align: left; padding: 11px 14px; border-radius: 11px;
+    border: 1px solid var(--goldsoft); background: rgba(6,4,16,.45); color: var(--text);
+    font-size: .92rem; cursor: pointer; transition: background .15s;
+  }
+  .legal-link:hover { background: rgba(255,255,255,.08); }
+  .legal-link.danger { color: #ff8a8a; border-color: rgba(229,72,77,.55); }
+  .legal-card { max-height: 86vh; display: flex; flex-direction: column; }
+  .legal-body {
+    overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 4px 0 14px; padding-right: 6px;
+    font-size: .84rem; line-height: 1.55; color: var(--text);
+  }
+  .legal-body h3 { font-size: .92rem; color: var(--gold); margin: 14px 0 4px; font-family: var(--font-myth); }
+  .legal-body p { margin: 6px 0; }
+  .legal-body ul { margin: 6px 0 6px 18px; }
+  .legal-body li { margin: 4px 0; }
+  .legal-body a { color: var(--akzent); }
+  .legal-stand { margin-top: 14px; font-size: .76rem; color: var(--muted); }
+  .inline-link { background: none; border: none; padding: 0; color: var(--akzent);
+    font: inherit; text-decoration: underline; cursor: pointer; }
+  .btn.danger-btn { background: #e5484d; color: #fff; border-color: rgba(229,72,77,.6); }
+  .mydata-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+  .mydata-grid dt { color: var(--muted); }
+  .mydata-grid dd { color: var(--text); word-break: break-all; }
+
+  /* "Weiterspielen"-Leiste auf der Startseite */
+  #resume-bar { margin: 12px 0 4px; display: flex; flex-direction: column; gap: 10px; }
+  .resume-card {
+    display: flex; align-items: center; gap: 10px;
+    border-color: var(--gold);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.5), 0 0 16px rgba(233,200,115,.25), 0 5px 16px rgba(0,0,0,.45);
+  }
+  .resume-main { flex: 1; min-width: 0; }
+  .resume-title { font-family: var(--font-myth); color: var(--gold); font-size: 1rem; }
+  .resume-sub { color: var(--muted); font-size: .78rem; margin-top: 2px; }
+  .resume-x {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid var(--rand); background: rgba(255,255,255,.06); color: var(--muted);
+    font-size: .85rem; cursor: pointer;
+  }
+  .resume-x:hover { background: rgba(255,255,255,.13); color: var(--text); }
+
+  /* Tisch */
+  .table-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .9rem; }
+  .phase-tag { background: var(--akzent-weich); color: var(--akzent); padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+  .swatch { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: middle; }
+
+  .seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 12px 0; }
+  .seat { background: var(--karte); border: 1px solid var(--rand); border-radius: 14px; padding: 10px; font-size: .85rem; }
+  .seat.turn { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent); }
+  .seat.me .seat-name { color: var(--akzent); }
+  .seat.offline { opacity: .5; }
+  .seat-name { font-weight: 600; }
+  .seat-stats { color: var(--muted); margin-top: 4px; }
+  .seat-stats .score { float: right; font-weight: 700; color: var(--text); }
+
+  .trick-area h3 { margin-bottom: 8px; }
+  .trick-cards { display: flex; gap: 8px; flex-wrap: wrap; min-height: 80px; align-items: center; }
+  .trick-slot { text-align: center; }
+  .trick-slot.winner .wcard { outline: 3px solid var(--akzent); border-radius: 9px; }
+  .trick-name { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+  .hint { text-align: center; color: var(--muted); }
+  .trump-row .trump-btn { color: #fff; flex: 1; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .bid-row { gap: 8px; }
+  .bid-num {
+    background: var(--trumpcol, #5b4b8a); color: #fff; min-width: 50px;
+    font-weight: 800; font-size: 1.05rem; border: 2px solid rgba(0,0,0,.28);
+    text-shadow: 0 1px 2px rgba(0,0,0,.55); box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  }
+  .bid-num:hover:not(:disabled) { filter: brightness(1.14); transform: translateY(-1px); }
+  .bid-num:disabled, .bid-num.disabled {
+    background: #cbb98f; color: #6b5836; border-color: #ab8e57; opacity: .7;
+    text-shadow: none; box-shadow: none;
+  }
+
+  /* Karten */
+  .hand { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 14px 0; }
+  /* feste Hoehe, Breite folgt dem Bild -> alle Karten gleich hoch,
+     unabhaengig vom Seitenverhaeltnis (Zauberer/Narr/11er) */
+  .wcard {
+    height: 124px; width: auto; padding: 0; border: none; background: #0c0a18;
+    cursor: default; border-radius: 9px; line-height: 0; overflow: hidden;
+  }
+  /* kleine Karten (Stich/Trumpf): feste Groesse -> alle gleich, egal welches
+     Seitenverhaeltnis das Bild hat (Zauberer sind etwas breiter). */
+  .wcard.small { height: 93px; width: 60px; }
+  .wcard.small .wcard-img, .wcard.small .wcard-svg { width: 100%; height: 100%; object-fit: cover; }
+  button.wcard:not(.disabled) { cursor: pointer; }
+  .wcard.disabled { opacity: .42; }
+  .wcard-svg, .wcard-img { height: 100%; width: auto; display: block; border-radius: 9px; }
+
+  /* ===== Wizard-Spieltisch ===== */
+  .wtable {
+    margin: 12px 0; padding: 10px; border-radius: 22px;
+    background:
+      repeating-linear-gradient(125deg, rgba(58,40,23,.55) 0 7px, rgba(44,29,15,.55) 7px 14px),
+      linear-gradient(160deg, #4a341c 0%, #2a1c0e 100%);
+    background-color: #33230f;
+    border: 1px solid rgba(0,0,0,.5);
+    box-shadow: 0 10px 34px rgba(0,0,0,.5), inset 0 0 0 2px rgba(196,160,96,.25);
+  }
+  .table-top {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    flex-wrap: wrap; font-size: .9rem; padding: 4px 8px 10px; color: #f0e6cf;
+  }
+  /* Groesserer Tisch-"Arena": Spieler:innen sitzen absolut in ihren Ecken. */
+  .felt {
+    position: relative; height: clamp(360px, 56vh, 540px); border-radius: 18px;
+    background:
+      radial-gradient(ellipse 72% 58% at 50% 46%, #2a8a5b 0%, #1c6f49 45%, #114f33 100%);
+    box-shadow: inset 0 0 60px rgba(0,0,0,.45), inset 0 0 0 2px rgba(196,160,96,.18);
+    overflow: hidden;
+  }
+
+  /* Sitzplaetze rund um den Tisch (per Inline-Style top/left positioniert) */
+  .seats { position: absolute; inset: 0; }
+  .seat {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 88px; text-align: center; color: #efe6d2; z-index: 2;
+  }
+  .seat-av {
+    width: 50px; height: 50px; margin: 0 auto 3px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    font-size: 1.7rem; line-height: 1;
+    background: linear-gradient(180deg, rgba(20,12,4,.9), rgba(12,8,3,.9));
+    border: 2px solid rgba(196,160,96,.45);
+    box-shadow: 0 3px 8px rgba(0,0,0,.5);
+  }
+  .seat-av .av-img { width: 100%; height: 100%; }
+  .seat.turn .seat-av { border-color: #ffd66b; box-shadow: 0 0 0 2px #ffd66b, 0 0 16px rgba(255,214,107,.55); }
+  .seat.me .seat-av { border-color: #b69cff; }
+  .seat.offline { opacity: .45; }
+  .seat-name {
+    font-weight: 700; font-size: .74rem; white-space: nowrap; max-width: 96px;
+    overflow: hidden; text-overflow: ellipsis; margin: 0 auto;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  }
+  .seat-stats { margin-top: 2px; display: flex; flex-direction: column; align-items: center; line-height: 1.12; }
+  .st-tb { font-size: .92rem; font-weight: 800; color: var(--stat, #ffd66b);
+    text-shadow: 0 0 1px rgba(0,0,0,.9), 0 1px 3px rgba(0,0,0,.85); }
+  .st-tb .sep { margin: 0 2px; color: #e7dcc0; opacity: .8; font-weight: 600; }
+  .st-score { font-size: .66rem; font-weight: 700; color: #e7dcc0; opacity: .85; }
+
+  /* Aktionsleiste zwischen Filz und Hand */
+  .action-dock { display: flex; justify-content: center; margin-top: 8px; }
+
+  /* Austeil-Animation (Overlay an document.body, fixiert ueber dem Filz) */
+  .deal-overlay { position: fixed; z-index: 58; pointer-events: auto; }
+  .deal-card { position: absolute; transform: translate(-50%, -50%);
+    transition: transform .58s cubic-bezier(.33,.8,.3,1), opacity .58s ease;
+    will-change: transform, opacity; }
+  .deal-card > .wcard { box-shadow: 0 4px 10px rgba(0,0,0,.5); }
+  @media (prefers-reduced-motion: reduce) { .deal-overlay { display: none; } }
+
+  /* Mittleres Band: Stich + Trumpf, absolut zentriert im Filz */
+  .felt-mid { position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
+    display: flex; justify-content: center; align-items: center; z-index: 1; }
+  /* Trumpf unten rechts neben dem eigenen Platz (stoert die Mitte nicht mehr) */
+  .trump-badge { position: absolute; right: 10px; bottom: 8px; text-align: center;
+    pointer-events: none; z-index: 2; }
+  .trump-badge.empty { display: none; }
+  .trump-cap { font-size: .64rem; color: #f0e6cf; margin-top: 2px; letter-spacing: .5px; }
+
+  /* Ablagestapel / Stich = Drop-Zone (kompakt, bleibt in der Mitte) */
+  .trick-pile {
+    margin: auto; min-width: 104px; min-height: 100px; padding: 8px 9px;
+    display: flex; align-items: center; justify-content: center; border-radius: 16px;
+    border: 2px dashed rgba(245,235,200,.30);
+    background: radial-gradient(circle at 50% 50%, rgba(0,0,0,.18), rgba(0,0,0,0) 70%);
+    transition: box-shadow .15s, border-color .15s, background .15s;
+  }
+  .trick-pile.drop-hot {
+    border-color: #ffd66b; border-style: solid;
+    box-shadow: 0 0 0 2px #ffd66b, 0 0 26px rgba(255,214,107,.55) inset;
+    background: radial-gradient(circle at 50% 50%, rgba(255,214,107,.18), rgba(0,0,0,0) 70%);
+  }
+  .pile-cards { display: flex; align-items: center; justify-content: center; }
+  .pile-slot { text-align: center; margin: 0 -7px; transition: transform .15s; }
+  /* Karte "landet" beim Legen in der Stichmitte */
+  @keyframes cardLand { from { opacity: 0; transform: translateY(-26px) scale(.82); } to { opacity: 1; transform: none; } }
+  .pile-slot .wcard { animation: cardLand .26s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .pile-slot .wcard { animation: none; } }
+  /* Gewinnerkarte: weicher goldener Ring (folgt den runden Ecken) statt
+     rechteckigem outline -> kein "komischer Rahmen" mehr. */
+  .pile-slot.winner .wcard { box-shadow: 0 0 0 3px #ffd66b, 0 0 16px rgba(255,214,107,.7); }
+  .pile-name { font-size: .58rem; color: #ede3c8; margin-top: 4px; max-width: 64px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: auto; margin-right: auto; }
+  .pile-empty { color: #eaf5ec; opacity: .75; text-align: center; font-weight: 600; }
+  .pile-empty small { font-weight: 400; opacity: .7; font-size: .7rem; }
+
+  /* Aktionsbereich auf dem Filz */
+  .table-action {
+    width: 100%; max-width: 460px; text-align: center; padding: 12px 14px; border-radius: 14px;
+  }
+  .table-action.hint { color: #eaf5ec; background: rgba(0,0,0,.22); font-size: .9rem; }
+  .parchment {
+    background: linear-gradient(180deg, #efe2c2, #e3d2a8); color: #2a1d0c;
+    border: 1px solid #b89b62; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  }
+  .parchment h3 { color: #3a280f; }
+  .parchment .muted { color: #6b5836; }
+
+  /* Hand als Faecher */
+  .hand-dock { position: relative; display: flex; justify-content: center; margin-top: 6px; padding: 0 6px 4px; }
+  .hand-fan { position: relative; width: 100%; max-width: 620px; min-height: 130px; }
+  .fan-card {
+    position: absolute; left: 50%; bottom: 0; transform-origin: center bottom;
+    transform: translateX(-50%) translate(var(--x,0), var(--y,0)) rotate(var(--rot,0deg));
+    transition: transform .16s ease, filter .16s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,.45); -webkit-user-select: none; user-select: none;
+  }
+  .fan-card.playable { cursor: grab; }
+  .fan-card.selected {
+    transform: translateX(-50%) translate(var(--x,0), -36px) rotate(0deg) scale(1.16) !important;
+    z-index: 1000 !important; filter: drop-shadow(0 12px 16px rgba(0,0,0,.55));
+  }
+  @media (hover: hover) {
+    .fan-card.playable:hover {
+      transform: translateX(-50%) translate(var(--x,0), -36px) rotate(0deg) scale(1.16) !important;
+      z-index: 1000 !important; filter: drop-shadow(0 12px 16px rgba(0,0,0,.55));
+    }
+  }
+  .fan-card.illegal { filter: grayscale(.65) brightness(.6); cursor: not-allowed; }
+  .fan-card.dragging-src { opacity: .25; }
+
+  /* "Alle Karten"-Button + Vollbild-Kartenansicht */
+  .hand-view-btn {
+    position: absolute; top: -16px; right: 8px; z-index: 6;
+    border: 1px solid var(--rand); background: rgba(20,13,44,.94); color: var(--text);
+    font-size: .78rem; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+    cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,.45);
+  }
+  .hand-view-btn:hover { background: rgba(44,30,86,.96); }
+  .hand-viewer .modal-card { max-width: min(560px, 94vw); }
+  .hand-viewer-title { margin: 0 0 12px; font-size: .98rem; text-align: center; color: var(--text); }
+  .hand-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 2px 0; }
+  .hand-grid .wcard { box-shadow: 0 4px 10px rgba(0,0,0,.45); }
+  .hand-grid .wcard.playable { box-shadow: 0 0 0 2px #ffd66b, 0 0 12px rgba(255,214,107,.5); cursor: pointer; }
+  .hand-grid .wcard.illegal { filter: grayscale(.65) brightness(.6); }
+
+  /* Drag-Ghost (folgt dem Cursor) */
+  .card-ghost {
+    position: fixed; left: 0; top: 0; transform: translate(-50%, -50%) rotate(-4deg) scale(1.08);
+    pointer-events: none; z-index: 9999; border-radius: 9px; overflow: hidden;
+    box-shadow: 0 16px 30px rgba(0,0,0,.6); opacity: .96;
+  }
+  .table-controls { justify-content: center; margin-top: 10px; }
+
+  /* Wertung */
+  .scoreboard { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .scoreboard th, .scoreboard td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--rand); }
+  .scoreboard th:first-child, .scoreboard td:first-child { text-align: left; color: var(--muted); }
+  .scoreboard td.pos { color: #6ee7a8; }
+  .scoreboard td.neg { color: #f4878b; }
+  .total-row td { font-weight: 800; border-top: 2px solid var(--rand); }
+
+  /* Toast */
+  /* Stich-Gewinner-Banner (waehrend der Stich-Pause) */
+  #trick-banner {
+    position: fixed; left: 50%; top: 25%; transform: translate(-50%,-50%) scale(.9);
+    z-index: 80; pointer-events: none; text-align: center; max-width: 86%;
+    background: linear-gradient(180deg, rgba(44,31,86,.96), rgba(26,18,54,.96));
+    border: 2px solid var(--gold); border-radius: 18px; padding: 16px 26px;
+    color: var(--gold); font-family: var(--font-myth); font-size: 1.4rem; line-height: 1.25;
+    box-shadow: 0 14px 40px rgba(0,0,0,.6), 0 0 26px rgba(233,200,115,.28);
+    opacity: 0; transition: opacity .22s ease, transform .22s ease;
+  }
+  #trick-banner.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  #trick-banner b { color: #fff; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: #2a2147; color: #fff; padding: 12px 18px; border-radius: 12px;
+    font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+    max-width: 90%; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,.4); z-index: 50;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { background: #5b2230; }
+  #toast.ok  { background: #1f4d36; }
+</style>
+</head>
+<body>
+
+<div id="invite-banner" class="invite-banner" hidden></div>
+
+<header class="lobby-head banner-head">
+  <img class="title-banner" src="./lobby/title.jpg?v=2" alt="Wiz Wiz – Das Stichspiel, online mit Freunden">
+  <div class="lh-actions">
+    <button class="icon-btn" id="help-btn" type="button" aria-label="Hilfe / Regeln">?</button>
+    <button class="icon-btn" id="settings-btn" type="button" aria-label="Einstellungen">⚙</button>
+  </div>
+</header>
+
+<main>
+  <!-- HOME: erstellen / beitreten -->
+  <section id="home-view" class="view active">
+    <!-- Tab: Lobby -->
+    <div id="pane-lobby" class="pane active">
+    <div id="resume-bar" hidden></div>
+    <label class="field-label" for="name-input">Dein Name</label>
+    <div class="panel name-panel">
+      <img class="np-emoji" src="./lobby/hdr_name.png?v=2" alt="" aria-hidden="true">
+      <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" readonly autocomplete="off">
+      <span class="np-pencil" aria-hidden="true">✏️</span>
+    </div>
+
+    <div class="panel deco wide-body deco-solo">
+      <div class="panel-body">
+        <h2><img class="ph-ic" src="./lobby/hdr_comp.png?v=2" alt="" aria-hidden="true"> Gegen Computer</h2>
+        <p class="muted">Allein üben gegen Computer-Gegner – ohne Anmeldung, sofort spielbar.</p>
+        <div class="two-col">
+          <div>
+            <label for="bot-count">Spieler</label>
+            <select id="bot-count">
+              <option value="2">3 Spieler</option>
+              <option value="3" selected>4 Spieler</option>
+              <option value="4">5 Spieler</option>
+              <option value="5">6 Spieler</option>
+            </select>
+          </div>
+          <div>
+            <label for="difficulty">Schwierigkeit</label>
+            <select id="difficulty">
+              <option value="easy">Leicht</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Schwer (zählt Karten mit)</option>
+            </select>
+          </div>
+        </div>
+        <button id="local-btn" class="btn"><span class="b-ic" aria-hidden="true">▶</span>Solo starten</button>
+      </div>
+    </div>
+
+    <div class="panel deco deco-online">
+      <div class="panel-body">
+        <h2><img class="ph-ic" src="./lobby/hdr_online.png?v=2" alt="" aria-hidden="true"> Neues Spiel (online)</h2>
+        <label for="max-players">Maximale Spielerzahl</label>
+        <select id="max-players">
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6" selected>6</option>
+        </select>
+        <button id="create-btn" class="btn"><span class="b-ic" aria-hidden="true">✦</span>Spiel erstellen</button>
+      </div>
+    </div>
+
+    <div class="panel deco deco-join">
+      <div class="panel-body">
+        <h2><img class="ph-ic" src="./lobby/hdr_join.png?v=2" alt="" aria-hidden="true"> Beitreten</h2>
+        <label for="code-input">Spiel-Code</label>
+        <input id="code-input" type="text" maxlength="6" placeholder="z. B. KX7QPM" readonly
+               autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2rem">
+        <button id="join-btn" class="btn sekundaer">Beitreten</button>
+      </div>
+    </div>
+    </div><!-- /pane-lobby -->
+
+    <!-- Tab: Spiele (Verlauf) -->
+    <div id="pane-spiele" class="pane">
+      <h2 class="pane-title"><img class="title-ic" src="./lobby/ic_verlauf.png?v=2" alt="" aria-hidden="true">Spielverlauf</h2>
+      <p class="muted pane-sub">Deine abgeschlossenen Online-Spiele – wer gewonnen hat und mit wie vielen Punkten.</p>
+      <div id="history-list" class="stack"></div>
+    </div>
+
+    <!-- Tab: Profil (eigener Code + Freunde) -->
+    <div id="pane-profil" class="pane">
+      <h2 class="pane-title"><img class="title-ic" src="./lobby/hdr_profil.png?v=2" alt="" aria-hidden="true">Profil</h2>
+
+      <div class="panel" id="identity-card">
+        <div class="ident-head">
+          <button class="ident-avatar" id="avatar-current" type="button" aria-label="Profilbild ändern">🧙</button>
+          <div class="ident-main">
+            <label class="field-label" style="margin-top:0" for="username-input">Benutzername</label>
+            <div class="ident-name-row">
+              <input id="username-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
+              <button id="save-username" class="btn small-btn" type="button">Speichern</button>
+            </div>
+            <p class="muted" style="font-size:.78rem;margin-top:6px">So sehen dich deine Freunde. Tippe auf das Bild, um den Avatar zu wählen.</p>
+          </div>
+        </div>
+        <div id="avatar-tools" hidden>
+          <button id="upload-avatar" class="btn sekundaer small-btn" type="button" style="width:100%;margin-top:14px">📷 Eigenes Foto hochladen</button>
+          <input id="avatar-file" type="file" accept="image/*" hidden>
+          <div class="avatar-or">oder ein Symbol wählen</div>
+          <div id="avatar-picker" class="avatar-picker"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="account-card">
+        <label class="field-label" style="margin-top:0">Konto</label>
+        <div id="account-box"><p class="muted">Lädt…</p></div>
+      </div>
+      <div class="panel" id="profile-card">
+        <label class="field-label" style="margin-top:0">Dein Freundescode</label>
+        <p class="muted" style="margin-bottom:8px">Teile diesen Code mit Freunden, damit sie dich hinzufügen können.</p>
+        <div class="code-share">
+          <span id="my-code" class="code-pill">······</span>
+          <button id="copy-code" class="btn sekundaer small-btn" type="button">Kopieren</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <label class="field-label" style="margin-top:0" for="friend-code-input">Freund:in hinzufügen</label>
+        <div class="add-friend-row">
+          <input id="friend-code-input" type="text" maxlength="6" placeholder="Code z. B. KX7QPM"
+                 autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.18rem">
+          <button id="add-friend-btn" class="btn small-btn" type="button">Hinzufügen</button>
+        </div>
+      </div>
+
+      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic_freunde.png?v=2" alt="" aria-hidden="true">Freunde</h3>
+      <div id="friends-list" class="stack"></div>
+
+      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic_gruppen.png?v=2" alt="" aria-hidden="true">Gruppen</h3>
+      <p class="muted pane-sub">Spielt nur eure Gruppe zusammen, zählen Siege in die Rangliste.</p>
+      <div class="panel">
+        <label class="field-label" style="margin-top:0" for="group-name-input">Neue Gruppe</label>
+        <div class="add-friend-row">
+          <input id="group-name-input" type="text" maxlength="24" placeholder="z. B. Freitagsrunde" autocomplete="off">
+          <button id="create-group-btn" class="btn small-btn" type="button">Erstellen</button>
+        </div>
+      </div>
+      <div id="groups-list" class="stack"></div>
+    </div>
+
+    <!-- Untere Navigations-Leiste -->
+    <nav class="tabbar">
+      <button class="tab active" type="button" data-tab="lobby"><img class="tab-ic" src="./lobby/lobby_ic.png?v=2" alt="" aria-hidden="true">Lobby</button>
+      <button class="tab" type="button" data-tab="spiele"><img class="tab-ic" src="./lobby/spiele_ic.png?v=2" alt="" aria-hidden="true">Spiele</button>
+      <button class="tab" type="button" data-tab="profil"><img class="tab-ic" src="./lobby/profil_ic.png?v=2" alt="" aria-hidden="true">Profil</button>
+    </nav>
+  </section>
+
+  <!-- SPIEL -->
+  <section id="game-view" class="view"></section>
+</main>
+
+<!-- Gruppen-Detail (Rangliste + Verwaltung) -->
+<div id="group-modal" class="modal" hidden>
+  <div class="modal-card">
+    <div class="gm-head">
+      <h2 id="gm-title">Gruppe</h2>
+      <button class="icon-btn" id="gm-close" type="button" aria-label="Schließen">✕</button>
+    </div>
+    <div id="gm-body"></div>
+  </div>
+</div>
+
+<!-- Hilfe / Kurzregeln -->
+<div id="help-modal" class="modal" hidden>
+  <div class="modal-card">
+    <h2>🧙 Wiz Wiz – Kurzregeln</h2>
+    <ul>
+      <li>60 Karten: 1–13 in vier Farben, dazu 4 Zauberer und 4 Narren.</li>
+      <li>Pro Runde wird je eine Karte mehr ausgeteilt; eine Karte bestimmt den Trumpf.</li>
+      <li>Sage vorher genau an, wie viele Stiche du holst.</li>
+      <li>Angespielte Farbe muss bedient werden. Zauberer gewinnt immer, Narr verliert immer.</li>
+      <li>Ansage exakt getroffen: 20 + 10 je Stich. Daneben: −10 je Stich Differenz.</li>
+    </ul>
+    <button class="btn" id="help-close" type="button">Verstanden</button>
+  </div>
+</div>
+
+<div id="settings-modal" class="modal" hidden>
+  <div class="modal-card">
+    <button class="modal-x" id="settings-x" type="button" aria-label="Schließen">✕</button>
+    <h2>⚙ Einstellungen</h2>
+    <div class="set-row">
+      <span class="set-label">🎵 Hintergrundmusik</span>
+      <button id="music-toggle" class="switch" type="button" role="switch" aria-checked="true" aria-label="Musik an/aus"><span class="switch-knob"></span></button>
+    </div>
+    <div class="set-row">
+      <label class="set-label" for="music-volume">Lautstärke</label>
+      <input id="music-volume" type="range" min="0" max="100" step="1" value="40">
+    </div>
+    <div class="set-row">
+      <span class="set-label">🔔 Soundeffekte &amp; Vibration</span>
+      <button id="sfx-toggle" class="switch" type="button" role="switch" aria-checked="true" aria-label="Effekte an/aus"><span class="switch-knob"></span></button>
+    </div>
+    <div class="set-row">
+      <label class="set-label" for="sfx-volume">Effekt-Lautstärke</label>
+      <input id="sfx-volume" type="range" min="0" max="100" step="1" value="60">
+    </div>
+    <div class="set-row">
+      <span class="set-label">📣 „Du bist dran"-Hinweis</span>
+      <button id="notif-toggle" class="switch" type="button" role="switch" aria-checked="false" aria-label="Benachrichtigungen an/aus"><span class="switch-knob"></span></button>
+    </div>
+    <p class="muted set-note">Musik &amp; Effekte werden lizenzfrei im Browser erzeugt. Der Hinweis erscheint nur, wenn die App im Hintergrund läuft.</p>
+
+    <h3 class="set-subtitle">Werbung</h3>
+    <div id="adfree-box">
+      <button class="btn" id="buy-adfree" type="button">✨ Werbefrei – 3,99 €</button>
+      <p class="muted set-note" id="adfree-note">Entfernt Banner und Vollbild-Werbung dauerhaft.</p>
+    </div>
+    <div class="set-row">
+      <span class="set-label">👁 Werbe-Vorschau (Test)</span>
+      <button id="adpreview-toggle" class="switch" type="button" role="switch" aria-checked="false" aria-label="Werbe-Vorschau an/aus"><span class="switch-knob"></span></button>
+    </div>
+    <p class="muted set-note">Nur zum Anschauen im Browser: zeigt Platzhalter, wo später echte Werbung erscheint. Echte Anzeigen gibt es nur in der App.</p>
+
+    <h3 class="set-subtitle">Rechtliches</h3>
+    <div class="legal-links">
+      <button class="legal-link" id="open-privacy" type="button">Datenschutzerklärung</button>
+      <button class="legal-link" id="open-terms" type="button">Nutzungsbedingungen</button>
+      <button class="legal-link" id="open-imprint" type="button">Impressum</button>
+    </div>
+
+    <h3 class="set-subtitle">Konto &amp; Daten</h3>
+    <div class="legal-links">
+      <button class="legal-link" id="open-mydata" type="button">Meine Daten (Auskunft)</button>
+      <button class="legal-link danger" id="open-delete" type="button">Konto löschen</button>
+    </div>
+
+    <button class="btn" id="settings-close" type="button">Fertig</button>
+  </div>
+</div>
+
+<!-- Datenschutzerklärung -->
+<div id="privacy-modal" class="modal" hidden>
+  <div class="modal-card legal-card">
+    <h2>Datenschutzerklärung</h2>
+    <div class="legal-body">
+      <p>Der Schutz deiner Daten ist uns wichtig. Nachfolgend informieren wir dich gemäß Datenschutz-Grundverordnung (DSGVO) über die Verarbeitung personenbezogener Daten in der App „Wiz Wiz".</p>
+      <h3>1. Verantwortlicher</h3>
+      <p>Alpha Blueprint Management and Consulting - FZCO<br>
+         IFZA Business Park, Dubai Digital Park, Premises No. 74057-001<br>
+         Dubai Silicon Oasis, Dubai 00000, Vereinigte Arabische Emirate<br>
+         Vertreten durch: Elia Nedvidek<br>
+         E-Mail: <a href="mailto:info@alphablueprint.de">info@alphablueprint.de</a></p>
+      <h3>2. Welche Daten wir verarbeiten</h3>
+      <ul>
+        <li><strong>Anonyme Anmeldung:</strong> eine zufällig erzeugte Nutzerkennung (keine Klardaten).</li>
+        <li><strong>E-Mail-Konto (optional):</strong> deine E-Mail-Adresse und ein verschlüsselt gespeichertes Passwort.</li>
+        <li><strong>Profil:</strong> dein selbst gewählter Anzeigename und – falls hochgeladen – ein Profilbild.</li>
+        <li><strong>Spieldaten:</strong> Spielverlauf, Punkte, Freundesliste, Gruppen, Einladungen.</li>
+        <li><strong>Lokal auf dem Gerät (localStorage):</strong> Name, Einstellungen (z. B. Musik) und Konto-Kennung.</li>
+      </ul>
+      <h3>3. Zwecke &amp; Rechtsgrundlagen</h3>
+      <p>Die Verarbeitung dient der Bereitstellung des Online-Kartenspiels, der Speicherung deiner Spielstände sowie Freundes- und Gruppenfunktionen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Nutzungsverhältnis) sowie – soweit du einwilligst – lit. a.</p>
+      <h3>4. Auftragsverarbeiter / Hosting</h3>
+      <p>Zur Speicherung und Anmeldung nutzen wir <strong>Supabase</strong> als Auftragsverarbeiter. Die App wird über <strong>GitHub Pages</strong> bereitgestellt; dabei kann technisch bedingt deine IP-Adresse verarbeitet werden. Es findet kein Werbe-Tracking statt; keine Werbe-Cookies oder Analyse-Dienste Dritter.</p>
+      <h3>5. Speicherdauer</h3>
+      <p>Wir speichern deine Daten, solange dein Konto besteht. Bei Löschung des Kontos (Einstellungen → Konto löschen) werden deine personenbezogenen Daten gelöscht.</p>
+      <h3>6. Deine Rechte</h3>
+      <p>Du hast das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21). Du kannst eine Einwilligung jederzeit widerrufen und dich bei einer Aufsichtsbehörde beschweren.</p>
+      <h3>7. Konto &amp; Daten löschen</h3>
+      <p>Du kannst dein Konto und alle Daten jederzeit selbst löschen: Einstellungen (⚙) → „Konto löschen". Alternativ per E-Mail an <a href="mailto:info@alphablueprint.de">info@alphablueprint.de</a>.</p>
+      <h3>8. Minderjährige</h3>
+      <p>Die App richtet sich nicht gezielt an Kinder unter 16 Jahren. Jüngere sollten sie nur mit Zustimmung der Erziehungsberechtigten nutzen.</p>
+      <p class="legal-stand">Stand: Juni 2026</p>
+    </div>
+    <button class="btn" data-close-legal type="button">Schließen</button>
+  </div>
+</div>
+
+<!-- Nutzungsbedingungen / EULA -->
+<div id="terms-modal" class="modal" hidden>
+  <div class="modal-card legal-card">
+    <h2>Nutzungsbedingungen</h2>
+    <div class="legal-body">
+      <h3>1. Geltungsbereich</h3>
+      <p>Diese Bedingungen regeln die Nutzung der App „Wiz Wiz", bereitgestellt von Alpha Blueprint Management and Consulting - FZCO („Anbieter").</p>
+      <h3>2. Leistung</h3>
+      <p>Die App ist ein digitales Kartenspiel (allein gegen Computer oder online mit anderen). Die Nutzung ist kostenlos. Ein Anspruch auf ständige Verfügbarkeit besteht nicht.</p>
+      <h3>3. Konto &amp; Verhalten</h3>
+      <p>Für Online-Funktionen kann ein Konto (anonym oder per E-Mail) erstellt werden. Du bist für Aktivitäten unter deinem Konto verantwortlich. Untersagt sind beleidigende, rechtswidrige oder rechteverletzende Inhalte (z. B. Namen) sowie missbräuchliche oder automatisierte Nutzung.</p>
+      <h3>4. Rechte an Inhalten</h3>
+      <p>Alle Inhalte (Software, Grafiken, Kartendesigns, Musik) sind urheberrechtlich geschützt. Eine Nutzung außerhalb der App bedarf der Zustimmung des Anbieters.</p>
+      <h3>5. Gewährleistung &amp; Haftung</h3>
+      <p>Die App wird „wie besehen" bereitgestellt. Der Anbieter haftet unbeschränkt nur bei Vorsatz und grober Fahrlässigkeit sowie nach zwingenden gesetzlichen Vorschriften; im Übrigen ist die Haftung – soweit zulässig – ausgeschlossen.</p>
+      <h3>6. Änderungen</h3>
+      <p>Der Anbieter kann App und Bedingungen anpassen, soweit dies zumutbar ist.</p>
+      <h3>7. App-Store-Vertrieb</h3>
+      <p>Bei Bezug über einen App-Store gelten ergänzend dessen Bedingungen. Der Store-Betreiber ist nicht Vertragspartner dieser Bedingungen und nicht für die App verantwortlich; Ansprüche richten sich gegen den Anbieter.</p>
+      <h3>8. Anwendbares Recht</h3>
+      <p>Es gilt das am Sitz des Anbieters anwendbare Recht, soweit dem keine zwingenden Verbraucherschutzvorschriften deines Wohnsitzlandes entgegenstehen.</p>
+      <p class="legal-stand">Stand: Juni 2026</p>
+    </div>
+    <button class="btn" data-close-legal type="button">Schließen</button>
+  </div>
+</div>
+
+<!-- Impressum -->
+<div id="imprint-modal" class="modal" hidden>
+  <div class="modal-card legal-card">
+    <h2>Impressum</h2>
+    <div class="legal-body">
+      <p><strong>Anbieter / Diensteanbieter</strong></p>
+      <p>Alpha Blueprint Management and Consulting - FZCO<br>
+         IFZA Business Park, Dubai Digital Park<br>
+         Premises No. 74057-001<br>
+         Dubai Silicon Oasis<br>
+         Dubai 00000<br>
+         Vereinigte Arabische Emirate</p>
+      <p>Freezone: IFZA</p>
+      <p><strong>Vertreten durch / Verantwortlich</strong><br>Elia Nedvidek</p>
+      <p><strong>Kontakt</strong><br>E-Mail: <a href="mailto:info@alphablueprint.de">info@alphablueprint.de</a></p>
+      <p><strong>Haftung für Inhalte</strong><br>Die Inhalte wurden mit größter Sorgfalt erstellt. Für Richtigkeit, Vollständigkeit und Aktualität kann keine Gewähr übernommen werden.</p>
+      <p><strong>Haftung für Links</strong><br>Für Inhalte externer Links ist stets der jeweilige Anbieter verantwortlich.</p>
+      <p><strong>Urheberrecht</strong><br>Spiel, Grafiken, Kartendesigns und Musik unterliegen dem Urheberrecht. Die Kartengrafiken wurden eigens erstellt, die Musik lizenzfrei im Browser erzeugt.</p>
+      <p class="legal-stand">Stand: Juni 2026</p>
+    </div>
+    <button class="btn" data-close-legal type="button">Schließen</button>
+  </div>
+</div>
+
+<!-- Meine Daten (Auskunft) -->
+<div id="mydata-modal" class="modal" hidden>
+  <div class="modal-card legal-card">
+    <h2>Meine Daten</h2>
+    <div class="legal-body" id="mydata-body">
+      <p class="muted">Lädt …</p>
+    </div>
+    <p class="muted set-note">Für eine vollständige Kopie deiner Daten (Art. 15 DSGVO) genügt eine E-Mail an <a href="mailto:info@alphablueprint.de">info@alphablueprint.de</a>.</p>
+    <button class="btn" data-close-legal type="button">Schließen</button>
+  </div>
+</div>
+
+<!-- Konto löschen -->
+<div id="delete-modal" class="modal" hidden>
+  <div class="modal-card">
+    <h2>Konto löschen</h2>
+    <p>Möchtest du dein Konto wirklich löschen? Dabei werden <strong>unwiderruflich</strong> alle Daten entfernt: Profil, Anzeigename, Avatar, Freunde, Gruppen und dein Spielverlauf.</p>
+    <div class="row" style="margin-top:18px;">
+      <button class="btn sekundaer" id="delete-cancel" type="button">Abbrechen</button>
+      <button class="btn danger-btn" id="delete-confirm" type="button">Endgültig löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Einwilligung beim ersten Start -->
+<div id="consent-modal" class="modal" hidden>
+  <div class="modal-card">
+    <h2>Willkommen bei Wiz Wiz 🧙</h2>
+    <p>Mit der Nutzung stimmst du unseren <button class="inline-link" id="consent-terms" type="button">Nutzungsbedingungen</button> und der <button class="inline-link" id="consent-privacy" type="button">Datenschutzerklärung</button> zu.</p>
+    <p class="muted set-note">Es findet kein Werbe-Tracking statt. Deine Daten dienen nur dem Spielbetrieb und können jederzeit gelöscht werden.</p>
+    <button class="btn" id="consent-accept" type="button">Zustimmen &amp; loslegen</button>
+  </div>
+</div>
+
+<script>
+  // App-Gefühl: alle Browser-Zoom-Gesten unterbinden.
+  // Pinch-Zoom (iOS):
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
+    document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  // Doppeltipp-Zoom (Safari ignoriert touch-action hier oft): den zweiten
+  // schnellen Tipp abfangen. Eingaben ausgenommen; eigene Doppeltipp-Logik
+  // laeuft ueber Pointer-Events und bleibt unberuehrt.
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const now = Date.now();
+    if (now - lastTouchEnd <= 350) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  // Beim (Wieder-)Oeffnen NICHT automatisch ins Eingabefeld springen / Tastatur
+  // zeigen. iOS stellt sonst den zuletzt fokussierten Zustand wieder her.
+  function dropFocus() {
+    const a = document.activeElement;
+    if (a && a.blur && a !== document.body) a.blur();
+  }
+  // Eingabefelder sind 'readonly' -> iOS zeigt nie automatisch eine Tastatur
+  // (auch nicht beim Wiederherstellen). Erst beim echten Antippen scharfschalten.
+  const INPUTS = ['name-input', 'code-input'];
+  function armInputs() { INPUTS.forEach(id => { const i = document.getElementById(id); if (i) i.setAttribute('readonly', 'readonly'); }); }
+  INPUTS.forEach(id => {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    const enable = () => { if (inp.hasAttribute('readonly')) { inp.removeAttribute('readonly'); inp.focus(); } };
+    inp.addEventListener('pointerdown', enable);
+    inp.addEventListener('touchstart', enable, { passive: true });
+    inp.addEventListener('mousedown', enable);
+  });
+  // Beim Hintergrund/Verlassen: Fokus loesen + Felder wieder sperren.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { dropFocus(); armInputs(); } });
+  window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
+  window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
+</script>
+<script type="module" src="./app.js?v=38"></script>
+</body>
+</html>

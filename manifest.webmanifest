@@ -1,0 +1,15 @@
+{
+  "name": "Wiz Wiz",
+  "short_name": "Wiz Wiz",
+  "description": "Wiz Wiz – das Stichspiel: Solo gegen Computer oder online mit Freunden.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15102e",
+  "theme_color": "#100a22",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
