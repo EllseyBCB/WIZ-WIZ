@@ -1,0 +1,8 @@
+{
+  "appId": "de.alphablueprint.wizwiz",
+  "appName": "Wiz Wiz",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
