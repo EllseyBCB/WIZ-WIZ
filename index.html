@@ -103,7 +103,14 @@
     display: block; margin-top: 8px; color: #cdb4ff;
     font-size: clamp(12px, 3.4vw, 16px); letter-spacing: .5px;
   }
-  header.banner-head .lh-actions { position: absolute; top: 16px; right: 12px; margin: 0; z-index: 2; }
+  /* Banner zeigt "?" und "⚙" bereits als Grafik – echte Buttons liegen als
+     transparente Klickflaechen passgenau darueber (prozentual, skaliert mit dem Bild). */
+  header.banner-head .lh-actions { position: absolute; top: 6.5%; right: 4%; gap: 2%; margin: 0; z-index: 2; }
+  header.banner-head .icon-btn {
+    width: 5%; height: auto; aspect-ratio: 1 / 1; min-width: 0;
+    background: transparent; border: none; color: transparent;
+  }
+  header.banner-head .icon-btn:hover { background: transparent; }
 
   .view { display: none; }
   .view.active { display: block; animation: fade .3s ease; }
@@ -734,10 +741,7 @@
 <div id="invite-banner" class="invite-banner" hidden></div>
 
 <header class="lobby-head banner-head">
-  <div class="title-banner title-text" role="img" aria-label="Zaubertisch – Das Stichspiel, online mit Freunden">
-    <span class="tb-name">Zaubertisch</span>
-    <span class="tb-sub">Das Stichspiel – online mit Freunden</span>
-  </div>
+  <img class="title-banner" src="./lobby/title.png?v=1" alt="Zaubertisch – Das Stichspiel, online mit Freunden">
   <div class="lh-actions">
     <button class="icon-btn" id="help-btn" type="button" aria-label="Hilfe / Regeln">?</button>
     <button class="icon-btn" id="settings-btn" type="button" aria-label="Einstellungen">⚙</button>
