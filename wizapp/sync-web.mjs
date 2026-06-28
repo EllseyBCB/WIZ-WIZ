@@ -10,7 +10,7 @@ const DST = 'www';
 const FILES = [
   'index.html', 'manifest.webmanifest',
   'app.js', 'ads.js', 'ai.js', 'audio.js', 'cards.js', 'config.js',
-  'db.js', 'engine.js', 'game.js', 'local.js', 'table.js', 'ui.js',
+  'db.js', 'engine.js', 'game.js', 'iap.js', 'local.js', 'table.js', 'ui.js',
   'icon-180.png', 'icon-192.png', 'icon-512.png',
 ];
 const DIRS = ['cards', 'lobby'];

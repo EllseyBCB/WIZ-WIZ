@@ -8,3 +8,12 @@ export const SUPABASE_KEY = 'sb_publishable_DGG2ulMkqrCUgUrwzy0KvQ_6pPlbqrq';
 // './cards' = mitgeliefertes Deck. Leer = eingebaute SVG-Karten.
 // Bei fehlendem/totem Bild greift automatisch die SVG-Karte.
 export const CARD_IMAGE_BASE = './cards';
+
+// In-App-Kauf "Werbefrei" via RevenueCat (nur native iOS-App).
+// REVENUECAT_IOS_KEY = der oeffentliche Apple-SDK-Key aus dem RevenueCat-
+// Dashboard (Project -> API keys, beginnt mit "appl_"). Leer lassen = IAP aus.
+// IAP_ENTITLEMENT = Name des Entitlements in RevenueCat (z. B. "adfree").
+// IAP_PRODUCT_ID  = Produkt-ID in App Store Connect (optional; sonst erstes Paket).
+export const REVENUECAT_IOS_KEY = '';
+export const IAP_ENTITLEMENT = 'adfree';
+export const IAP_PRODUCT_ID = 'de.alphablueprint.zaubertisch.adfree';

@@ -5,6 +5,7 @@ import { render } from './game.js?v=33';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=22';
 import { preloadCards } from './cards.js?v=14';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
+import { initIAP, purchaseAdFree, restorePurchases, iapAvailable } from './iap.js?v=1';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
@@ -993,25 +994,43 @@ function wireSettings() {
     sfxVolEl.addEventListener('change', () => { if (sfxEnabled()) sfxCard(); });  // Hörprobe beim Loslassen
   }
 
-  // Werbefrei (vorerst ohne echtes Bezahlsystem – ein Klick schaltet frei)
+  // Werbefrei: echter In-App-Kauf via RevenueCat (nur native App). Im Browser/
+  // PWA gibt es keine Werbung -> der Kauf-Bereich wird dort ausgeblendet.
+  const adfreeBox = document.getElementById('adfree-box');
   const buyBtn = document.getElementById('buy-adfree');
+  const restoreBtn = document.getElementById('restore-adfree');
   const adNote = document.getElementById('adfree-note');
   const syncAdfree = () => {
+    if (adfreeBox && !iapAvailable() && !isAdFree()) { adfreeBox.hidden = true; return; }
+    if (adfreeBox) adfreeBox.hidden = false;
     if (!buyBtn) return;
     if (isAdFree()) {
       buyBtn.textContent = '✓ Werbefrei aktiv';
       buyBtn.disabled = true; buyBtn.classList.add('sekundaer');
+      if (restoreBtn) restoreBtn.hidden = true;
       if (adNote) adNote.textContent = 'Danke! Es wird keine Werbung mehr angezeigt.';
     } else {
       buyBtn.textContent = '✨ Werbefrei – 3,99 €';
       buyBtn.disabled = false; buyBtn.classList.remove('sekundaer');
+      if (restoreBtn) restoreBtn.hidden = false;
       if (adNote) adNote.textContent = 'Entfernt Banner und Vollbild-Werbung dauerhaft.';
     }
   };
   syncAdfree();
-  if (buyBtn) buyBtn.onclick = () => {
-    setAdFree(true); hideBanner(); syncAdfree();
-    toast('Werbefrei freigeschaltet – danke! 🎉', 'ok');
+  if (buyBtn) buyBtn.onclick = async () => {
+    buyBtn.disabled = true;
+    const r = await purchaseAdFree();
+    syncAdfree();
+    if (r.ok) { hideBanner(); toast('Werbefrei freigeschaltet – danke! 🎉', 'ok'); }
+    else if (!r.cancelled) toast('Kauf nicht möglich. Bitte später erneut versuchen.', 'err');
+  };
+  if (restoreBtn) restoreBtn.onclick = async () => {
+    restoreBtn.disabled = true;
+    const r = await restorePurchases();
+    restoreBtn.disabled = false;
+    syncAdfree();
+    if (r.ok) { hideBanner(); toast('Käufe wiederhergestellt – Werbefrei aktiv 🎉', 'ok'); }
+    else toast('Kein früherer Werbefrei-Kauf gefunden.', 'err');
   };
 
   // Werbe-Vorschau (nur Test, im Browser)
@@ -1194,8 +1213,9 @@ async function init() {
   if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 3000 });
   else setTimeout(warm, 1500);
 
-  // Werbung (nur in der nativen App) initialisieren + Banner auf der Startseite.
-  initAds().then(showBanner);
+  // In-App-Kauf (RevenueCat) initialisieren – erkennt einen frueheren Werbefrei-
+  // Kauf, BEVOR Werbung geladen wird. Danach Werbung + Banner (nur native App).
+  initIAP().finally(() => initAds().then(showBanner));
 
   // Dezenter Klick-Sound für Lobby-Aktionen (nur auf der Startseite – im Spiel
   // sorgen die eigenen Spiel-Sounds für Rückmeldung).
