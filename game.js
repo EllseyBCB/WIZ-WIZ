@@ -15,9 +15,9 @@ function inviteUrl(code) {
 }
 async function shareInvite(code) {
   const url = inviteUrl(code);
-  const text = `Spiel mit mir Wiz Wiz! Tritt meinem Spiel bei (Code ${code}): ${url}`;
+  const text = `Spiel mit mir Zaubertisch! Tritt meinem Spiel bei (Code ${code}): ${url}`;
   if (navigator.share) {
-    try { await navigator.share({ title: 'Wiz Wiz', text: `Spiel mit mir Wiz Wiz! Code ${code}`, url }); return; }
+    try { await navigator.share({ title: 'Zaubertisch', text: `Spiel mit mir Zaubertisch! Code ${code}`, url }); return; }
     catch (_) { return; }   // Nutzer hat den Teilen-Dialog abgebrochen
   }
   try { await navigator.clipboard.writeText(url); toast('Einladungs-Link kopiert – z. B. in WhatsApp einfügen', 'ok'); }

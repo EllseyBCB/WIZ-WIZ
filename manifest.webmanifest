@@ -1,7 +1,7 @@
 {
-  "name": "Wiz Wiz",
-  "short_name": "Wiz Wiz",
-  "description": "Wiz Wiz – das Stichspiel: Solo gegen Computer oder online mit Freunden.",
+  "name": "Zaubertisch",
+  "short_name": "Zaubertisch",
+  "description": "Zaubertisch – das Stichspiel: Solo gegen Computer oder online mit Freunden.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

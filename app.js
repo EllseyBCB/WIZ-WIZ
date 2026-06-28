@@ -847,7 +847,7 @@ function showInviteBanner(inv) {
   // Nicht einladen, wenn ich gerade in genau diesem Spiel bin.
   if (state.gameId && state.gameId === inv.game_id) return;
   el.innerHTML =
-    `<div class="ib-text">🎮 <b>${esc(inv.from_name || 'Jemand')}</b> lädt dich zu Wiz Wiz ein</div>` +
+    `<div class="ib-text">🎮 <b>${esc(inv.from_name || 'Jemand')}</b> lädt dich zu Zaubertisch ein</div>` +
     `<div class="ib-actions">` +
     `<button class="btn small-btn" id="ib-join" type="button">Beitreten</button>` +
     `<button class="btn sekundaer small-btn" id="ib-no" type="button">Später</button></div>`;
@@ -1047,7 +1047,7 @@ function notifyYourTurn() {
   if (!notifEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
   if (!document.hidden) return;   // nur wenn die App im Hintergrund ist
   try {
-    const n = new Notification('Wiz Wiz – du bist dran! 🧙', { body: 'Tippe, um weiterzuspielen.', tag: 'wiz-turn', icon: './icon-192.png' });
+    const n = new Notification('Zaubertisch – du bist dran! 🧙', { body: 'Tippe, um weiterzuspielen.', tag: 'wiz-turn', icon: './icon-192.png' });
     n.onclick = () => { window.focus(); n.close(); };
   } catch (_) {}
 }

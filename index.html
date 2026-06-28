@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Wiz Wiz – Online spielen</title>
+<title>Zaubertisch – Online spielen</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#100a22">
-<meta name="apple-mobile-web-app-title" content="Wiz Wiz">
+<meta name="apple-mobile-web-app-title" content="Zaubertisch">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
@@ -80,11 +80,28 @@
   }
   .icon-btn:hover { background: rgba(255,255,255,.13); }
 
-  /* Titel-Banner (Bild ersetzt Schrift + Untertitel) */
+  /* Titel-Banner (CSS-Text-Titel) */
   header.banner-head { position: relative; display: block; padding: 6px 0 2px; }
   .title-banner {
     width: 100%; max-width: 640px; display: block; margin: 0 auto; border-radius: 16px;
     box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .title-banner.title-text {
+    box-sizing: border-box; text-align: center; padding: 24px 16px 20px;
+    background: radial-gradient(120% 140% at 50% 0%, #2a1d57 0%, #1b1340 60%, #140e2e 100%);
+    border: 1px solid var(--goldline, #b8902f);
+  }
+  .tb-name {
+    display: block; font-family: Georgia, 'Times New Roman', serif; font-weight: 800;
+    font-size: clamp(34px, 9vw, 60px); letter-spacing: 2px; line-height: 1.05;
+    background: linear-gradient(180deg, #ffe7a8 0%, #f0b429 45%, #b8772a 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: #f0b429;
+    text-shadow: 0 2px 6px rgba(0,0,0,.35);
+  }
+  .tb-sub {
+    display: block; margin-top: 8px; color: #cdb4ff;
+    font-size: clamp(12px, 3.4vw, 16px); letter-spacing: .5px;
   }
   header.banner-head .lh-actions { position: absolute; top: 16px; right: 12px; margin: 0; z-index: 2; }
 
@@ -522,7 +539,7 @@
   .wcard.disabled { opacity: .42; }
   .wcard-svg, .wcard-img { height: 100%; width: auto; display: block; border-radius: 9px; }
 
-  /* ===== Wizard-Spieltisch ===== */
+  /* ===== Spieltisch ===== */
   .wtable {
     margin: 12px 0; padding: 10px; border-radius: 22px;
     background:
@@ -717,7 +734,10 @@
 <div id="invite-banner" class="invite-banner" hidden></div>
 
 <header class="lobby-head banner-head">
-  <img class="title-banner" src="./lobby/title.jpg?v=2" alt="Wiz Wiz – Das Stichspiel, online mit Freunden">
+  <div class="title-banner title-text" role="img" aria-label="Zaubertisch – Das Stichspiel, online mit Freunden">
+    <span class="tb-name">Zaubertisch</span>
+    <span class="tb-sub">Das Stichspiel – online mit Freunden</span>
+  </div>
   <div class="lh-actions">
     <button class="icon-btn" id="help-btn" type="button" aria-label="Hilfe / Regeln">?</button>
     <button class="icon-btn" id="settings-btn" type="button" aria-label="Einstellungen">⚙</button>
@@ -883,7 +903,7 @@
 <!-- Hilfe / Kurzregeln -->
 <div id="help-modal" class="modal" hidden>
   <div class="modal-card">
-    <h2>🧙 Wiz Wiz – Kurzregeln</h2>
+    <h2>🧙 Zaubertisch – Kurzregeln</h2>
     <ul>
       <li>60 Karten: 1–13 in vier Farben, dazu 4 Zauberer und 4 Narren.</li>
       <li>Pro Runde wird je eine Karte mehr ausgeteilt; eine Karte bestimmt den Trumpf.</li>
@@ -954,7 +974,7 @@
   <div class="modal-card legal-card">
     <h2>Datenschutzerklärung</h2>
     <div class="legal-body">
-      <p>Der Schutz deiner Daten ist uns wichtig. Nachfolgend informieren wir dich gemäß Datenschutz-Grundverordnung (DSGVO) über die Verarbeitung personenbezogener Daten in der App „Wiz Wiz".</p>
+      <p>Der Schutz deiner Daten ist uns wichtig. Nachfolgend informieren wir dich gemäß Datenschutz-Grundverordnung (DSGVO) über die Verarbeitung personenbezogener Daten in der App „Zaubertisch".</p>
       <h3>1. Verantwortlicher</h3>
       <p>Alpha Blueprint Management and Consulting - FZCO<br>
          IFZA Business Park, Dubai Digital Park, Premises No. 74057-001<br>
@@ -993,7 +1013,7 @@
     <h2>Nutzungsbedingungen</h2>
     <div class="legal-body">
       <h3>1. Geltungsbereich</h3>
-      <p>Diese Bedingungen regeln die Nutzung der App „Wiz Wiz", bereitgestellt von Alpha Blueprint Management and Consulting - FZCO („Anbieter").</p>
+      <p>Diese Bedingungen regeln die Nutzung der App „Zaubertisch", bereitgestellt von Alpha Blueprint Management and Consulting - FZCO („Anbieter").</p>
       <h3>2. Leistung</h3>
       <p>Die App ist ein digitales Kartenspiel (allein gegen Computer oder online mit anderen). Die Nutzung ist kostenlos. Ein Anspruch auf ständige Verfügbarkeit besteht nicht.</p>
       <h3>3. Konto &amp; Verhalten</h3>
@@ -1065,7 +1085,7 @@
 <!-- Einwilligung beim ersten Start -->
 <div id="consent-modal" class="modal" hidden>
   <div class="modal-card">
-    <h2>Willkommen bei Wiz Wiz 🧙</h2>
+    <h2>Willkommen bei Zaubertisch 🧙</h2>
     <p>Mit der Nutzung stimmst du unseren <button class="inline-link" id="consent-terms" type="button">Nutzungsbedingungen</button> und der <button class="inline-link" id="consent-privacy" type="button">Datenschutzerklärung</button> zu.</p>
     <p class="muted set-note">Es findet kein Werbe-Tracking statt. Deine Daten dienen nur dem Spielbetrieb und können jederzeit gelöscht werden.</p>
     <button class="btn" id="consent-accept" type="button">Zustimmen &amp; loslegen</button>
