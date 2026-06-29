@@ -585,30 +585,40 @@
   .seats.np5 { --sw: 84px; }
   .seats.np6 { --sw: 72px; }
   /* Spieler-Kaertchen = gemalter Rahmen (avatar-Fenster oben, Inhalt darunter) */
+  /* Hoehe FEST aus dem Bildverhaeltnis (432/248) – NICHT via aspect-ratio,
+     das ist in der iOS-WebView fehlerhaft und verschob den Avatar. So sitzt
+     der Avatar deterministisch im Rahmen, in Safari wie in der App. */
   .seat {
     position: absolute; transform: translate(-50%, -50%);
-    width: var(--sw); aspect-ratio: 248 / 433; box-sizing: border-box;
+    width: var(--sw); height: calc(var(--sw) * 1.7419); box-sizing: border-box;
     background: url('lobby/ui-seat.png?v=1') center/100% 100% no-repeat;
-    padding: calc(var(--sw) * .237) calc(var(--sw) * .15) 0;
-    text-align: center; color: #efe6d2; z-index: 2;
-    display: flex; flex-direction: column; align-items: center;
+    color: #efe6d2; z-index: 2;
     overflow: hidden;   /* nichts ragt ueber den Rahmen hinaus */
   }
   .seat::before, .seat::after { display: none; }   /* Edelsteine sind im Rahmenbild */
   .seat.turn { filter: drop-shadow(0 0 7px rgba(255,214,107,.85)); }
+  /* Avatar absolut auf die Kreismitte des Rahmens gesetzt (Ring-Mittelpunkt
+     liegt bei 31,9 % der Hoehe; Durchmesser knapp unter dem Fenster, damit
+     der goldene Rand ringsum sichtbar bleibt). */
   .seat-av {
-    width: calc(var(--sw) * .65); height: calc(var(--sw) * .65); flex: none; margin: 0 auto;
+    position: absolute; left: 50%; top: 31.9%; transform: translate(-50%, -50%);
+    width: calc(var(--sw) * .63); height: calc(var(--sw) * .63);
     border-radius: 50%; overflow: hidden; border: none; background: transparent;
     display: flex; align-items: center; justify-content: center; line-height: 1;
   }
   .seat-av .av-img { width: 100%; height: 100%; object-fit: cover; }
   .seat.offline { opacity: .45; }
   .seat-name {
-    font-weight: 700; font-size: calc(var(--sw) * .135); white-space: nowrap; width: 100%; max-width: 100%;
-    overflow: hidden; text-overflow: ellipsis; margin: calc(var(--sw) * .1) auto 0;
+    position: absolute; left: 0; top: 56%; width: 100%; box-sizing: border-box;
+    padding: 0 calc(var(--sw) * .12); text-align: center;
+    font-weight: 700; font-size: calc(var(--sw) * .135); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
     text-shadow: 0 1px 3px rgba(0,0,0,.85);
   }
-  .seat-stats { margin-top: calc(var(--sw) * .02); display: flex; flex-direction: column; align-items: center; line-height: 1.08; }
+  .seat-stats {
+    position: absolute; left: 0; top: 68%; width: 100%;
+    display: flex; flex-direction: column; align-items: center; line-height: 1.12;
+  }
   .st-tb { font-size: calc(var(--sw) * .17); font-weight: 800; color: var(--stat, #ffd66b);
     text-shadow: 0 0 1px rgba(0,0,0,.9), 0 1px 3px rgba(0,0,0,.85); }
   .st-tb .sep { margin: 0 2px; color: #e7dcc0; opacity: .8; font-weight: 600; }
