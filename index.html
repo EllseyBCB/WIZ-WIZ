@@ -581,7 +581,9 @@
   /* "Statische" Tischansicht: Tisch fixiert, kein Scrollen zum Punktestand.
      Wird per Tipp auf den Tisch aktiviert, per Knopf wieder aufgehoben. */
   body.table-locked { position: fixed; inset: 0; overflow: hidden; }
+  body.table-locked header.banner-head { display: none; }    /* Banner weg -> Platz fuer Karten */
   body.table-locked #game-view > .panel { display: none; }   /* Punktestand ausgeblendet */
+  body.table-locked .wtable { margin-top: 4px; }
   #table-lock-exit { display: none; }
   body.table-locked #table-lock-exit {
     display: inline-flex; align-items: center; gap: 6px;
