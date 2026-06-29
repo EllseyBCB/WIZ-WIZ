@@ -158,14 +158,13 @@ export function renderTable(root, state, actions) {
   felt.appendChild(buildTrumpBadge(game));   // Trumpf unten rechts neben dem eigenen Platz
   table.appendChild(felt);
 
-  // Aktionsbereich (Gebot/Trumpf/Hinweis). Beim Bieten/Trumpfwaehlen schwebt er
-  // (out of flow), damit er die Hand NICHT verschiebt – sonst landen die
-  // ausgeteilten Karten woanders, als sie sich spaeter umdrehen.
+  // Aktionsbereich: schmale Leiste (Gebot-Button / Trumpf / Hinweis). Das Gebot
+  // selbst oeffnet sich als Modal -> die Leiste bleibt niedrig und verschiebt die
+  // Hand kaum, sodass die ausgeteilten Karten dort landen, wo sie sich umdrehen.
   const action = buildAction(state, actions, mySeat);
   if (action) {
     const ad = document.createElement('div');
     ad.className = 'action-dock';
-    if (game.phase === 'bidding' || game.phase === 'trumpselect') ad.classList.add('floating');
     ad.appendChild(action);
     table.appendChild(ad);
   }
@@ -533,7 +532,7 @@ function buildAction(state, actions, mySeat) {
     return mySeat === game.dealer_seat ? trumpPicker(actions) : hint('Der Geber wählt den Trumpf …');
   }
   if (game.phase === 'bidding') {
-    return myTurn ? bidPicker(game, players, actions)
+    return myTurn ? bidOpenButton(game, players, actions)
                   : hint('Warte auf das Gebot von ' + nameOfSeat(players, game.current_seat) + ' …');
   }
   if (game.phase === 'playing') {
@@ -569,27 +568,55 @@ function forbiddenBidUI(game, players) {
   return (f >= 0 && f <= game.cards_this_round) ? f : null;
 }
 
-function bidPicker(game, players, actions) {
-  const box = document.createElement('div');
-  box.className = 'table-action parchment bid-picker';
+// Schmaler, themengerechter Button -> oeffnet das Gebots-Modal.
+function bidOpenButton(game, players, actions) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn bid-open-btn';
+  btn.innerHTML = '🃏 Stiche ansagen';
+  btn.onclick = () => openBidModal(game, players, actions);
+  return btn;
+}
+
+function closeBidModal() { const e = document.getElementById('bid-modal'); if (e) e.remove(); }
+
+// Gebots-Fenster im Pergament-Design (zentriert, ueberlagert nichts dauerhaft).
+function openBidModal(game, players, actions) {
+  closeBidModal();
+  const ov = document.createElement('div');
+  ov.className = 'modal bid-modal';
+  ov.id = 'bid-modal';
+  ov.addEventListener('click', e => { if (e.target === ov) closeBidModal(); });
+
+  const card = document.createElement('div');
+  card.className = 'modal-card parchment bid-modal-card';
+
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'modal-x'; x.setAttribute('aria-label', 'Schließen');
+  x.textContent = '✕'; x.onclick = closeBidModal;
+  card.appendChild(x);
+
+  card.insertAdjacentHTML('beforeend',
+    `<h3>Dein Gebot</h3><p class="bid-sub">Wie viele Stiche holst du? (0–${game.cards_this_round})</p>`);
+
   const forbidden = forbiddenBidUI(game, players);
-  box.innerHTML = `<h3>Dein Gebot (0–${game.cards_this_round})</h3>`;
   if (forbidden !== null) {
-    box.insertAdjacentHTML('beforeend',
-      `<p class="muted">Als letzte:r Bietende:r nicht <b>${forbidden}</b> – die Summe der Ansagen darf nicht der Stichzahl entsprechen.</p>`);
+    card.insertAdjacentHTML('beforeend',
+      `<p class="bid-forbidden">Als letzte:r Bietende:r nicht <b>${forbidden}</b> – die Summe der Ansagen darf nicht der Stichzahl entsprechen.</p>`);
   }
+
   const row = document.createElement('div');
   row.className = 'row bid-row';
   for (let i = 0; i <= game.cards_this_round; i++) {
     const b = document.createElement('button');
-    b.className = 'btn bid-num';
-    b.textContent = i;
+    b.type = 'button'; b.className = 'btn bid-num'; b.textContent = i;
     if (i === forbidden) { b.disabled = true; b.classList.add('disabled'); }
-    else b.onclick = () => actions.onBid(i);
+    else b.onclick = () => { closeBidModal(); actions.onBid(i); };
     row.appendChild(b);
   }
-  box.appendChild(row);
-  return box;
+  card.appendChild(row);
+  ov.appendChild(card);
+  document.body.appendChild(ov);
 }
 
 function hint(text) {
