@@ -158,11 +158,14 @@ export function renderTable(root, state, actions) {
   felt.appendChild(buildTrumpBadge(game));   // Trumpf unten rechts neben dem eigenen Platz
   table.appendChild(felt);
 
-  // Aktionsbereich (Gebot/Trumpf/Hinweis) als Leiste zwischen Filz und Hand.
+  // Aktionsbereich (Gebot/Trumpf/Hinweis). Beim Bieten/Trumpfwaehlen schwebt er
+  // (out of flow), damit er die Hand NICHT verschiebt – sonst landen die
+  // ausgeteilten Karten woanders, als sie sich spaeter umdrehen.
   const action = buildAction(state, actions, mySeat);
   if (action) {
     const ad = document.createElement('div');
     ad.className = 'action-dock';
+    if (game.phase === 'bidding' || game.phase === 'trumpselect') ad.classList.add('floating');
     ad.appendChild(action);
     table.appendChild(ad);
   }
