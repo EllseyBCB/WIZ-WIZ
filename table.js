@@ -102,7 +102,7 @@ const SEAT_SLOTS = {
   2: [{ t: 17, l: 20 }, { t: 17, l: 80 }],
   3: [{ t: 40, l: 5 }, { t: 17, l: 50 }, { t: 40, l: 95 }],
   4: [{ t: 40, l: 5 }, { t: 17, l: 29 }, { t: 17, l: 71 }, { t: 40, l: 95 }],
-  5: [{ t: 42, l: 5 }, { t: 19, l: 25 }, { t: 17, l: 50 }, { t: 19, l: 75 }, { t: 42, l: 95 }],
+  5: [{ t: 44, l: 12 }, { t: 15, l: 18 }, { t: 15, l: 50 }, { t: 15, l: 82 }, { t: 44, l: 88 }],
 };
 const ME_SLOT = { t: 84, l: 50 };
 // Liefert je Spieler seine Sitz-Position; ich zuerst (unten), Rest reihum ab mir.
@@ -301,7 +301,7 @@ function buildSeats(state) {
   const mySeat = me?.seat ?? (players[0]?.seat ?? 0);
   const layout = computeSeatLayout(players, mySeat);
   const wrap = document.createElement('div');
-  wrap.className = 'seats';
+  wrap.className = 'seats np' + players.length;   // Groesse skaliert per CSS mit Spielerzahl
   layout.forEach(({ player: p, pos, isMe }) => {
     const isTurn = p.seat === game.current_seat && game.status === 'running';
     const el = document.createElement('div');
