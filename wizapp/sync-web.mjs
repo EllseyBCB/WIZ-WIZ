@@ -13,7 +13,7 @@ const FILES = [
   'db.js', 'engine.js', 'game.js', 'iap.js', 'local.js', 'table.js', 'ui.js',
   'icon-180.png', 'icon-192.png', 'icon-512.png',
 ];
-const DIRS = ['cards', 'lobby'];
+const DIRS = ['cards', 'lobby', 'avatars'];
 
 if (!existsSync(`${ROOT}/index.html`)) {
   console.error('Repo-Wurzel nicht gefunden – bitte aus dem Ordner wizapp/ ausfuehren.');

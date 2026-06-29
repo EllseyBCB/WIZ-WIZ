@@ -93,7 +93,8 @@ function stripCovers() {            // beim Ueberspringen: alle sofort aufdecken
 }
 
 // Avatar: Bild-URL vs. Emoji unterscheiden (wie in app.js/game.js).
-const isImg = v => typeof v === 'string' && /^https?:\/\//.test(v);
+const isImg = v => typeof v === 'string' && (/^https?:\/\//.test(v) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v));
+const DEFAULT_AV = 'avatars/av01.png';
 
 // Sitzpositionen (Prozent im Filz) je Gegnerzahl; ich sitze unten-Mitte.
 const SEAT_SLOTS = {
@@ -176,7 +177,7 @@ export function renderTable(root, state, actions) {
     const viewBtn = document.createElement('button');
     viewBtn.type = 'button';
     viewBtn.className = 'hand-view-btn';
-    viewBtn.innerHTML = '🔍 Alle Karten';
+    viewBtn.innerHTML = '🃏 Alle Karten';
     viewBtn.setAttribute('aria-label', 'Alle Handkarten gross anzeigen');
     viewBtn.addEventListener('click', () => openHandViewer(state, actions));
     dock.appendChild(viewBtn);
@@ -311,7 +312,7 @@ function buildSeats(state) {
     if (pos.l <= 22) { el.style.left = '6px'; el.style.transform = 'translateY(-50%)'; }
     else if (pos.l >= 78) { el.style.right = '6px'; el.style.transform = 'translateY(-50%)'; }
     else { el.style.left = pos.l + '%'; }   // CSS: transform translate(-50%,-50%)
-    const av = p.avatar || '🧙';
+    const av = p.avatar || DEFAULT_AV;
     const avHtml = isImg(av) ? `<img class="av-img" src="${esc(av)}" alt="">` : `<span class="seat-emoji">${esc(av)}</span>`;
     const badges = (p.seat === game.dealer_seat ? ' 🂠' : '') + (p.is_host ? ' 👑' : '');
     el.innerHTML = `
@@ -573,7 +574,7 @@ function bidOpenButton(game, players, actions) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn bid-open-btn';
-  btn.innerHTML = '🃏 Stiche ansagen';
+  btn.innerHTML = '🪄 Stiche ansagen';
   btn.onclick = () => openBidModal(game, players, actions);
   return btn;
 }
