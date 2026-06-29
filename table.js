@@ -397,6 +397,10 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   const totalMs = total * stagger + 760;
   dealEndsAt = Date.now() + totalMs;          // eigene Hand bis zum Aufdecken verborgen
   const handCards = cardsPer;
+  // Hand AB SOFORT als "verdeckt" markieren, damit kein Zwischen-Render waehrend
+  // des Austeilens die offenen Karten zeigt. Flips beginnen erst nach dem Austeilen.
+  dealCoverActive = true;
+  dealRevealStart = Date.now() + totalMs;
 
   // Flieger erst planen, wenn die Hand fertig gelayoutet ist (Slot-Positionen
   // messbar; die Hand selbst bleibt bis zum Aufdecken via visibility verborgen).
@@ -425,9 +429,8 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   if (dealRevealTimer) clearTimeout(dealRevealTimer);
   dealRevealTimer = setTimeout(() => {
     dealEndsAt = 0; dealRevealTimer = null;
-    dealCoverActive = true; dealRevealStart = Date.now();
-    coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
-    revealHand();                             // ... dann die echte Hand sichtbar machen
+    coverAndScheduleFlip(lastDockEl);         // aktuelle Hand verdeckt sicherstellen ...
+    revealHand();                             // ... dann die (verdeckte) Hand sichtbar machen
     if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
     dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 200 + handCards * 150 + 700));
   }, totalMs);
