@@ -128,12 +128,52 @@ function bindResize() {
   });
 }
 
+// --- "Statische" Tischansicht ----------------------------------------------
+// Tippt man auf den freien Tisch, wird die Ansicht fixiert: man kann nicht mehr
+// (versehentlich) nach unten zum Punktestand scrollen. Ein kleiner Knopf hebt
+// die Fixierung wieder auf.
+function isTableLocked() { return document.body.classList.contains('table-locked'); }
+function setTableLock(on) {
+  if (on) window.scrollTo(0, 0);
+  document.body.classList.toggle('table-locked', on);
+}
+// Kleinen "Ansicht lösen"-Knopf einmalig anlegen (nur im fixierten Zustand sichtbar).
+function ensureLockExitButton() {
+  let btn = document.getElementById('table-lock-exit');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'table-lock-exit';
+    btn.type = 'button';
+    btn.innerHTML = '🔓 Ansicht lösen';
+    btn.setAttribute('aria-label', 'Statische Tischansicht verlassen');
+    btn.addEventListener('click', (e) => { e.stopPropagation(); setTableLock(false); });
+    document.body.appendChild(btn);
+  }
+  return btn;
+}
+// Fixierung sicher aufheben, sobald der Spiel-Screen verlassen wird (egal wie).
+let lockCleanupBound = false;
+function bindLockCleanup() {
+  if (lockCleanupBound) return;
+  const gv = document.getElementById('game-view');
+  if (!gv) return;
+  const obs = new MutationObserver(() => {
+    if (!gv.classList.contains('active')) setTableLock(false);
+  });
+  obs.observe(gv, { attributes: true, attributeFilter: ['class'] });
+  lockCleanupBound = true;
+}
+
 // ---------------------------------------------------------------------------
 // Haupteinstieg: Tisch fuer ein laufendes/beendetes Spiel rendern.
 // ---------------------------------------------------------------------------
 export function renderTable(root, state, actions) {
   bindResize();
+  ensureLockExitButton();
+  bindLockCleanup();
   const { game, players, uid } = state;
+  // Bei beendetem Spiel die Fixierung loesen, damit der Endstand scrollbar ist.
+  if (game.status !== 'running') setTableLock(false);
   const me = players.find(p => p.uid === uid);
   const mySeat = me?.seat ?? -1;
 
@@ -147,6 +187,11 @@ export function renderTable(root, state, actions) {
   // Spielfilz mit Mitspielern, Trumpf, Ablagestapel und Aktionsbereich.
   const felt = document.createElement('div');
   felt.className = 'felt';
+  // Tippen auf den freien Tisch fixiert die Ansicht (nicht bei Karten/Knoepfen).
+  felt.addEventListener('click', (e) => {
+    if (e.target.closest('button, a, input, .wcard, .wcard-img, .wcard-svg')) return;
+    if (!isTableLocked()) setTableLock(true);
+  });
   felt.appendChild(buildSeats(state));      // Spieler:innen rund um den Tisch
 
   // Mittleres Band: Ablagestapel zentriert, Trumpf-Karte rechts daneben im
