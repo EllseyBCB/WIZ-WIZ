@@ -222,7 +222,7 @@ export function renderTable(root, state, actions) {
     const viewBtn = document.createElement('button');
     viewBtn.type = 'button';
     viewBtn.className = 'hand-view-btn';
-    viewBtn.innerHTML = '🃏 Alle Karten';
+    viewBtn.textContent = 'Alle Karten';
     viewBtn.setAttribute('aria-label', 'Alle Handkarten gross anzeigen');
     viewBtn.addEventListener('click', () => openHandViewer(state, actions));
     dock.appendChild(viewBtn);
