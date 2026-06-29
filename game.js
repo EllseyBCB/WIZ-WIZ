@@ -1,7 +1,7 @@
 // Client-State + Render der Spiel-Screens.
 // WICHTIG: Hier liegt KEINE Spiel-Autoritaet – Regeln werden serverseitig
 // geprueft. Tisch/Hand/Stich liegen in table.js (eigene Komponenten).
-import { renderTable } from './table.js?v=46';
+import { renderTable } from './table.js?v=47';
 import { $, esc, clearChildren, toast, confetti } from './ui.js?v=2';
 import { sfxWin, haptic } from './audio.js?v=4';
 import { gameOverAd } from './ads.js?v=3';
@@ -123,7 +123,7 @@ function renderInviteFriends(root, state, actions) {
     cont.innerHTML = '';
     avail.forEach(f => {
       const av = f.avatar || 'avatars/av01.png';
-      const avSrc = av.startsWith('avatars/') ? av + '?v=6' : av;
+      const avSrc = av.startsWith('avatars/') ? av + '?v=7' : av;
       const avHtml = (/^https?:\/\//.test(av) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(av)) ? `<img class="av-img" src="${esc(avSrc)}" alt="">` : esc(av);
       const row = document.createElement('div');
       row.className = 'friend';

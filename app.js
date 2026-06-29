@@ -1,8 +1,8 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=46';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=35';
+import { render } from './game.js?v=47';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=36';
 import { preloadCards } from './cards.js?v=14';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
 import { initIAP, purchaseAdFree, restorePurchases, iapAvailable } from './iap.js?v=1';
@@ -549,7 +549,7 @@ const DEFAULT_AV = AVATARS[0];   // Zauberer
 // Avatar kann ein Emoji (alt) ODER ein Bild (Pfad/URL) sein.
 const isImg = (v) => typeof v === 'string' && (/^https?:\/\//.test(v) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v));
 // Cache-Bust nur für die mitgelieferten Avatar-Bilder (nicht für eigene Uploads).
-const avV = (s) => (typeof s === 'string' && s.startsWith('avatars/')) ? s + '?v=6' : s;
+const avV = (s) => (typeof s === 'string' && s.startsWith('avatars/')) ? s + '?v=7' : s;
 function setAvatarDisplay(el, value) {
   if (!el) return;
   const v = value || DEFAULT_AV;
