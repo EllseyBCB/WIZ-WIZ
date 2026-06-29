@@ -51,7 +51,37 @@ let dealTimers = [];
 let dealEndsAt = 0;
 let dealRevealTimer = null;
 let lastDockEl = null;
+// Nach dem Austeilen: Hand zuerst verdeckt zeigen, dann Karten umdrehen.
+let dealCoverActive = false;
+let dealRevealStart = 0;
 function revealHand() { if (lastDockEl && lastDockEl.isConnected) lastDockEl.style.visibility = 'visible'; }
+
+// Legt ueber jede Handkarte eine Rueckseite und dreht sie – relativ zum Aufdeck-
+// Start – gestaffelt um. Relativ-zu-Start sorgt dafuer, dass es auch ueber
+// Re-Renders hinweg korrekt weiterlaeuft (neue Karten holen ihren Flip nach).
+function coverAndScheduleFlip(scopeEl) {
+  if (!scopeEl) return;
+  const cards = scopeEl.querySelectorAll('.fan-card');
+  const elapsed = Date.now() - dealRevealStart;
+  cards.forEach((el, i) => {
+    if (!el.querySelector('.card-back-cover')) {
+      const cover = document.createElement('span');
+      cover.className = 'card-back-cover';
+      el.appendChild(cover);
+    }
+    const delay = Math.max(0, (140 + i * 85) - elapsed);
+    dealTimers.push(setTimeout(() => flipCover(el), delay));
+  });
+}
+function flipCover(el) {
+  const cover = el.querySelector('.card-back-cover');
+  if (!cover || cover.classList.contains('flip')) return;
+  cover.classList.add('flip');
+  dealTimers.push(setTimeout(() => cover.remove(), 360));
+}
+function stripCovers() {
+  if (lastDockEl) lastDockEl.querySelectorAll('.card-back-cover').forEach(c => c.remove());
+}
 
 // Avatar: Bild-URL vs. Emoji unterscheiden (wie in app.js/game.js).
 const isImg = v => typeof v === 'string' && /^https?:\/\//.test(v);
@@ -292,7 +322,7 @@ function clearDeal() {
   if (dealTimers.length) { dealTimers.forEach(clearTimeout); dealTimers = []; }
   if (dealOverlayNode) { dealOverlayNode.remove(); dealOverlayNode = null; }
   if (dealRevealTimer) { clearTimeout(dealRevealTimer); dealRevealTimer = null; }
-  dealEndsAt = 0; revealHand();      // beim Ueberspringen Hand sofort zeigen
+  dealEndsAt = 0; dealCoverActive = false; stripCovers(); revealHand();   // beim Ueberspringen Hand sofort zeigen
 }
 
 function maybeDealAnimation(state, feltEl) {
@@ -354,8 +384,15 @@ function runDealAnimation(feltEl, layout, game) {
   }
   const totalMs = idx * stagger + 760;
   dealEndsAt = Date.now() + totalMs;          // Hand bis dahin verborgen halten
+  const handCards = cards;                     // Karten je Spieler (= eigene Handgroesse)
   if (dealRevealTimer) clearTimeout(dealRevealTimer);
-  dealRevealTimer = setTimeout(() => { dealEndsAt = 0; dealRevealTimer = null; revealHand(); }, totalMs);
+  dealRevealTimer = setTimeout(() => {
+    dealEndsAt = 0; dealRevealTimer = null;
+    dealCoverActive = true; dealRevealStart = Date.now();
+    revealHand();                             // verdeckte Hand sichtbar machen ...
+    coverAndScheduleFlip(lastDockEl);         // ... dann Karten umdrehen
+    dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 140 + handCards * 85 + 460));
+  }, totalMs);
   dealTimers.push(setTimeout(() => {
     if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }
   }, totalMs));
@@ -537,6 +574,9 @@ function buildHandFan(state, actions, dropZone) {
     fan.appendChild(el);
     return el;
   });
+
+  // Waehrend der Aufdeck-Phase auch bei Neu-Render verdeckt halten + Flip nachholen.
+  if (dealCoverActive) coverAndScheduleFlip(fan);
 
   const layout = () => layoutFan(fan, items);
   activeRelayout = layout;
