@@ -327,13 +327,15 @@
   .invite-banner[hidden] { display: none; }
   .ib-text { flex: 1; min-width: 140px; font-size: .92rem; }
   .ib-actions { display: flex; gap: 8px; }
+  /* Avatar-Auswahl: nur die Emojis, KEINE Karten/Kacheln dahinter. */
   .avatar-opt {
-    aspect-ratio: 1; border: 1px solid var(--rand); border-radius: 12px; padding: 0;
-    background: rgba(0,0,0,.22); font-size: 1.5rem; cursor: pointer; line-height: 1;
-    display: flex; align-items: center; justify-content: center; transition: background .15s, box-shadow .15s;
+    aspect-ratio: 1; border: none; border-radius: 12px; padding: 2px;
+    background: transparent; font-size: 1.5rem; cursor: pointer; line-height: 1;
+    display: flex; align-items: center; justify-content: center; transition: transform .12s, filter .12s;
   }
-  .avatar-opt:hover { background: var(--akzent-weich); }
-  .avatar-opt.sel { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent); background: var(--akzent-weich); }
+  .avatar-opt:hover { transform: scale(1.08); }
+  .avatar-opt.sel { background: rgba(167,139,250,.22); box-shadow: 0 0 0 2px var(--akzent); }
+  .avatar-opt .av-img { width: 100%; height: 100%; object-fit: contain; }
 
   /* Konto / E-Mail-Login */
   .acct-status { display: flex; align-items: center; gap: 8px; font-size: .92rem; margin-bottom: 4px; }
@@ -1400,6 +1402,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=51"></script>
+<script type="module" src="./app.js?v=52"></script>
 </body>
 </html>

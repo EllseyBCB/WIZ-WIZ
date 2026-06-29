@@ -1,8 +1,8 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=45';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=34';
+import { render } from './game.js?v=46';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=35';
 import { preloadCards } from './cards.js?v=14';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
 import { initIAP, purchaseAdFree, restorePurchases, iapAvailable } from './iap.js?v=1';
@@ -327,7 +327,7 @@ function wireHome() {
   const homeAv = $('#home-avatar');
   if (homeAv) {
     const av = localStorage.getItem('wizard_my_avatar');
-    if (av && /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(av)) homeAv.innerHTML = `<img src="${esc(av)}" alt="">`;
+    if (av && /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(av)) homeAv.innerHTML = `<img src="${esc(avV(av))}" alt="">`;
     homeAv.onclick = () => switchPane('profil');
   }
   // Lobby-Modals: Schließen per ✕ oder Klick auf den Hintergrund.
@@ -526,7 +526,7 @@ async function loadProfilePane(mod) {
 
 function renderFriend(f) {
   const avatar = f.avatar || DEFAULT_AV;
-  const avHtml = isImg(avatar) ? `<img class="av-img" src="${esc(avatar)}" alt="">` : esc(avatar);
+  const avHtml = isImg(avatar) ? `<img class="av-img" src="${esc(avV(avatar))}" alt="">` : esc(avatar);
   const games = f.games || 0, wins = f.wins || 0;
   const stat = games === 0 ? 'Noch kein gemeinsames Spiel'
     : `${games} ${games === 1 ? 'Spiel' : 'Spiele'} zusammen · ${wins} ${wins === 1 ? 'Sieg' : 'Siege'}`;
@@ -548,10 +548,12 @@ const DEFAULT_AV = AVATARS[0];   // Zauberer
 
 // Avatar kann ein Emoji (alt) ODER ein Bild (Pfad/URL) sein.
 const isImg = (v) => typeof v === 'string' && (/^https?:\/\//.test(v) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v));
+// Cache-Bust nur für die mitgelieferten Avatar-Bilder (nicht für eigene Uploads).
+const avV = (s) => (typeof s === 'string' && s.startsWith('avatars/')) ? s + '?v=6' : s;
 function setAvatarDisplay(el, value) {
   if (!el) return;
   const v = value || DEFAULT_AV;
-  if (isImg(v)) el.innerHTML = `<img class="av-img" src="${esc(v)}" alt="">`;
+  if (isImg(v)) el.innerHTML = `<img class="av-img" src="${esc(avV(v))}" alt="">`;
   else el.textContent = v;
 }
 
@@ -568,7 +570,7 @@ function renderAvatarPicker(selected) {
   const grid = $('#avatar-picker');
   if (!grid) return;
   grid.innerHTML = AVATARS.map(a =>
-    `<button type="button" class="avatar-opt ${a === selected ? 'sel' : ''}" data-av="${a}"><img class="av-img" src="${a}" alt=""></button>`).join('');
+    `<button type="button" class="avatar-opt ${a === selected ? 'sel' : ''}" data-av="${a}"><img class="av-img" src="${avV(a)}" alt=""></button>`).join('');
   grid.querySelectorAll('.avatar-opt').forEach(b => { b.onclick = () => pickAvatar(b.dataset.av); });
 }
 
@@ -696,7 +698,7 @@ function renderGroupBody(g, standings, friends) {
   const rows = standings.map((s, i) => {
     const isMe = s.uid === state.uid;
     const av = s.avatar || DEFAULT_AV;
-    const avh = isImg(av) ? `<img class="av-img" src="${esc(av)}" alt="">` : esc(av);
+    const avh = isImg(av) ? `<img class="av-img" src="${esc(avV(av))}" alt="">` : esc(av);
     const rm = (g.owner && !isMe) ? `<button class="st-rm" data-rm="${esc(s.uid)}" title="Entfernen">✕</button>` : '';
     return `<li><span class="place">${medal(i)}</span><span class="st-av">${avh}</span>` +
       `<span class="st-name ${isMe ? 'me' : ''}">${esc(s.name)}${isMe ? ' (Du)' : ''}</span>` +
