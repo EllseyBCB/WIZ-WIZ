@@ -398,30 +398,18 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   dealEndsAt = Date.now() + totalMs;          // eigene Hand bis zum Aufdecken verborgen
   const handCards = cardsPer;
 
-  // Flieger erst planen, wenn die Hand fertig gelayoutet ist (Slot-Positionen
-  // messbar; die Hand selbst bleibt bis zum Aufdecken via visibility verborgen).
+  // Die eigene Zielposition wird PRO Karte erst beim Abflug an der aktuellen
+  // (verborgenen, aber fertig gelayouteten) Hand gemessen -> die Karte landet
+  // genau dort, wo sie danach liegt und sich umdreht.
+  const meFallback = ptBySeat.get(mySeat) || { x: originX, y: rect.top + rect.height * 0.87 };
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (dealOverlayNode !== overlay) return;            // schon uebersprungen
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const valid = r => r && r.width > 10 && r.height > 10 &&
-      r.left > -80 && r.top > -80 && r.right < vw + 80 && r.bottom < vh + 80;
-    // Nur die aktuell verbundene Hand messen (sonst Nullwerte -> Karten irren umher).
-    const liveDock = (dockEl && dockEl.isConnected) ? dockEl : lastDockEl;
-    const fanCards = liveDock ? Array.from(liveDock.querySelectorAll('.fan-card')) : [];
-    const myTargets = fanCards.map(el => {
-      const r = el.getBoundingClientRect();
-      if (!valid(r)) return null;
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2,
-               rot: parseFloat(el.style.getPropertyValue('--rot')) || 0 };
-    });
-    // Fallback, falls eine Handposition nicht messbar ist: eigener Sitzplatz (unten Mitte).
-    const meFallback = ptBySeat.get(mySeat) || { x: originX, y: rect.top + rect.height * 0.87 };
     let myI = 0, idx = 0;
     for (let pass = 0; pass < cardsPer; pass++) {
       for (const seat of order) {
         if (seat === mySeat) {
-          const tgt = myTargets[myI++] || { x: meFallback.x, y: meFallback.y, rot: 0 };
-          dealTimers.push(setTimeout(() => flyToHand(overlay, originX, originY, tgt), idx * stagger));
+          const ci = myI++;
+          dealTimers.push(setTimeout(() => flyToHand(overlay, originX, originY, ci, meFallback), idx * stagger));
         } else {
           const pt = ptBySeat.get(seat) || { x: originX, y: originY };
           dealTimers.push(setTimeout(() => flyToSeat(overlay, originX, originY, pt), idx * stagger));
@@ -444,16 +432,27 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
 }
 
 // Meine Karte: fliegt vom Deck an ihren Platz in der Hand und bleibt dort
-// (verdeckt) liegen – die Hand baut sich so Karte fuer Karte auf.
-function flyToHand(overlay, ox, oy, tgt) {
+// (verdeckt) liegen – die Hand baut sich so Karte fuer Karte auf. Die exakte
+// Zielposition wird JETZT (beim Abflug) an der aktuellen Hand gemessen.
+function flyToHand(overlay, ox, oy, cardIndex, fallback) {
+  let tx = fallback.x, ty = fallback.y, rot = 0;
+  const dock = lastDockEl;
+  const el = dock && dock.querySelectorAll('.fan-card')[cardIndex];
+  if (el) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 4 && r.height > 4) {
+      tx = r.left + r.width / 2; ty = r.top + r.height / 2;
+      rot = parseFloat(el.style.getPropertyValue('--rot')) || 0;
+    }
+  }
   const card = document.createElement('div');
   card.className = 'deal-card';
   card.appendChild(renderCard('Z1', { faceDown: true }));
   card.style.left = ox + 'px'; card.style.top = oy + 'px';
   overlay.appendChild(card);
-  const dx = Math.round(tgt.x - ox), dy = Math.round(tgt.y - oy);
+  const dx = Math.round(tx - ox), dy = Math.round(ty - oy);
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${tgt.rot}deg)`;
+    card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg)`;
   }));
 }
 
