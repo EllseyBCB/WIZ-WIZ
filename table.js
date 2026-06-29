@@ -98,13 +98,13 @@ const DEFAULT_AV = 'avatars/av01.png';
 
 // Sitzpositionen (Prozent im Filz) je Gegnerzahl; ich sitze unten-Mitte.
 const SEAT_SLOTS = {
-  1: [{ t: 11, l: 50 }],
-  2: [{ t: 13, l: 20 }, { t: 13, l: 80 }],
-  3: [{ t: 38, l: 5 }, { t: 9, l: 50 }, { t: 38, l: 95 }],
-  4: [{ t: 37, l: 5 }, { t: 10, l: 29 }, { t: 10, l: 71 }, { t: 37, l: 95 }],
-  5: [{ t: 40, l: 5 }, { t: 14, l: 25 }, { t: 8, l: 50 }, { t: 14, l: 75 }, { t: 40, l: 95 }],
+  1: [{ t: 17, l: 50 }],
+  2: [{ t: 17, l: 20 }, { t: 17, l: 80 }],
+  3: [{ t: 40, l: 5 }, { t: 17, l: 50 }, { t: 40, l: 95 }],
+  4: [{ t: 40, l: 5 }, { t: 17, l: 29 }, { t: 17, l: 71 }, { t: 40, l: 95 }],
+  5: [{ t: 42, l: 5 }, { t: 19, l: 25 }, { t: 17, l: 50 }, { t: 19, l: 75 }, { t: 42, l: 95 }],
 };
-const ME_SLOT = { t: 87, l: 50 };
+const ME_SLOT = { t: 84, l: 50 };
 // Liefert je Spieler seine Sitz-Position; ich zuerst (unten), Rest reihum ab mir.
 function computeSeatLayout(players, mySeat) {
   const sorted = [...players].sort((a, b) => a.seat - b.seat);

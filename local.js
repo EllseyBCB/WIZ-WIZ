@@ -2,7 +2,7 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=2';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=2';
-import { render } from './game.js?v=39';
+import { render } from './game.js?v=40';
 import { showScreen, toast, esc } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=4';
 import { showBanner, hideBanner } from './ads.js?v=3';
@@ -11,10 +11,10 @@ const BOT_DELAY = 750;     // ms zwischen Bot-Aktionen
 const TRICK_DELAY = 2500;  // ms, um den fertigen Stich + Gewinner zu zeigen
 const BOT_NAMES = ['Merlin', 'Morgana', 'Gandalf', 'Zara', 'Balthasar', 'Circe'];
 // Feste Emoji-"Profilbilder" fuer die Computer-Gegner (deterministisch je Sitz).
-const BOT_AVATARS = ['🦉', '🐉', '🐺', '🦊', '🦄', '🐸'];
+const BOT_AVATARS = ['avatars/av05.png', 'avatars/av06.png', 'avatars/av07.png', 'avatars/av08.png', 'avatars/av10.png', 'avatars/av11.png'];
 // Mein eigenes Profilbild (vom Online-Profil zwischengespeichert), sonst Default.
 function myAvatar() {
-  try { return localStorage.getItem('wizard_my_avatar') || '🧙'; } catch (_) { return '🧙'; }
+  try { return localStorage.getItem('wizard_my_avatar') || 'avatars/av01.png'; } catch (_) { return 'avatars/av01.png'; }
 }
 
 let G = null;
