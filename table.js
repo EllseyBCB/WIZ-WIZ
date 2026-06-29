@@ -84,7 +84,7 @@ function coverAndScheduleFlip(scopeEl) {
   const elapsed = Date.now() - dealRevealStart;
   cards.forEach((el, i) => {
     const inner = buildFlip(el);
-    const delay = Math.max(0, (180 + i * 110) - elapsed);
+    const delay = Math.max(0, (200 + i * 150) - elapsed);
     dealTimers.push(setTimeout(() => inner.classList.add('show'), delay));
   });
 }
@@ -429,7 +429,7 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
     coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
     revealHand();                             // ... dann die echte Hand sichtbar machen
     if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
-    dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 180 + handCards * 110 + 460));
+    dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 200 + handCards * 150 + 700));
   }, totalMs);
   return true;
 }
