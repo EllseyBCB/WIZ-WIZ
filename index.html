@@ -604,17 +604,27 @@
   .st-score { font-size: .66rem; font-weight: 700; color: #e7dcc0; opacity: .85; }
 
   /* Aktionsleiste zwischen Filz und Hand */
-  .action-dock { display: flex; justify-content: center; margin-top: 8px; }
-  /* Beim Bieten/Trumpfwaehlen schwebend (kein Platz im Fluss) -> Hand bleibt
-     stabil an ihrer Stelle, damit ausgeteilte Karten dort landen, wo sie sich
-     spaeter umdrehen. */
-  .action-dock.floating {
-    position: relative; height: 0; margin: 0; overflow: visible; z-index: 30;
+  .action-dock { display: flex; justify-content: center; margin-top: 8px; min-height: 46px; align-items: center; }
+  /* "Stiche ansagen"-Button (oeffnet das Gebots-Modal) im Pergament/Gold-Look. */
+  .bid-open-btn {
+    background: linear-gradient(180deg, #efe2c2, #e3d2a8); color: #2a1d0c;
+    border: 1px solid #b89b62; font-weight: 800; letter-spacing: .3px;
+    padding: 11px 24px; border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+    animation: bidPulse 1.7s ease-in-out infinite;
   }
-  .action-dock.floating > .table-action {
-    position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
-    width: 100%;
+  .bid-open-btn:hover { filter: brightness(1.05); }
+  @keyframes bidPulse {
+    0%,100% { box-shadow: 0 4px 14px rgba(0,0,0,.4), 0 0 0 0 rgba(240,201,107,.55); }
+    50%     { box-shadow: 0 4px 14px rgba(0,0,0,.4), 0 0 0 9px rgba(240,201,107,0); }
   }
+  @media (prefers-reduced-motion: reduce) { .bid-open-btn { animation: none; } }
+  /* Gebots-Modal */
+  .bid-modal-card { max-width: 360px; text-align: center; }
+  .bid-modal-card h3 { margin: 0 0 4px; color: #3a280f; }
+  .bid-sub { color: #6b5836; font-size: .9rem; margin: 0 0 14px; }
+  .bid-forbidden { color: #8a2d10; font-size: .82rem; margin: 0 0 12px; line-height: 1.4; }
+  .bid-modal .bid-row { flex-wrap: wrap; justify-content: center; }
 
   /* Austeil-Animation (Overlay an document.body, fixiert ueber dem Filz) */
   .deal-overlay { position: fixed; z-index: 58; pointer-events: auto; }
@@ -1174,6 +1184,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=42"></script>
+<script type="module" src="./app.js?v=43"></script>
 </body>
 </html>
