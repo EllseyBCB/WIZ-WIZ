@@ -59,31 +59,37 @@ let dealRevealStart = 0;
 let dealPendingKey = null;
 function revealHand() { if (lastDockEl && lastDockEl.isConnected) lastDockEl.style.visibility = 'visible'; }
 
-// Legt ueber jede Handkarte eine Rueckseite und dreht sie – relativ zum Aufdeck-
-// Start – gestaffelt um. Relativ-zu-Start sorgt dafuer, dass es auch ueber
-// Re-Renders hinweg korrekt weiterlaeuft (neue Karten holen ihren Flip nach).
+// Baut um eine Handkarte eine Flip-Struktur: Vorderseite (vorhandenes Bild) +
+// Rueckseite, beide uebereinander. Start = Rueckseite sichtbar.
+function buildFlip(el) {
+  let inner = el.querySelector('.flip-inner');
+  if (inner) return inner;
+  inner = document.createElement('div');
+  inner.className = 'flip-inner';
+  const front = document.createElement('div');
+  front.className = 'flip-front';
+  while (el.firstChild) front.appendChild(el.firstChild);   // vorhandene Vorderseite hinein
+  const back = document.createElement('div');
+  back.className = 'flip-back';
+  inner.appendChild(back);
+  inner.appendChild(front);
+  el.appendChild(inner);
+  return inner;
+}
+// Karten verdeckt vorbereiten und – relativ zum Aufdeck-Start – gestaffelt
+// echt umdrehen (funktioniert auch ueber Re-Renders hinweg).
 function coverAndScheduleFlip(scopeEl) {
   if (!scopeEl) return;
   const cards = scopeEl.querySelectorAll('.fan-card');
   const elapsed = Date.now() - dealRevealStart;
   cards.forEach((el, i) => {
-    if (!el.querySelector('.card-back-cover')) {
-      const cover = document.createElement('span');
-      cover.className = 'card-back-cover';
-      el.appendChild(cover);
-    }
-    const delay = Math.max(0, (140 + i * 85) - elapsed);
-    dealTimers.push(setTimeout(() => flipCover(el), delay));
+    const inner = buildFlip(el);
+    const delay = Math.max(0, (180 + i * 110) - elapsed);
+    dealTimers.push(setTimeout(() => inner.classList.add('show'), delay));
   });
 }
-function flipCover(el) {
-  const cover = el.querySelector('.card-back-cover');
-  if (!cover || cover.classList.contains('flip')) return;
-  cover.classList.add('flip');
-  dealTimers.push(setTimeout(() => cover.remove(), 360));
-}
-function stripCovers() {
-  if (lastDockEl) lastDockEl.querySelectorAll('.card-back-cover').forEach(c => c.remove());
+function stripCovers() {            // beim Ueberspringen: alle sofort aufdecken
+  if (lastDockEl) lastDockEl.querySelectorAll('.flip-inner').forEach(inner => inner.classList.add('show'));
 }
 
 // Avatar: Bild-URL vs. Emoji unterscheiden (wie in app.js/game.js).
@@ -423,7 +429,7 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
     coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
     revealHand();                             // ... dann die echte Hand sichtbar machen
     if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
-    dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 140 + handCards * 85 + 460));
+    dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 180 + handCards * 110 + 460));
   }, totalMs);
   return true;
 }
