@@ -387,6 +387,91 @@
   .panel.deco .btn { margin-top: 14px; }
   .btn .b-ic { margin-right: 5px; }
 
+  /* ===== Neue Startseite (Szene + Aktionskarten) ======================== */
+  /* Globalen Banner-Kopf auf der Startseite ausblenden – die Szene ist im
+     Hero-Bild enthalten. (In-Game bleibt der Kopf sichtbar.) */
+  body:has(#home-view.active) header.banner-head { display: none; }
+  .home-hero { position: relative; margin: 6px 0 2px; }
+  .home-hero img { width: 100%; display: block; border-radius: 16px; box-shadow: 0 6px 22px rgba(0,0,0,.5); }
+  .hero-hot {
+    position: absolute; background: transparent; border: none; cursor: pointer;
+    width: 11%; height: 8%; top: 4.5%; border-radius: 50%; padding: 0;
+  }
+  #hero-help     { right: 14.5%; }
+  #hero-settings { right: 2%; }
+
+  /* Aktions-Karten mit überstehendem Emblem */
+  .home-actions {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 44px 10px;
+    margin: 46px 0 16px;
+  }
+  @media (min-width: 640px) { .home-actions { grid-template-columns: repeat(4, 1fr); } }
+  .act-card {
+    position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
+    background: linear-gradient(180deg, #3a2566, #221043);
+    border: 2px solid var(--goldline); border-radius: 16px;
+    padding: 44px 9px 20px; min-height: 132px; cursor: pointer; color: var(--text);
+    box-shadow: inset 0 0 16px rgba(0,0,0,.45), 0 4px 14px rgba(0,0,0,.4);
+    transition: filter .15s, transform .1s;
+  }
+  .act-card:active { filter: brightness(1.12); transform: translateY(1px); }
+  .act-card.is-disabled { opacity: .42; pointer-events: none; }
+  .act-ic {
+    position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
+    width: 72px; height: 72px; filter: drop-shadow(0 3px 6px rgba(0,0,0,.55));
+  }
+  .act-title { font-family: var(--font-myth); color: var(--gold); font-size: 1rem; line-height: 1.12;
+    letter-spacing: .3px; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .act-sub { color: var(--muted); font-size: .75rem; margin-top: 7px; line-height: 1.25; }
+  .act-card::after { content: "◆"; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    color: var(--goldsoft); font-size: .62rem; opacity: .85; }
+
+  /* Name + Statistik */
+  .home-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  @media (max-width: 470px) { .home-row { grid-template-columns: 1fr; } }
+  .home-box {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    background: linear-gradient(180deg, #2e1d52, #1c0f3a);
+    border: 2px solid var(--goldline); border-radius: 14px;
+    box-shadow: inset 0 0 14px rgba(0,0,0,.4), 0 3px 10px rgba(0,0,0,.35);
+  }
+  .nb-avatar {
+    width: 52px; height: 52px; flex: none; border-radius: 50%; overflow: hidden;
+    border: 2px solid var(--goldsoft); background: #3a2566 center/cover no-repeat;
+    font-size: 1.4rem; cursor: pointer; color: #fff; display: flex; align-items: center; justify-content: center;
+  }
+  .nb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .nb-main, .sb-main { flex: 1; min-width: 0; }
+  .nb-label { display: block; font-family: var(--font-myth); color: var(--gold);
+    font-size: .8rem; letter-spacing: .5px; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .nb-edit { display: flex; align-items: center; gap: 8px; }
+  .nb-edit input { flex: 1; min-width: 0; border: none; background: transparent; padding: 3px 0;
+    font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  .nb-edit input:focus { outline: none; }
+  .nb-pencil { opacity: .6; font-size: .95rem; flex: none; }
+  .sb-ic { width: 48px; height: 48px; flex: none; }
+  .sb-grid { display: flex; gap: 14px; margin-top: 3px; }
+  .sb-grid > div { display: flex; flex-direction: column; }
+  .sb-k { color: var(--muted); font-size: .72rem; }
+  .sb-v { color: var(--text); font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* Weiterspielen */
+  .resume-big {
+    width: 100%; display: flex; align-items: center; gap: 12px; margin: 6px 0 10px;
+    padding: 13px 18px; cursor: pointer; color: var(--text);
+    background: linear-gradient(180deg, #5a2fae, #371a74);
+    border: 2px solid var(--gold); border-radius: 16px;
+    box-shadow: 0 0 18px rgba(167,139,250,.30), 0 6px 18px rgba(0,0,0,.45);
+    transition: filter .15s, transform .1s;
+  }
+  .resume-big:active { filter: brightness(1.1); transform: translateY(1px); }
+  .resume-big.is-disabled { opacity: .5; pointer-events: none; }
+  .rb-crown { width: 52px; height: 52px; flex: none; filter: drop-shadow(0 2px 5px rgba(0,0,0,.5)); }
+  .rb-main { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .rb-title { font-family: var(--font-myth); color: var(--gold); font-size: 1.45rem; letter-spacing: .5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+  .rb-sub { color: rgba(255,255,255,.82); font-size: .8rem; margin-top: 1px; }
+
   /* Untere Tab-Leiste */
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -866,64 +951,120 @@
   <section id="home-view" class="view active">
     <!-- Tab: Lobby -->
     <div id="pane-lobby" class="pane active">
-    <div id="resume-bar" hidden></div>
-    <label class="field-label" for="name-input">Dein Name</label>
-    <div class="panel name-panel">
-      <img class="np-emoji" src="./lobby/hdr_name.png?v=2" alt="" aria-hidden="true">
-      <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" readonly autocomplete="off">
-      <span class="np-pencil" aria-hidden="true">✏️</span>
-    </div>
+      <!-- Hero-Szene (Titel + Hilfe/Einstellungen sind im Bild; darüber liegen
+           unsichtbare Tipp-Flächen, die die echten Knöpfe auslösen). -->
+      <div class="home-hero">
+        <img src="./lobby/home-hero.jpg?v=1" alt="Zaubertisch – Das Stichspiel, online mit Freunden">
+        <button class="hero-hot" id="hero-help" type="button" aria-label="Hilfe / Regeln"></button>
+        <button class="hero-hot" id="hero-settings" type="button" aria-label="Einstellungen"></button>
+      </div>
 
-    <div class="panel deco wide-body deco-solo">
-      <div class="panel-body">
-        <h2><img class="ph-ic" src="./lobby/hdr_comp.png?v=2" alt="" aria-hidden="true"> Gegen Computer</h2>
-        <p class="muted">Allein üben gegen Computer-Gegner – ohne Anmeldung, sofort spielbar.</p>
-        <div class="two-col">
-          <div>
-            <label for="bot-count">Spieler</label>
-            <select id="bot-count">
-              <option value="2">3 Spieler</option>
-              <option value="3" selected>4 Spieler</option>
-              <option value="4">5 Spieler</option>
-              <option value="5">6 Spieler</option>
-            </select>
-          </div>
-          <div>
-            <label for="difficulty">Schwierigkeit</label>
-            <select id="difficulty">
-              <option value="easy">Leicht</option>
-              <option value="normal" selected>Normal</option>
-              <option value="hard">Schwer (zählt Karten mit)</option>
-            </select>
+      <!-- Aktions-Karten -->
+      <div class="home-actions">
+        <button class="act-card" id="act-solo" type="button">
+          <img class="act-ic" src="./lobby/ic-solo.png?v=1" alt="" aria-hidden="true">
+          <span class="act-title">Solo-Spiel<br>fortsetzen</span>
+          <span class="act-sub">Dein pausiertes Solo-Spiel wartet.</span>
+        </button>
+        <button class="act-card" id="act-comp" type="button">
+          <img class="act-ic" src="./lobby/ic-comp.png?v=1" alt="" aria-hidden="true">
+          <span class="act-title">Gegen<br>Computer</span>
+          <span class="act-sub">Allein üben gegen Computer-Gegner.</span>
+        </button>
+        <button class="act-card" id="act-online" type="button">
+          <img class="act-ic" src="./lobby/ic-online.png?v=1" alt="" aria-hidden="true">
+          <span class="act-title">Neues Spiel<br>(Online)</span>
+          <span class="act-sub">Erstelle ein neues Online-Spiel.</span>
+        </button>
+        <button class="act-card" id="act-join" type="button">
+          <img class="act-ic" src="./lobby/ic-join.png?v=1" alt="" aria-hidden="true">
+          <span class="act-title">Beitreten</span>
+          <span class="act-sub">Tritt einem Spiel mit Spiel-Code bei.</span>
+        </button>
+      </div>
+
+      <!-- Name + Statistik -->
+      <div class="home-row">
+        <div class="home-box name-box">
+          <button class="nb-avatar" id="home-avatar" type="button" aria-label="Profilbild">🧙</button>
+          <div class="nb-main">
+            <span class="nb-label">Dein Name</span>
+            <div class="nb-edit">
+              <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
+              <span class="nb-pencil" aria-hidden="true">✏️</span>
+            </div>
           </div>
         </div>
-        <button id="local-btn" class="btn"><span class="b-ic" aria-hidden="true">▶</span>Solo starten</button>
+        <div class="home-box stat-box">
+          <img class="sb-ic" src="./lobby/ic-stats.png?v=1" alt="" aria-hidden="true">
+          <div class="sb-main">
+            <span class="nb-label">Deine Statistik</span>
+            <div class="sb-grid">
+              <div><span class="sb-k">Spiele</span><span class="sb-v" id="stat-games">–</span></div>
+              <div><span class="sb-k">Siege</span><span class="sb-v" id="stat-wins">–</span></div>
+              <div><span class="sb-k">Winrate</span><span class="sb-v" id="stat-rate">–</span></div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="panel deco deco-online">
-      <div class="panel-body">
-        <h2><img class="ph-ic" src="./lobby/hdr_online.png?v=2" alt="" aria-hidden="true"> Neues Spiel (online)</h2>
-        <label for="max-players">Maximale Spielerzahl</label>
-        <select id="max-players">
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6" selected>6</option>
-        </select>
-        <button id="create-btn" class="btn"><span class="b-ic" aria-hidden="true">✦</span>Spiel erstellen</button>
-      </div>
-    </div>
+      <!-- Weiterspielen -->
+      <button class="resume-big" id="resume-big" type="button">
+        <img class="rb-crown" src="./lobby/ic-crown.png?v=1" alt="" aria-hidden="true">
+        <span class="rb-main">
+          <span class="rb-title">Weiterspielen</span>
+          <span class="rb-sub" id="rb-sub">Wähle dein nächstes Abenteuer</span>
+        </span>
+      </button>
 
-    <div class="panel deco deco-join">
-      <div class="panel-body">
-        <h2><img class="ph-ic" src="./lobby/hdr_join.png?v=2" alt="" aria-hidden="true"> Beitreten</h2>
-        <label for="code-input">Spiel-Code</label>
-        <input id="code-input" type="text" maxlength="6" placeholder="z. B. KX7QPM" readonly
-               autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2rem">
-        <button id="join-btn" class="btn sekundaer">Beitreten</button>
+      <!-- Versteckte Steuerelemente (öffnen sich aus den Karten) -->
+      <div class="modal" id="solo-modal" hidden>
+        <div class="modal-card">
+          <button class="modal-x" type="button" data-close aria-label="Schließen">✕</button>
+          <h2>Gegen Computer</h2>
+          <p class="muted">Allein üben gegen Computer-Gegner – ohne Anmeldung, sofort spielbar.</p>
+          <label for="bot-count">Spieler</label>
+          <select id="bot-count">
+            <option value="2">3 Spieler</option>
+            <option value="3" selected>4 Spieler</option>
+            <option value="4">5 Spieler</option>
+            <option value="5">6 Spieler</option>
+          </select>
+          <label for="difficulty">Schwierigkeit</label>
+          <select id="difficulty">
+            <option value="easy">Leicht</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Schwer (zählt Karten mit)</option>
+          </select>
+          <button id="local-btn" class="btn" style="width:100%;margin-top:16px"><span class="b-ic" aria-hidden="true">▶</span>Solo starten</button>
+        </div>
       </div>
-    </div>
+
+      <div class="modal" id="online-modal" hidden>
+        <div class="modal-card">
+          <button class="modal-x" type="button" data-close aria-label="Schließen">✕</button>
+          <h2>Neues Spiel (online)</h2>
+          <label for="max-players">Maximale Spielerzahl</label>
+          <select id="max-players">
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6" selected>6</option>
+          </select>
+          <button id="create-btn" class="btn" style="width:100%;margin-top:16px"><span class="b-ic" aria-hidden="true">✦</span>Spiel erstellen</button>
+        </div>
+      </div>
+
+      <div class="modal" id="join-modal" hidden>
+        <div class="modal-card">
+          <button class="modal-x" type="button" data-close aria-label="Schließen">✕</button>
+          <h2>Beitreten</h2>
+          <label for="code-input">Spiel-Code</label>
+          <input id="code-input" type="text" maxlength="6" placeholder="z. B. KX7QPM"
+                 autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2rem">
+          <button id="join-btn" class="btn" style="width:100%;margin-top:16px">Beitreten</button>
+        </div>
+      </div>
     </div><!-- /pane-lobby -->
 
     <!-- Tab: Spiele (Verlauf) -->
@@ -1250,6 +1391,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=50"></script>
+<script type="module" src="./app.js?v=51"></script>
 </body>
 </html>

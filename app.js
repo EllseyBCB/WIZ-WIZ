@@ -255,35 +255,42 @@ async function resumeSoloUI() {
   if (!ok) { toast('Kein gespeichertes Solo-Spiel gefunden.', 'info'); refreshResume(); }
 }
 
-// "Weiterspielen"-Leiste auf der Startseite aktualisieren.
+// Startseite: Solo-Karte + grossen "Weiterspielen"-Knopf je nach gespeichertem
+// Spielstand aktivieren/deaktivieren.
 function refreshResume() {
-  const bar = document.getElementById('resume-bar');
-  if (!bar) return;
-  bar.innerHTML = '';
   const onlineId = localStorage.getItem(LS_GAME);
   const solo = hasSoloSave();
-  if (!onlineId && !solo) { bar.hidden = true; return; }
-  bar.hidden = false;
-  const card = (icon, title, sub, onResume, onDiscard) => {
-    const el = document.createElement('div');
-    el.className = 'panel resume-card';
-    el.innerHTML = `<div class="resume-main"><div class="resume-title">${icon} ${esc(title)}</div><div class="resume-sub">${esc(sub)}</div></div>`;
-    const go = document.createElement('button');
-    go.className = 'btn small-btn'; go.textContent = 'Weiterspielen';
-    go.onclick = onResume;
-    el.appendChild(go);
-    const x = document.createElement('button');
-    x.className = 'resume-x'; x.type = 'button'; x.title = 'Verwerfen'; x.textContent = '✕';
-    x.onclick = onDiscard;
-    el.appendChild(x);
-    return el;
-  };
-  if (onlineId) bar.appendChild(card('🔮', 'Online-Spiel fortsetzen', 'Du bist noch in einer Partie.',
-    () => resumeOnline(),
-    async () => { try { const m = await ensureOnline(); if (m) await m.leaveGame(onlineId); } catch (_) {} localStorage.removeItem(LS_GAME); refreshResume(); }));
-  if (solo) bar.appendChild(card('🧙', 'Solo-Spiel fortsetzen', 'Dein pausiertes Solo-Spiel wartet.',
-    () => resumeSoloUI(),
-    () => { localStorage.removeItem('wizard_solo_save'); refreshResume(); }));
+  const soloCard = document.getElementById('act-solo');
+  if (soloCard) {
+    soloCard.classList.toggle('is-disabled', !solo);
+    const sub = soloCard.querySelector('.act-sub');
+    if (sub) sub.textContent = solo ? 'Dein pausiertes Solo-Spiel wartet.' : 'Kein pausiertes Solo-Spiel.';
+  }
+  const big = document.getElementById('resume-big');
+  const bigSub = document.getElementById('rb-sub');
+  if (big) {
+    big.classList.toggle('is-disabled', !(onlineId || solo));
+    if (bigSub) bigSub.textContent = onlineId ? 'Online-Partie fortsetzen'
+      : (solo ? 'Pausiertes Solo-Spiel fortsetzen' : 'Kein pausiertes Spiel');
+  }
+}
+
+// Lobby-Modals (Gegen Computer / Online / Beitreten) öffnen/schliessen.
+function openLobbyModal(id) { const m = document.getElementById(id); if (m) m.hidden = false; }
+function closeLobbyModals() { document.querySelectorAll('#pane-lobby .modal').forEach(m => m.hidden = true); }
+
+// Statistik-Box (aus dem Online-Spielverlauf) füllen – nur wenn angemeldet.
+async function loadHomeStats() {
+  const g = $('#stat-games'), w = $('#stat-wins'), r = $('#stat-rate');
+  if (!g) return;
+  if (!state.uid) { g.textContent = '0'; w.textContent = '0'; r.textContent = '0%'; return; }
+  try {
+    const m = await ensureOnline(); if (!m) throw 0;
+    const games = await m.matchHistory();
+    const total = (games || []).length;
+    const wins = (games || []).filter(x => x.players && x.players[0] && x.players[0].uid === state.uid).length;
+    g.textContent = total; w.textContent = wins; r.textContent = (total ? Math.round(wins / total * 100) : 0) + '%';
+  } catch (_) { g.textContent = '0'; w.textContent = '0'; r.textContent = '0%'; }
 }
 
 // --- Home-Formular ---------------------------------------------------------
@@ -302,6 +309,31 @@ function wireHome() {
   wireSettings();
   document.querySelectorAll('.tab').forEach(tab => {
     tab.onclick = () => switchPane(tab.dataset.tab);
+  });
+
+  // --- Neue Startseite: Hero-Tippflächen, Aktionskarten, Weiterspielen -----
+  const heroHelp = $('#hero-help'); if (heroHelp) heroHelp.onclick = () => $('#help-btn')?.click();
+  const heroSet = $('#hero-settings'); if (heroSet) heroSet.onclick = () => $('#settings-btn')?.click();
+  $('#act-comp').onclick = () => openLobbyModal('solo-modal');
+  $('#act-online').onclick = () => openLobbyModal('online-modal');
+  $('#act-join').onclick = () => openLobbyModal('join-modal');
+  $('#act-solo').onclick = () => { if (hasSoloSave()) resumeSoloUI(); else toast('Kein pausiertes Solo-Spiel.', 'info'); };
+  $('#resume-big').onclick = () => {
+    if (localStorage.getItem(LS_GAME)) resumeOnline();
+    else if (hasSoloSave()) resumeSoloUI();
+    else toast('Kein pausiertes Spiel vorhanden.', 'info');
+  };
+  // Avatar in der Namensbox: zeigt das eigene Bild, Tipp führt ins Profil.
+  const homeAv = $('#home-avatar');
+  if (homeAv) {
+    const av = localStorage.getItem('wizard_my_avatar');
+    if (av && /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(av)) homeAv.innerHTML = `<img src="${esc(av)}" alt="">`;
+    homeAv.onclick = () => switchPane('profil');
+  }
+  // Lobby-Modals: Schließen per ✕ oder Klick auf den Hintergrund.
+  document.querySelectorAll('#pane-lobby .modal').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.hidden = true; });
+    m.querySelectorAll('[data-close]').forEach(b => b.onclick = () => m.hidden = true);
   });
 
   // Profil-Aktionen.
@@ -350,6 +382,7 @@ function wireHome() {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
     const name = nameInput.value.trim() || 'Du';
     const bots = parseInt($('#bot-count').value, 10);
+    closeLobbyModals();
     startLocal(bots, name, $('#difficulty').value);
   };
 
@@ -363,6 +396,7 @@ function wireHome() {
     try {
       const code = await m.createGame(name, max);
       const gameId = await m.joinGame(code, name);   // eigene Spiel-ID holen
+      closeLobbyModals();
       await enterGame(gameId);
       toast('Spiel erstellt – Code: ' + code, 'ok');
     } catch (e) { toast(e.message || 'Fehler', 'err'); }
@@ -378,9 +412,14 @@ function wireHome() {
     m.upsertProfile(name).catch(() => {});   // Profilname fuer die Freundesliste pflegen
     try {
       const gameId = await m.joinGame(code, name);
+      closeLobbyModals();
       await enterGame(gameId);
     } catch (e) { toast(e.message || 'Fehler', 'err'); }
   };
+
+  // Startseite initial befüllen.
+  refreshResume();
+  loadHomeStats();
 }
 
 // --- Tabs: Lobby / Spiele / Profil -----------------------------------------
@@ -394,6 +433,7 @@ function switchPane(name) {
   window.scrollTo(0, 0);
   if (name === 'spiele') loadHistoryPane();
   else if (name === 'profil') loadProfilePane();
+  else if (name === 'lobby') { refreshResume(); loadHomeStats(); }
 }
 
 function offlineNote(el) {
