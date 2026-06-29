@@ -784,6 +784,10 @@
   .table-controls { justify-content: center; margin-top: 10px; }
 
   /* Wertung */
+  .score-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .score-scroll .scoreboard { min-width: max-content; }
+  .score-open-btn { width: 100%; }
+  .score-modal-card { max-width: min(560px, 94vw); }
   .scoreboard { width: 100%; border-collapse: collapse; font-size: .85rem; }
   .scoreboard th, .scoreboard td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--rand); }
   .scoreboard th:first-child, .scoreboard td:first-child { text-align: left; color: var(--muted); }
@@ -1217,6 +1221,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=47"></script>
+<script type="module" src="./app.js?v=48"></script>
 </body>
 </html>
