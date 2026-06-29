@@ -1,8 +1,8 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=38';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=27';
+import { render } from './game.js?v=39';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=28';
 import { preloadCards } from './cards.js?v=14';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
 import { initIAP, purchaseAdFree, restorePurchases, iapAvailable } from './iap.js?v=1';
@@ -103,7 +103,7 @@ async function reloadAll() {
     m.loadPlayers(state.gameId), m.loadScores(state.gameId)
   ]);
   await ensureAvatars(m, state.gameId, players);
-  players.forEach(p => { p.avatar = avatarMap.get(p.uid) || p.avatar || '🧙'; });
+  players.forEach(p => { p.avatar = avatarMap.get(p.uid) || p.avatar || DEFAULT_AV; });
   state.players = players;
   state.scores = scores;
   if (game.round_no > 0) {
@@ -485,7 +485,7 @@ async function loadProfilePane(mod) {
 }
 
 function renderFriend(f) {
-  const avatar = f.avatar || '🧙';
+  const avatar = f.avatar || DEFAULT_AV;
   const avHtml = isImg(avatar) ? `<img class="av-img" src="${esc(avatar)}" alt="">` : esc(avatar);
   const games = f.games || 0, wins = f.wins || 0;
   const stat = games === 0 ? 'Noch kein gemeinsames Spiel'
@@ -502,30 +502,33 @@ function renderFriend(f) {
 }
 
 // --- Identitaet: Avatar + Benutzername -------------------------------------
-const AVATARS = ['🧙','🧙‍♀️','🧝','🧚','🦉','🐉','🐺','🦊','🐱','🦄','🐸','🦅','🔮','🎩','👑','⭐','🌙','🃏'];
+// Themen-Avatare als Bilder (Reihenfolge = Dateien avatars/av01..av18.png).
+const AVATARS = Array.from({ length: 18 }, (_, i) => `avatars/av${String(i + 1).padStart(2, '0')}.png`);
+const DEFAULT_AV = AVATARS[0];   // Zauberer
 
-// Avatar kann ein Emoji ODER eine Bild-URL sein.
-const isImg = (v) => typeof v === 'string' && /^https?:\/\//.test(v);
+// Avatar kann ein Emoji (alt) ODER ein Bild (Pfad/URL) sein.
+const isImg = (v) => typeof v === 'string' && (/^https?:\/\//.test(v) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v));
 function setAvatarDisplay(el, value) {
   if (!el) return;
-  if (isImg(value)) el.innerHTML = `<img class="av-img" src="${esc(value)}" alt="">`;
-  else el.textContent = value || '🧙';
+  const v = value || DEFAULT_AV;
+  if (isImg(v)) el.innerHTML = `<img class="av-img" src="${esc(v)}" alt="">`;
+  else el.textContent = v;
 }
 
 function fillIdentity(prof) {
   if (!prof) return;
-  try { localStorage.setItem('wizard_my_avatar', prof.avatar || '🧙'); } catch (_) {}
+  try { localStorage.setItem('wizard_my_avatar', prof.avatar || DEFAULT_AV); } catch (_) {}
   const uname = $('#username-input');
-  setAvatarDisplay($('#avatar-current'), prof.avatar || '🧙');
+  setAvatarDisplay($('#avatar-current'), prof.avatar || DEFAULT_AV);
   if (uname && document.activeElement !== uname) uname.value = prof.name && prof.name !== 'Spieler' ? prof.name : '';
-  renderAvatarPicker(prof.avatar || '🧙');
+  renderAvatarPicker(prof.avatar || DEFAULT_AV);
 }
 
 function renderAvatarPicker(selected) {
   const grid = $('#avatar-picker');
   if (!grid) return;
   grid.innerHTML = AVATARS.map(a =>
-    `<button type="button" class="avatar-opt ${a === selected ? 'sel' : ''}" data-av="${a}">${a}</button>`).join('');
+    `<button type="button" class="avatar-opt ${a === selected ? 'sel' : ''}" data-av="${a}"><img class="av-img" src="${a}" alt=""></button>`).join('');
   grid.querySelectorAll('.avatar-opt').forEach(b => { b.onclick = () => pickAvatar(b.dataset.av); });
 }
 
@@ -652,7 +655,7 @@ function renderGroupBody(g, standings, friends) {
   const memberUids = new Set(standings.map(s => s.uid));
   const rows = standings.map((s, i) => {
     const isMe = s.uid === state.uid;
-    const av = s.avatar || '🧙';
+    const av = s.avatar || DEFAULT_AV;
     const avh = isImg(av) ? `<img class="av-img" src="${esc(av)}" alt="">` : esc(av);
     const rm = (g.owner && !isMe) ? `<button class="st-rm" data-rm="${esc(s.uid)}" title="Entfernen">✕</button>` : '';
     return `<li><span class="place">${medal(i)}</span><span class="st-av">${avh}</span>` +

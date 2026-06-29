@@ -579,20 +579,22 @@
   .seat {
     position: absolute; transform: translate(-50%, -50%);
     width: 96px; text-align: center; color: #efe6d2; z-index: 2;
-    background: linear-gradient(180deg, rgba(46,32,92,.94), rgba(24,16,52,.94));
-    border: 1.5px solid rgba(214,176,90,.7); border-radius: 14px;
-    padding: 13px 6px 9px;
-    box-shadow: 0 6px 16px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.4);
+    background: linear-gradient(180deg, rgba(46,32,92,.95), rgba(22,14,50,.96));
+    border: 2px solid #d4b05a; border-radius: 14px;
+    padding: 14px 6px 11px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.55), inset 0 0 0 1px rgba(120,90,30,.6), inset 0 0 14px rgba(0,0,0,.45);
   }
-  /* Edelstein oben am Spieler-Kaertchen */
-  .seat::before {
-    content: ''; position: absolute; top: -7px; left: 50%;
+  /* Edelstein oben & unten am Spieler-Kaertchen */
+  .seat::before, .seat::after {
+    content: ''; position: absolute; left: 50%;
     transform: translateX(-50%) rotate(45deg);
-    width: 12px; height: 12px; border-radius: 3px;
-    background: linear-gradient(135deg, #c9a3ff, #7a4fd0);
-    border: 1px solid rgba(214,176,90,.85);
-    box-shadow: 0 0 8px rgba(160,110,240,.7);
+    width: 13px; height: 13px; border-radius: 3px;
+    background: linear-gradient(135deg, #d7b3ff, #7a4fd0);
+    border: 1px solid #d4b05a;
+    box-shadow: 0 0 8px rgba(160,110,240,.75);
   }
+  .seat::before { top: -8px; }
+  .seat::after  { bottom: -8px; }
   .seat.turn { border-color: #ffd66b; box-shadow: 0 6px 16px rgba(0,0,0,.5), 0 0 0 1px #ffd66b, 0 0 18px rgba(255,214,107,.4); }
   .seat-av {
     width: 50px; height: 50px; margin: 0 auto 3px; border-radius: 50%;
@@ -621,16 +623,25 @@
   .action-dock { display: flex; justify-content: center; margin-top: 8px; min-height: 46px; align-items: center; }
   /* "Stiche ansagen"-Button (oeffnet das Gebots-Modal) im Pergament/Gold-Look. */
   .bid-open-btn {
-    background: linear-gradient(180deg, #efe2c2, #e3d2a8); color: #2a1d0c;
-    border: 1px solid #b89b62; font-weight: 800; letter-spacing: .3px;
-    padding: 11px 24px; border-radius: 12px;
-    box-shadow: 0 4px 14px rgba(0,0,0,.4);
-    animation: bidPulse 1.7s ease-in-out infinite;
+    position: relative; background: linear-gradient(180deg, #5a3fa0, #3a2470);
+    color: #fff; font-weight: 800; font-size: 1.02rem; letter-spacing: .3px;
+    border: 2px solid #d4b05a; border-radius: 14px; padding: 13px 36px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08), 0 0 16px rgba(160,110,240,.3);
+    animation: bidPulse 1.8s ease-in-out infinite;
   }
-  .bid-open-btn:hover { filter: brightness(1.05); }
+  .bid-open-btn:hover { filter: brightness(1.08); }
+  /* Edelstein-Akzente an den Enden */
+  .bid-open-btn::before, .bid-open-btn::after {
+    content: ''; position: absolute; top: 50%; width: 13px; height: 13px;
+    transform: translateY(-50%) rotate(45deg); border-radius: 3px;
+    background: linear-gradient(135deg, #d7b3ff, #7a4fd0); border: 1px solid #d4b05a;
+    box-shadow: 0 0 8px rgba(160,110,240,.75);
+  }
+  .bid-open-btn::before { left: -7px; }
+  .bid-open-btn::after  { right: -7px; }
   @keyframes bidPulse {
-    0%,100% { box-shadow: 0 4px 14px rgba(0,0,0,.4), 0 0 0 0 rgba(240,201,107,.55); }
-    50%     { box-shadow: 0 4px 14px rgba(0,0,0,.4), 0 0 0 9px rgba(240,201,107,0); }
+    0%,100% { filter: drop-shadow(0 0 0 rgba(255,214,107,0)); }
+    50%     { filter: drop-shadow(0 0 7px rgba(255,214,107,.55)); }
   }
   @media (prefers-reduced-motion: reduce) { .bid-open-btn { animation: none; } }
   /* Gebots-Modal */
@@ -752,11 +763,21 @@
   /* "Alle Karten"-Button + Vollbild-Kartenansicht */
   .hand-view-btn {
     position: absolute; top: -16px; right: 8px; z-index: 6;
-    border: 1px solid var(--rand); background: rgba(20,13,44,.94); color: var(--text);
-    font-size: .78rem; font-weight: 600; padding: 5px 11px; border-radius: 999px;
-    cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,.45);
+    border: 1.5px solid #d4b05a; background: linear-gradient(180deg, rgba(58,40,110,.96), rgba(28,18,66,.96));
+    color: #f3ead4; font-size: .78rem; font-weight: 700; padding: 6px 13px; border-radius: 999px;
+    cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06);
   }
-  .hand-view-btn:hover { background: rgba(44,30,86,.96); }
+  .hand-view-btn:hover { filter: brightness(1.1); }
+  /* Steuer-Pillen (Pausieren / Spiel verlassen) im Gold-Lila-Look */
+  .table-controls .btn {
+    border: 1.5px solid #d4b05a;
+    background: linear-gradient(180deg, #5a3fa0, #38226c); color: #f5eeda;
+    box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07);
+  }
+  .table-controls .btn.sekundaer {
+    background: linear-gradient(180deg, rgba(40,26,86,.97), rgba(22,13,56,.97));
+  }
+  .table-controls .btn:hover { filter: brightness(1.1); }
   .hand-viewer .modal-card { max-width: min(560px, 94vw); }
   .hand-viewer-title { margin: 0 0 12px; font-size: .98rem; text-align: center; color: var(--text); }
   .hand-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 2px 0; }
@@ -1206,6 +1227,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=43"></script>
+<script type="module" src="./app.js?v=44"></script>
 </body>
 </html>
