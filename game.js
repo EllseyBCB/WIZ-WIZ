@@ -142,19 +142,9 @@ function renderInviteFriends(root, state, actions) {
 }
 
 // --- Wertungstabelle -------------------------------------------------------
-function renderScoreboard(root, state, isFinal) {
-  const { players, scores } = state;
-  const box = document.createElement('div');
-  box.className = 'panel';
+// Baut das eigentliche Tabellen-Markup (wird inline ODER im Modal genutzt).
+function buildScoreTable(players, scores) {
   const ordered = [...players].sort((a, b) => a.seat - b.seat);
-
-  if (isFinal) {
-    const winner = [...players].sort((a, b) => b.total_score - a.total_score)[0];
-    box.innerHTML = `<h2>🏆 ${esc(winner?.name ?? '')} gewinnt mit ${winner?.total_score} Punkten!</h2>`;
-  } else {
-    box.innerHTML = '<h3>Punktestand</h3>';
-  }
-
   const rounds = [...new Set(scores.map(s => s.round_no))].sort((a, b) => a - b);
   let html = '<table class="scoreboard"><thead><tr><th>Runde</th>';
   ordered.forEach(p => { html += `<th>${esc(p.name)}</th>`; });
@@ -171,6 +161,55 @@ function renderScoreboard(root, state, isFinal) {
   html += '<tr class="total-row"><td>Σ</td>';
   ordered.forEach(p => { html += `<td>${p.total_score}</td>`; });
   html += '</tr></tbody></table>';
-  box.insertAdjacentHTML('beforeend', html);
+  return html;
+}
+
+// Punktestand im Vollbild-Overlay anzeigen (fuer viele Spieler:innen, damit
+// nichts ueber den Rahmen hinauslaeuft – horizontal scrollbar).
+function openScoreModal(players, scores) {
+  document.getElementById('score-modal')?.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  overlay.id = 'score-modal';
+  const card = document.createElement('div');
+  card.className = 'modal-card score-modal-card';
+  card.innerHTML = `<button class="modal-x" type="button" aria-label="Schließen">✕</button>
+    <h2>Punktestand</h2>
+    <div class="score-scroll">${buildScoreTable(players, scores)}</div>`;
+  overlay.appendChild(card);
+  const close = () => overlay.remove();
+  card.querySelector('.modal-x').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.body.appendChild(overlay);
+}
+
+function renderScoreboard(root, state, isFinal) {
+  const { players, scores } = state;
+  const box = document.createElement('div');
+  box.className = 'panel';
+
+  if (isFinal) {
+    const winner = [...players].sort((a, b) => b.total_score - a.total_score)[0];
+    box.innerHTML = `<h2>🏆 ${esc(winner?.name ?? '')} gewinnt mit ${winner?.total_score} Punkten!</h2>`;
+    // Endstand immer vollstaendig zeigen – horizontal scrollbar, falls breit.
+    box.insertAdjacentHTML('beforeend', `<div class="score-scroll">${buildScoreTable(players, scores)}</div>`);
+    root.appendChild(box);
+    return;
+  }
+
+  // Laufendes Spiel: ab 5 Spieler:innen wird die Tabelle zu breit fuer den
+  // Tisch – dann nur ein Button, der den Punktestand im Overlay oeffnet.
+  if (players.length >= 5) {
+    box.innerHTML = '<h3>Punktestand</h3>';
+    const btn = document.createElement('button');
+    btn.className = 'btn score-open-btn';
+    btn.type = 'button';
+    btn.textContent = '📊 Punktestand öffnen';
+    btn.onclick = () => openScoreModal(players, scores);
+    box.appendChild(btn);
+  } else {
+    box.innerHTML = '<h3>Punktestand</h3>';
+    box.insertAdjacentHTML('beforeend', `<div class="score-scroll">${buildScoreTable(players, scores)}</div>`);
+  }
   root.appendChild(box);
 }
