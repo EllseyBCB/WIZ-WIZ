@@ -54,6 +54,9 @@ let lastDockEl = null;
 // Nach dem Austeilen: Hand zuerst verdeckt zeigen, dann Karten umdrehen.
 let dealCoverActive = false;
 let dealRevealStart = 0;
+// Frische Runde erkannt, Animation aber noch nicht gestartet -> Hand verbergen,
+// damit die Karten nicht eine Frame lang aufblitzen (z. B. Lobby -> Tisch).
+let dealPendingKey = null;
 function revealHand() { if (lastDockEl && lastDockEl.isConnected) lastDockEl.style.visibility = 'visible'; }
 
 // Legt ueber jede Handkarte eine Rueckseite und dreht sie – relativ zum Aufdeck-
@@ -188,7 +191,7 @@ export function renderTable(root, state, actions) {
 
   // Eigene Karten erst zeigen, nachdem sie ausgeteilt wurden: waehrend der
   // Austeil-Animation die Hand-Leiste verbergen (Layout bleibt erhalten).
-  if (Date.now() < dealEndsAt) { dock.style.visibility = 'hidden'; lastDockEl = dock; }
+  if (Date.now() < dealEndsAt || dealPendingKey) { dock.style.visibility = 'hidden'; lastDockEl = dock; }
 }
 
 // --- Vollbild-Kartenansicht ("Alle Karten") --------------------------------
@@ -322,24 +325,27 @@ function clearDeal() {
   if (dealTimers.length) { dealTimers.forEach(clearTimeout); dealTimers = []; }
   if (dealOverlayNode) { dealOverlayNode.remove(); dealOverlayNode = null; }
   if (dealRevealTimer) { clearTimeout(dealRevealTimer); dealRevealTimer = null; }
-  dealEndsAt = 0; dealCoverActive = false; stripCovers(); revealHand();   // beim Ueberspringen Hand sofort zeigen
+  dealEndsAt = 0; dealCoverActive = false; dealPendingKey = null; stripCovers(); revealHand();   // beim Ueberspringen Hand sofort zeigen
 }
 
 function maybeDealAnimation(state, feltEl, dockEl) {
   const { game } = state;
-  if (game.status !== 'running') { lastDealKey = null; return; }
+  if (game.status !== 'running') { lastDealKey = null; dealPendingKey = null; return; }
   const roundStart = game.round_no >= 1 && (game.trick_no ?? 0) <= 1 &&
     (state.trick?.length || 0) === 0 && (game.phase === 'bidding' || game.phase === 'trumpselect');
-  if (!roundStart) return;
+  if (!roundStart) { dealPendingKey = null; return; }
   const key = (game.join_code || 'solo') + '|' + game.round_no + '|' + game.num_players;
-  if (key === lastDealKey) return;
+  if (key === lastDealKey) { dealPendingKey = null; return; }
   const me = state.players.find(p => p.uid === state.uid);
   const mySeat = me?.seat ?? 0;
   // Runde NUR dann als "erledigt" merken, wenn die Animation wirklich starten
-  // konnte – sonst beim naechsten Render erneut versuchen (z. B. wenn der Filz
-  // beim ersten Render noch nicht sichtbar/vermessen war; sonst wuerden die
-  // Karten ohne Austeilen sofort erscheinen).
-  if (runDealAnimation(feltEl, dockEl, computeSeatLayout(state.players, mySeat), mySeat, game)) lastDealKey = key;
+  // konnte – sonst beim naechsten Render erneut versuchen. Bis dahin bleibt die
+  // Hand verborgen (dealPendingKey), damit die Karten nicht kurz aufblitzen.
+  if (runDealAnimation(feltEl, dockEl, computeSeatLayout(state.players, mySeat), mySeat, game)) {
+    lastDealKey = key; dealPendingKey = null;
+  } else {
+    dealPendingKey = key;
+  }
 }
 
 function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
