@@ -184,7 +184,7 @@ export function renderTable(root, state, actions) {
   }
 
   // Austeil-Animation bei Rundenbeginn (laeuft als Overlay ueber dem Filz).
-  maybeDealAnimation(state, felt);
+  maybeDealAnimation(state, felt, dock);
 
   // Eigene Karten erst zeigen, nachdem sie ausgeteilt wurden: waehrend der
   // Austeil-Animation die Hand-Leiste verbergen (Layout bleibt erhalten).
@@ -325,7 +325,7 @@ function clearDeal() {
   dealEndsAt = 0; dealCoverActive = false; stripCovers(); revealHand();   // beim Ueberspringen Hand sofort zeigen
 }
 
-function maybeDealAnimation(state, feltEl) {
+function maybeDealAnimation(state, feltEl, dockEl) {
   const { game } = state;
   if (game.status !== 'running') { lastDealKey = null; return; }
   const roundStart = game.round_no >= 1 && (game.trick_no ?? 0) <= 1 &&
@@ -339,10 +339,10 @@ function maybeDealAnimation(state, feltEl) {
   // konnte – sonst beim naechsten Render erneut versuchen (z. B. wenn der Filz
   // beim ersten Render noch nicht sichtbar/vermessen war; sonst wuerden die
   // Karten ohne Austeilen sofort erscheinen).
-  if (runDealAnimation(feltEl, computeSeatLayout(state.players, mySeat), game)) lastDealKey = key;
+  if (runDealAnimation(feltEl, dockEl, computeSeatLayout(state.players, mySeat), mySeat, game)) lastDealKey = key;
 }
 
-function runDealAnimation(feltEl, layout, game) {
+function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   clearDeal();
   const rect = feltEl.getBoundingClientRect();
   if (rect.width < 60) return false;                 // Filz (noch) nicht sichtbar -> spaeter erneut
@@ -355,64 +355,100 @@ function runDealAnimation(feltEl, layout, game) {
     return true;
   }
 
+  // Vollbild-Overlay (fixed), damit Karten bis in die Hand unten fliegen koennen.
   const overlay = document.createElement('div');
   overlay.className = 'deal-overlay';
-  overlay.style.left = rect.left + 'px'; overlay.style.top = rect.top + 'px';
-  overlay.style.width = rect.width + 'px'; overlay.style.height = rect.height + 'px';
+  overlay.style.left = '0px'; overlay.style.top = '0px';
+  overlay.style.width = '100%'; overlay.style.height = '100%';
   document.body.appendChild(overlay);
   dealOverlayNode = overlay;
+  overlay.addEventListener('pointerdown', clearDeal);   // Antippen = ueberspringen
 
-  const cx = rect.width / 2, cy = rect.height * 0.46;
+  // Deck-Ursprung (Mitte des Filzes) in Viewport-Koordinaten.
+  const originX = rect.left + rect.width / 2;
+  const originY = rect.top + rect.height * 0.46;
 
-  const posBySeat = new Map();
-  layout.forEach(l => posBySeat.set(l.player.seat, l.pos));
+  // Sitzplatz-Ziele der Mitspieler (Filz-Prozente -> Viewport-Pixel).
+  const ptBySeat = new Map();
+  layout.forEach(l => ptBySeat.set(l.player.seat, {
+    x: rect.left + rect.width * l.pos.l / 100,
+    y: rect.top + rect.height * l.pos.t / 100,
+  }));
+
   const np = layout.length;
   const order = [];
   for (let i = 0; i < np; i++) order.push(((game.dealer_seat ?? 0) + 1 + i) % np);
 
-  const cards = Math.max(1, game.cards_this_round || 1);
-  const total = cards * np;
-  // Etwas gemaechlicher: groesserer Abstand zwischen den Karten.
+  const cardsPer = Math.max(1, game.cards_this_round || 1);
+  const total = cardsPer * np;
   const stagger = Math.max(60, Math.min(120, 2800 / total));
-  let idx = 0;
-  for (let pass = 0; pass < cards; pass++) {
-    for (const seat of order) {
-      const pos = posBySeat.get(seat) || { t: 50, l: 50 };
-      dealTimers.push(setTimeout(() => flyCard(overlay, cx, cy, rect, pos), idx * stagger));
-      idx++;
+  const totalMs = total * stagger + 760;
+  dealEndsAt = Date.now() + totalMs;          // eigene Hand bis zum Aufdecken verborgen
+  const handCards = cardsPer;
+
+  // Flieger erst planen, wenn die Hand fertig gelayoutet ist (Slot-Positionen
+  // messbar; die Hand selbst bleibt bis zum Aufdecken via visibility verborgen).
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (dealOverlayNode !== overlay) return;            // schon uebersprungen
+    const myTargets = Array.from(dockEl.querySelectorAll('.fan-card')).map(el => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2,
+               rot: parseFloat(el.style.getPropertyValue('--rot')) || 0 };
+    });
+    let myI = 0, idx = 0;
+    for (let pass = 0; pass < cardsPer; pass++) {
+      for (const seat of order) {
+        if (seat === mySeat) {
+          const tgt = myTargets[myI++] || { x: originX, y: rect.bottom, rot: 0 };
+          dealTimers.push(setTimeout(() => flyToHand(overlay, originX, originY, tgt), idx * stagger));
+        } else {
+          const pt = ptBySeat.get(seat) || { x: originX, y: originY };
+          dealTimers.push(setTimeout(() => flyToSeat(overlay, originX, originY, pt), idx * stagger));
+        }
+        idx++;
+      }
     }
-  }
-  const totalMs = idx * stagger + 760;
-  dealEndsAt = Date.now() + totalMs;          // Hand bis dahin verborgen halten
-  const handCards = cards;                     // Karten je Spieler (= eigene Handgroesse)
+  }));
+
   if (dealRevealTimer) clearTimeout(dealRevealTimer);
   dealRevealTimer = setTimeout(() => {
     dealEndsAt = 0; dealRevealTimer = null;
     dealCoverActive = true; dealRevealStart = Date.now();
-    revealHand();                             // verdeckte Hand sichtbar machen ...
-    coverAndScheduleFlip(lastDockEl);         // ... dann Karten umdrehen
+    coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
+    revealHand();                             // ... dann die echte Hand sichtbar machen
+    if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
     dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 140 + handCards * 85 + 460));
   }, totalMs);
-  dealTimers.push(setTimeout(() => {
-    if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }
-  }, totalMs));
-  overlay.addEventListener('pointerdown', clearDeal);
   return true;
 }
 
-function flyCard(overlay, cx, cy, rect, pos) {
+// Meine Karte: fliegt vom Deck an ihren Platz in der Hand und bleibt dort
+// (verdeckt) liegen – die Hand baut sich so Karte fuer Karte auf.
+function flyToHand(overlay, ox, oy, tgt) {
+  const card = document.createElement('div');
+  card.className = 'deal-card';
+  card.appendChild(renderCard('Z1', { faceDown: true }));
+  card.style.left = ox + 'px'; card.style.top = oy + 'px';
+  overlay.appendChild(card);
+  const dx = Math.round(tgt.x - ox), dy = Math.round(tgt.y - oy);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${tgt.rot}deg)`;
+  }));
+}
+
+// Mitspieler-Karte: fliegt zum Sitzplatz und verschwindet dort.
+function flyToSeat(overlay, ox, oy, pt) {
   const card = document.createElement('div');
   card.className = 'deal-card';
   card.appendChild(renderCard('Z1', { faceDown: true, small: true }));
-  card.style.left = cx + 'px'; card.style.top = cy + 'px';
+  card.style.left = ox + 'px'; card.style.top = oy + 'px';
   overlay.appendChild(card);
-  const tx = Math.round(rect.width * pos.l / 100 - cx);
-  const ty = Math.round(rect.height * pos.t / 100 - cy);
+  const dx = Math.round(pt.x - ox), dy = Math.round(pt.y - oy);
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    card.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(.5)`;
+    card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.5)`;
     card.style.opacity = '0';
   }));
-  setTimeout(() => card.remove(), 720);
+  dealTimers.push(setTimeout(() => card.remove(), 720));
 }
 
 // --- Trumpf-Karte als Badge ------------------------------------------------
