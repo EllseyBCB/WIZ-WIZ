@@ -397,25 +397,30 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   const totalMs = total * stagger + 760;
   dealEndsAt = Date.now() + totalMs;          // eigene Hand bis zum Aufdecken verborgen
   const handCards = cardsPer;
-  // Hand AB SOFORT als "verdeckt" markieren, damit kein Zwischen-Render waehrend
-  // des Austeilens die offenen Karten zeigt. Flips beginnen erst nach dem Austeilen.
-  dealCoverActive = true;
-  dealRevealStart = Date.now() + totalMs;
 
   // Flieger erst planen, wenn die Hand fertig gelayoutet ist (Slot-Positionen
   // messbar; die Hand selbst bleibt bis zum Aufdecken via visibility verborgen).
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (dealOverlayNode !== overlay) return;            // schon uebersprungen
-    const myTargets = Array.from(dockEl.querySelectorAll('.fan-card')).map(el => {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const valid = r => r && r.width > 10 && r.height > 10 &&
+      r.left > -80 && r.top > -80 && r.right < vw + 80 && r.bottom < vh + 80;
+    // Nur die aktuell verbundene Hand messen (sonst Nullwerte -> Karten irren umher).
+    const liveDock = (dockEl && dockEl.isConnected) ? dockEl : lastDockEl;
+    const fanCards = liveDock ? Array.from(liveDock.querySelectorAll('.fan-card')) : [];
+    const myTargets = fanCards.map(el => {
       const r = el.getBoundingClientRect();
+      if (!valid(r)) return null;
       return { x: r.left + r.width / 2, y: r.top + r.height / 2,
                rot: parseFloat(el.style.getPropertyValue('--rot')) || 0 };
     });
+    // Fallback, falls eine Handposition nicht messbar ist: eigener Sitzplatz (unten Mitte).
+    const meFallback = ptBySeat.get(mySeat) || { x: originX, y: rect.top + rect.height * 0.87 };
     let myI = 0, idx = 0;
     for (let pass = 0; pass < cardsPer; pass++) {
       for (const seat of order) {
         if (seat === mySeat) {
-          const tgt = myTargets[myI++] || { x: originX, y: rect.bottom, rot: 0 };
+          const tgt = myTargets[myI++] || { x: meFallback.x, y: meFallback.y, rot: 0 };
           dealTimers.push(setTimeout(() => flyToHand(overlay, originX, originY, tgt), idx * stagger));
         } else {
           const pt = ptBySeat.get(seat) || { x: originX, y: originY };
@@ -429,7 +434,8 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   if (dealRevealTimer) clearTimeout(dealRevealTimer);
   dealRevealTimer = setTimeout(() => {
     dealEndsAt = 0; dealRevealTimer = null;
-    coverAndScheduleFlip(lastDockEl);         // aktuelle Hand verdeckt sicherstellen ...
+    dealCoverActive = true; dealRevealStart = Date.now();
+    coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
     revealHand();                             // ... dann die (verdeckte) Hand sichtbar machen
     if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
     dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 200 + handCards * 150 + 700));
