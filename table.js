@@ -574,7 +574,7 @@ function bidOpenButton(game, players, actions) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn bid-open-btn';
-  btn.innerHTML = '🪄 Stiche ansagen';
+  btn.textContent = 'Stiche ansagen';
   btn.onclick = () => openBidModal(game, players, actions);
   return btn;
 }

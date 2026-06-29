@@ -576,37 +576,22 @@
 
   /* Sitzplaetze rund um den Tisch (per Inline-Style top/left positioniert) */
   .seats { position: absolute; inset: 0; }
+  /* Spieler-Kaertchen = gemalter Rahmen (avatar-Fenster oben, Inhalt darunter) */
   .seat {
     position: absolute; transform: translate(-50%, -50%);
-    width: 96px; text-align: center; color: #efe6d2; z-index: 2;
-    background: linear-gradient(180deg, rgba(46,32,92,.95), rgba(22,14,50,.96));
-    border: 2px solid #d4b05a; border-radius: 14px;
-    padding: 14px 6px 11px;
-    box-shadow: 0 6px 16px rgba(0,0,0,.55), inset 0 0 0 1px rgba(120,90,30,.6), inset 0 0 14px rgba(0,0,0,.45);
+    width: 108px; aspect-ratio: 248 / 433; box-sizing: border-box;
+    background: url('lobby/ui-seat.png?v=1') center/100% 100% no-repeat;
+    padding: 7% 15% 0; text-align: center; color: #efe6d2; z-index: 2;
+    display: flex; flex-direction: column; align-items: center;
   }
-  /* Edelstein oben & unten am Spieler-Kaertchen */
-  .seat::before, .seat::after {
-    content: ''; position: absolute; left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 13px; height: 13px; border-radius: 3px;
-    background: linear-gradient(135deg, #d7b3ff, #7a4fd0);
-    border: 1px solid #d4b05a;
-    box-shadow: 0 0 8px rgba(160,110,240,.75);
-  }
-  .seat::before { top: -8px; }
-  .seat::after  { bottom: -8px; }
-  .seat.turn { border-color: #ffd66b; box-shadow: 0 6px 16px rgba(0,0,0,.5), 0 0 0 1px #ffd66b, 0 0 18px rgba(255,214,107,.4); }
+  .seat::before, .seat::after { display: none; }   /* Edelsteine sind im Rahmenbild */
+  .seat.turn { filter: drop-shadow(0 0 7px rgba(255,214,107,.85)); }
   .seat-av {
-    width: 50px; height: 50px; margin: 0 auto 3px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; overflow: hidden;
-    font-size: 1.7rem; line-height: 1;
-    background: linear-gradient(180deg, rgba(20,12,4,.9), rgba(12,8,3,.9));
-    border: 2px solid rgba(196,160,96,.45);
-    box-shadow: 0 3px 8px rgba(0,0,0,.5);
+    width: 60%; aspect-ratio: 1; height: auto; margin: 0 auto;
+    border-radius: 50%; overflow: hidden; border: none; background: transparent;
+    display: flex; align-items: center; justify-content: center; font-size: 1.5rem; line-height: 1;
   }
   .seat-av .av-img { width: 100%; height: 100%; }
-  .seat.turn .seat-av { border-color: #ffd66b; box-shadow: 0 0 0 2px #ffd66b, 0 0 16px rgba(255,214,107,.55); }
-  .seat.me .seat-av { border-color: #b69cff; }
   .seat.offline { opacity: .45; }
   .seat-name {
     font-weight: 700; font-size: .74rem; white-space: nowrap; max-width: 96px;
@@ -620,30 +605,23 @@
   .st-score { font-size: .66rem; font-weight: 700; color: #e7dcc0; opacity: .85; }
 
   /* Aktionsleiste zwischen Filz und Hand */
-  .action-dock { display: flex; justify-content: center; margin-top: 8px; min-height: 46px; align-items: center; }
-  /* "Stiche ansagen"-Button (oeffnet das Gebots-Modal) im Pergament/Gold-Look. */
+  .action-dock { display: flex; justify-content: center; margin-top: 6px; min-height: 104px; align-items: center; }
+  /* "Stiche ansagen": gemalter Zauberstab-Rahmen als Hintergrund, Text zentriert. */
   .bid-open-btn {
-    position: relative; background: linear-gradient(180deg, #5a3fa0, #3a2470);
-    color: #fff; font-weight: 800; font-size: 1.02rem; letter-spacing: .3px;
-    border: 2px solid #d4b05a; border-radius: 14px; padding: 13px 36px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08), 0 0 16px rgba(160,110,240,.3);
-    animation: bidPulse 1.8s ease-in-out infinite;
+    background: url('lobby/ui-bidbtn.png?v=1') center/100% 100% no-repeat;
+    border: none; box-shadow: none; color: #fff; font-weight: 800;
+    font-size: 1.05rem; letter-spacing: .3px;
+    width: 260px; aspect-ratio: 518 / 213; padding: 0 26px 0 54px;
+    display: inline-flex; align-items: center; justify-content: center;
+    animation: bidPulse 1.9s ease-in-out infinite;
   }
   .bid-open-btn:hover { filter: brightness(1.08); }
-  /* Edelstein-Akzente an den Enden */
-  .bid-open-btn::before, .bid-open-btn::after {
-    content: ''; position: absolute; top: 50%; width: 13px; height: 13px;
-    transform: translateY(-50%) rotate(45deg); border-radius: 3px;
-    background: linear-gradient(135deg, #d7b3ff, #7a4fd0); border: 1px solid #d4b05a;
-    box-shadow: 0 0 8px rgba(160,110,240,.75);
-  }
-  .bid-open-btn::before { left: -7px; }
-  .bid-open-btn::after  { right: -7px; }
   @keyframes bidPulse {
     0%,100% { filter: drop-shadow(0 0 0 rgba(255,214,107,0)); }
-    50%     { filter: drop-shadow(0 0 7px rgba(255,214,107,.55)); }
+    50%     { filter: drop-shadow(0 0 8px rgba(255,214,107,.6)); }
   }
   @media (prefers-reduced-motion: reduce) { .bid-open-btn { animation: none; } }
+  /* Gebots-Modal */
   /* Gebots-Modal */
   .bid-modal-card { max-width: 360px; text-align: center; }
   .bid-modal-card h3 { margin: 0 0 4px; color: #3a280f; }
@@ -761,21 +739,23 @@
   }
 
   /* "Alle Karten"-Button + Vollbild-Kartenansicht */
+  /* "Alle Karten": gemalte Pille als Hintergrund */
   .hand-view-btn {
-    position: absolute; top: -16px; right: 8px; z-index: 6;
-    border: 1.5px solid #d4b05a; background: linear-gradient(180deg, rgba(58,40,110,.96), rgba(28,18,66,.96));
-    color: #f3ead4; font-size: .78rem; font-weight: 700; padding: 6px 13px; border-radius: 999px;
-    cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06);
+    position: absolute; top: -20px; right: 8px; z-index: 6;
+    border: none; box-shadow: none; background: url('lobby/ui-pill.png?v=1') center/100% 100% no-repeat;
+    color: #f5eeda; font-size: .8rem; font-weight: 700; cursor: pointer;
+    width: 138px; aspect-ratio: 353 / 102; display: inline-flex; align-items: center; justify-content: center;
   }
   .hand-view-btn:hover { filter: brightness(1.1); }
-  /* Steuer-Pillen (Pausieren / Spiel verlassen) im Gold-Lila-Look */
+  /* Steuer-Pillen mit gemalten Rahmen */
   .table-controls .btn {
-    border: 1.5px solid #d4b05a;
-    background: linear-gradient(180deg, #5a3fa0, #38226c); color: #f5eeda;
-    box-shadow: 0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07);
+    border: none; box-shadow: none; color: #f6efdb; font-weight: 700;
+    background: url('lobby/ui-pause.png?v=1') center/100% 100% no-repeat;
+    width: 170px; aspect-ratio: 406 / 143; display: inline-flex; align-items: center; justify-content: center;
   }
   .table-controls .btn.sekundaer {
-    background: linear-gradient(180deg, rgba(40,26,86,.97), rgba(22,13,56,.97));
+    background: url('lobby/ui-leave.png?v=1') center/100% 100% no-repeat;
+    width: 178px; aspect-ratio: 419 / 124;
   }
   .table-controls .btn:hover { filter: brightness(1.1); }
   .hand-viewer .modal-card { max-width: min(560px, 94vw); }
@@ -1227,6 +1207,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=45"></script>
+<script type="module" src="./app.js?v=46"></script>
 </body>
 </html>
