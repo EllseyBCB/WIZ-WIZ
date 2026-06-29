@@ -419,13 +419,15 @@
   /* Lila Scheibe hinter dem Emblem: verdeckt die gerade Karten-Oberkante, damit
      der runde Goldring vollständig (nicht durchgestrichen) zu sehen ist. */
   .act-card::before {
-    content: ""; position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
-    width: 74px; height: 74px; border-radius: 50%; z-index: 1;
+    content: ""; position: absolute; top: -33px; left: 50%; transform: translateX(-50%);
+    width: 72px; height: 72px; border-radius: 50%; z-index: 1;
     background: radial-gradient(circle at 50% 38%, #34205e, #221045);
   }
+  /* Emblem-Bild ist größer als der sichtbare Ring (transparenter Rand drumherum),
+     daher 86px – der Goldring erscheint dann ~72px und liegt komplett frei. */
   .act-ic {
-    position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
-    width: 74px; height: 74px; z-index: 2; filter: drop-shadow(0 3px 6px rgba(0,0,0,.55));
+    position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+    width: 86px; height: 86px; z-index: 2; filter: drop-shadow(0 3px 6px rgba(0,0,0,.55));
   }
   .act-title { font-family: var(--font-myth); color: var(--gold); font-size: 1rem; line-height: 1.12;
     letter-spacing: .3px; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
@@ -456,7 +458,7 @@
     font-size: 1.15rem; font-weight: 600; color: var(--text); }
   .nb-edit input:focus { outline: none; }
   .nb-pencil { opacity: .6; font-size: .95rem; flex: none; }
-  .sb-ic { width: 48px; height: 48px; flex: none; }
+  .sb-ic { width: 56px; height: 56px; flex: none; }
   .sb-grid { display: flex; gap: 14px; margin-top: 3px; }
   .sb-grid > div { display: flex; flex-direction: column; }
   .sb-k { color: var(--muted); font-size: .72rem; }
@@ -473,7 +475,7 @@
   }
   .resume-big:active { filter: brightness(1.1); transform: translateY(1px); }
   .resume-big.is-disabled { opacity: .5; pointer-events: none; }
-  .rb-crown { width: 52px; height: 52px; flex: none; filter: drop-shadow(0 2px 5px rgba(0,0,0,.5)); }
+  .rb-crown { width: 60px; height: 60px; flex: none; filter: drop-shadow(0 2px 5px rgba(0,0,0,.5)); }
   .rb-main { display: flex; flex-direction: column; align-items: center; flex: 1; }
   .rb-title { font-family: var(--font-myth); color: var(--gold); font-size: 1.45rem; letter-spacing: .5px;
     text-shadow: 0 1px 3px rgba(0,0,0,.5); }
@@ -969,22 +971,22 @@
       <!-- Aktions-Karten -->
       <div class="home-actions">
         <button class="act-card" id="act-solo" type="button">
-          <img class="act-ic" src="./lobby/ic-solo.png?v=3" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-solo.png?v=4" alt="" aria-hidden="true">
           <span class="act-title">Solo-Spiel<br>fortsetzen</span>
           <span class="act-sub">Dein pausiertes Solo-Spiel wartet.</span>
         </button>
         <button class="act-card" id="act-comp" type="button">
-          <img class="act-ic" src="./lobby/ic-comp.png?v=3" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-comp.png?v=4" alt="" aria-hidden="true">
           <span class="act-title">Gegen<br>Computer</span>
           <span class="act-sub">Allein üben gegen Computer-Gegner.</span>
         </button>
         <button class="act-card" id="act-online" type="button">
-          <img class="act-ic" src="./lobby/ic-online.png?v=3" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-online.png?v=4" alt="" aria-hidden="true">
           <span class="act-title">Neues Spiel<br>(Online)</span>
           <span class="act-sub">Erstelle ein neues Online-Spiel.</span>
         </button>
         <button class="act-card" id="act-join" type="button">
-          <img class="act-ic" src="./lobby/ic-join.png?v=3" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-join.png?v=4" alt="" aria-hidden="true">
           <span class="act-title">Beitreten</span>
           <span class="act-sub">Tritt einem Spiel mit Spiel-Code bei.</span>
         </button>
@@ -1003,7 +1005,7 @@
           </div>
         </div>
         <div class="home-box stat-box">
-          <img class="sb-ic" src="./lobby/ic-stats.png?v=3" alt="" aria-hidden="true">
+          <img class="sb-ic" src="./lobby/ic-stats.png?v=4" alt="" aria-hidden="true">
           <div class="sb-main">
             <span class="nb-label">Deine Statistik</span>
             <div class="sb-grid">
@@ -1017,7 +1019,7 @@
 
       <!-- Weiterspielen -->
       <button class="resume-big" id="resume-big" type="button">
-        <img class="rb-crown" src="./lobby/ic-crown.png?v=3" alt="" aria-hidden="true">
+        <img class="rb-crown" src="./lobby/ic-crown.png?v=4" alt="" aria-hidden="true">
         <span class="rb-main">
           <span class="rb-title">Weiterspielen</span>
           <span class="rb-sub" id="rb-sub">Wähle dein nächstes Abenteuer</span>
