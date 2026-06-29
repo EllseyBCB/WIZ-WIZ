@@ -94,7 +94,7 @@ function stripCovers() {            // beim Ueberspringen: alle sofort aufdecken
 
 // Avatar: Bild-URL vs. Emoji unterscheiden (wie in app.js/game.js).
 const isImg = v => typeof v === 'string' && (/^https?:\/\//.test(v) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v));
-const avV = s => (typeof s === 'string' && s.startsWith('avatars/')) ? s + '?v=6' : s;
+const avV = s => (typeof s === 'string' && s.startsWith('avatars/')) ? s + '?v=7' : s;
 const DEFAULT_AV = 'avatars/av01.png';
 
 // Sitzpositionen (Prozent im Filz) je Gegnerzahl; ich sitze unten-Mitte.
