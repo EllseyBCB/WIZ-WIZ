@@ -575,7 +575,24 @@
       url('lobby/table-bg.jpg?v=1') center/cover no-repeat,
       radial-gradient(ellipse 82% 62% at 50% 40%, #3a2a6e 0%, #241646 48%, #150c2c 100%);
     box-shadow: inset 0 0 70px rgba(0,0,0,.5), inset 0 0 0 2px rgba(196,160,96,.22);
-    overflow: hidden;
+    overflow: hidden; cursor: pointer;
+  }
+
+  /* "Statische" Tischansicht: Tisch fixiert, kein Scrollen zum Punktestand.
+     Wird per Tipp auf den Tisch aktiviert, per Knopf wieder aufgehoben. */
+  body.table-locked { position: fixed; inset: 0; overflow: hidden; }
+  body.table-locked #game-view > .panel { display: none; }   /* Punktestand ausgeblendet */
+  #table-lock-exit { display: none; }
+  body.table-locked #table-lock-exit {
+    display: inline-flex; align-items: center; gap: 6px;
+    position: fixed; z-index: 80;
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    padding: 9px 15px; border-radius: 999px;
+    background: rgba(20,13,44,.92); color: #ffd66b; font-weight: 700; font-size: .8rem;
+    border: 1px solid var(--goldline, #c9a24a);
+    box-shadow: 0 6px 20px rgba(0,0,0,.55);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); cursor: pointer;
   }
 
   /* Sitzplaetze rund um den Tisch (per Inline-Style top/left positioniert) */
@@ -1231,6 +1248,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=48"></script>
+<script type="module" src="./app.js?v=49"></script>
 </body>
 </html>
