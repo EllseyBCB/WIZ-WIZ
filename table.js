@@ -94,6 +94,7 @@ function stripCovers() {            // beim Ueberspringen: alle sofort aufdecken
 
 // Avatar: Bild-URL vs. Emoji unterscheiden (wie in app.js/game.js).
 const isImg = v => typeof v === 'string' && (/^https?:\/\//.test(v) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v));
+const avV = s => (typeof s === 'string' && s.startsWith('avatars/')) ? s + '?v=6' : s;
 const DEFAULT_AV = 'avatars/av01.png';
 
 // Sitzpositionen (Prozent im Filz) je Gegnerzahl; ich sitze unten-Mitte.
@@ -358,7 +359,7 @@ function buildSeats(state) {
     else if (pos.l >= 78) { el.style.right = '6px'; el.style.transform = 'translateY(-50%)'; }
     else { el.style.left = pos.l + '%'; }   // CSS: transform translate(-50%,-50%)
     const av = p.avatar || DEFAULT_AV;
-    const avHtml = isImg(av) ? `<img class="av-img" src="${esc(av)}" alt="">` : `<span class="seat-emoji">${esc(av)}</span>`;
+    const avHtml = isImg(av) ? `<img class="av-img" src="${esc(avV(av))}" alt="">` : `<span class="seat-emoji">${esc(av)}</span>`;
     const badges = (p.seat === game.dealer_seat ? ' 🂠' : '') + (p.is_host ? ' 👑' : '');
     el.innerHTML = `
       <div class="seat-av">${avHtml}</div>
