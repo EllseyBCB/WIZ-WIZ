@@ -540,7 +540,7 @@
      unabhaengig vom Seitenverhaeltnis (Zauberer/Narr/11er) */
   .wcard {
     height: 124px; width: auto; padding: 0; border: none; background: #0c0a18;
-    cursor: default; border-radius: 9px; line-height: 0; overflow: hidden;
+    cursor: default; border-radius: 8% / 5%; line-height: 0; overflow: hidden;
   }
   /* kleine Karten (Stich/Trumpf): feste Hoehe, Breite nach natuerlichem
      Seitenverhaeltnis -> der komplette goldene Rand bleibt sichtbar (kein
@@ -549,7 +549,7 @@
   .wcard.small .wcard-img, .wcard.small .wcard-svg { height: 100%; width: auto; object-fit: contain; }
   button.wcard:not(.disabled) { cursor: pointer; }
   .wcard.disabled { opacity: .42; }
-  .wcard-svg, .wcard-img { height: 100%; width: auto; display: block; border-radius: 9px; }
+  .wcard-svg, .wcard-img { height: 100%; width: auto; display: block; border-radius: 8% / 5%; }
 
   /* ===== Spieltisch ===== */
   .wtable {
@@ -693,9 +693,9 @@
     position: relative; height: 100%; transform-origin: 50% 50%;
     transition: transform .30s cubic-bezier(.45,.05,.55,.95); transform: scaleX(0);   /* startet zusammengeklappt */
   }
-  .flip-front > .wcard-img, .flip-front > .wcard-svg { height: 100%; width: auto; display: block; border-radius: 9px; }
+  .flip-front > .wcard-img, .flip-front > .wcard-svg { height: 100%; width: auto; display: block; border-radius: 8% / 5%; }
   .flip-back {
-    position: absolute; inset: 0; border-radius: 9px; overflow: hidden;
+    position: absolute; inset: 0; border-radius: 8% / 5%; overflow: hidden;
     transform-origin: 50% 50%; transition: transform .30s cubic-bezier(.45,.05,.55,.95), filter .30s ease; transform: scaleX(1);
     background: #221a3d url('cards/back.png') center/cover no-repeat;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.45);
