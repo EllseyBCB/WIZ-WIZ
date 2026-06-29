@@ -604,8 +604,7 @@ function buildHandFan(state, actions, dropZone) {
   const fan = document.createElement('div');
   fan.className = 'hand-fan';
   if (!cards.length) {
-    fan.innerHTML = '<p class="muted">keine Karten</p>';
-    activeRelayout = null;
+    activeRelayout = null;          // leer lassen (kein "keine Karten"-Text)
     return fan;
   }
 

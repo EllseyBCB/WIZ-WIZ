@@ -2,7 +2,7 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=2';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=2';
-import { render } from './game.js?v=33';
+import { render } from './game.js?v=34';
 import { showScreen, toast, esc } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=4';
 import { showBanner, hideBanner } from './ads.js?v=3';
@@ -101,6 +101,10 @@ export async function resumeLocal() {
 function paintTrickEnd(resolvedTrick) {
   const st = buildState(resolvedTrick);
   st.game = { ...st.game, phase: 'trickend', current_seat: null };
+  // War das der letzte Stich der Runde, ist die neue Runde schon ausgeteilt.
+  // Die neuen Handkarten waehrend des Gewinner-Banners NICHT offen zeigen –
+  // sie werden direkt danach mit Animation ausgeteilt.
+  if (G.phase === 'bidding' || G.phase === 'trumpselect') st.hand = [];
   render(st, actions);
 }
 
