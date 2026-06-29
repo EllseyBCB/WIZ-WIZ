@@ -567,25 +567,11 @@
   .felt {
     position: relative; height: clamp(360px, 56vh, 540px); border-radius: 18px;
     background:
-      radial-gradient(2px 2px at 12% 16%, rgba(255,255,255,.85), transparent 60%),
-      radial-gradient(1.5px 1.5px at 28% 40%, rgba(255,255,255,.5), transparent 60%),
-      radial-gradient(2px 2px at 61% 20%, rgba(255,255,255,.7), transparent 60%),
-      radial-gradient(1.5px 1.5px at 78% 36%, rgba(255,240,200,.6), transparent 60%),
-      radial-gradient(2px 2px at 86% 13%, rgba(255,255,255,.7), transparent 60%),
-      radial-gradient(1.5px 1.5px at 44% 28%, rgba(255,255,255,.5), transparent 60%),
-      radial-gradient(2px 2px at 18% 60%, rgba(255,255,255,.5), transparent 60%),
-      radial-gradient(1.5px 1.5px at 70% 62%, rgba(255,255,255,.45), transparent 60%),
-      radial-gradient(2px 2px at 90% 58%, rgba(255,255,255,.5), transparent 60%),
+      linear-gradient(rgba(18,10,38,.28), rgba(18,10,38,.52)),
+      url('lobby/table-bg.jpg?v=1') center/cover no-repeat,
       radial-gradient(ellipse 82% 62% at 50% 40%, #3a2a6e 0%, #241646 48%, #150c2c 100%);
-    box-shadow: inset 0 0 70px rgba(0,0,0,.55), inset 0 0 0 2px rgba(196,160,96,.22);
+    box-shadow: inset 0 0 70px rgba(0,0,0,.5), inset 0 0 0 2px rgba(196,160,96,.22);
     overflow: hidden;
-  }
-  /* zarter Halbmond oben links (Offset-Schatten in Hintergrundfarbe = Sichel) */
-  .felt::after {
-    content: ''; position: absolute; top: 8%; left: 9%; width: 40px; height: 40px;
-    border-radius: 50%; background: radial-gradient(circle at 38% 38%, #efe6ff, #cdb6f5);
-    box-shadow: 12px 7px 0 -3px #241646, 0 0 22px rgba(207,182,245,.45);
-    opacity: .92; pointer-events: none; z-index: 0;
   }
 
   /* Sitzplaetze rund um den Tisch (per Inline-Style top/left positioniert) */
