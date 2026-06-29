@@ -303,18 +303,27 @@ function maybeDealAnimation(state, feltEl) {
   if (!roundStart) return;
   const key = (game.join_code || 'solo') + '|' + game.round_no + '|' + game.num_players;
   if (key === lastDealKey) return;
-  lastDealKey = key;
   const me = state.players.find(p => p.uid === state.uid);
   const mySeat = me?.seat ?? 0;
-  runDealAnimation(feltEl, computeSeatLayout(state.players, mySeat), game);
+  // Runde NUR dann als "erledigt" merken, wenn die Animation wirklich starten
+  // konnte – sonst beim naechsten Render erneut versuchen (z. B. wenn der Filz
+  // beim ersten Render noch nicht sichtbar/vermessen war; sonst wuerden die
+  // Karten ohne Austeilen sofort erscheinen).
+  if (runDealAnimation(feltEl, computeSeatLayout(state.players, mySeat), game)) lastDealKey = key;
 }
 
 function runDealAnimation(feltEl, layout, game) {
   clearDeal();
-  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return;
   const rect = feltEl.getBoundingClientRect();
-  if (rect.width < 60) return;                       // Filz (noch) nicht sichtbar
+  if (rect.width < 60) return false;                 // Filz (noch) nicht sichtbar -> spaeter erneut
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) {
+    // Reduzierte Bewegung: keine Flug-Animation, aber Hand kurz verborgen
+    // halten, damit die Karten nicht schon vor dem Austeilen sichtbar sind.
+    dealEndsAt = Date.now() + 500;
+    dealRevealTimer = setTimeout(() => { dealEndsAt = 0; dealRevealTimer = null; revealHand(); }, 500);
+    return true;
+  }
 
   const overlay = document.createElement('div');
   overlay.className = 'deal-overlay';
@@ -351,6 +360,7 @@ function runDealAnimation(feltEl, layout, game) {
     if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }
   }, totalMs));
   overlay.addEventListener('pointerdown', clearDeal);
+  return true;
 }
 
 function flyCard(overlay, cx, cy, rect, pos) {
