@@ -348,6 +348,10 @@
   .acct-note { color: var(--muted); font-size: .8rem; margin-top: 10px; line-height: 1.4; }
   .auth-fields label { margin-top: 10px; }
   .auth-fields .row { margin-top: 12px; }
+  /* Profil-Abschnitte mit rundem Emblem links (wie im Design). */
+  .panel.psec { display: flex; align-items: flex-start; gap: 12px; }
+  .psec-ic { width: 56px; height: 56px; flex: none; margin-top: 2px; }
+  .psec-body { flex: 1; min-width: 0; }
   .auth-fields .btn { flex: 1; }
   .field-label { display: block; font-size: .82rem; color: var(--muted); margin: 14px 2px 6px; }
 
@@ -1118,32 +1122,41 @@
         </div>
       </div>
 
-      <div class="panel" id="account-card">
-        <label class="field-label" style="margin-top:0">Konto</label>
-        <div id="account-box"><p class="muted">Lädt…</p></div>
+      <div class="panel psec" id="account-card">
+        <img class="psec-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">
+        <div class="psec-body">
+          <label class="field-label" style="margin-top:0">Konto</label>
+          <div id="account-box"><p class="muted">Lädt…</p></div>
+        </div>
       </div>
-      <div class="panel" id="profile-card">
-        <label class="field-label" style="margin-top:0">Dein Freundescode</label>
-        <p class="muted" style="margin-bottom:8px">Teile diesen Code mit Freunden, damit sie dich hinzufügen können.</p>
-        <div class="code-share">
-          <span id="my-code" class="code-pill">······</span>
-          <button id="copy-code" class="btn sekundaer small-btn" type="button">Kopieren</button>
+      <div class="panel psec" id="profile-card">
+        <img class="psec-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
+        <div class="psec-body">
+          <label class="field-label" style="margin-top:0">Dein Freundescode</label>
+          <p class="muted" style="margin-bottom:8px">Teile diesen Code mit Freunden, damit sie dich hinzufügen können.</p>
+          <div class="code-share">
+            <span id="my-code" class="code-pill">······</span>
+            <button id="copy-code" class="btn sekundaer small-btn" type="button">Kopieren</button>
+          </div>
         </div>
       </div>
 
-      <div class="panel">
-        <label class="field-label" style="margin-top:0" for="friend-code-input">Freund:in hinzufügen</label>
-        <div class="add-friend-row">
-          <input id="friend-code-input" type="text" maxlength="6" placeholder="Code z. B. KX7QPM"
-                 autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.18rem">
-          <button id="add-friend-btn" class="btn small-btn" type="button">Hinzufügen</button>
+      <div class="panel psec">
+        <img class="psec-ic" src="./lobby/ic-addfriend.png?v=1" alt="" aria-hidden="true">
+        <div class="psec-body">
+          <label class="field-label" style="margin-top:0" for="friend-code-input">Freund:in hinzufügen</label>
+          <div class="add-friend-row">
+            <input id="friend-code-input" type="text" maxlength="6" placeholder="Code z. B. KX7QPM"
+                   autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.18rem">
+            <button id="add-friend-btn" class="btn small-btn" type="button">Hinzufügen</button>
+          </div>
         </div>
       </div>
 
-      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic_freunde.png?v=2" alt="" aria-hidden="true">Freunde</h3>
+      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">Freunde</h3>
       <div id="friends-list" class="stack"></div>
 
-      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic_gruppen.png?v=2" alt="" aria-hidden="true">Gruppen</h3>
+      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic-group.png?v=1" alt="" aria-hidden="true">Gruppen</h3>
       <p class="muted pane-sub">Spielt nur eure Gruppe zusammen, zählen Siege in die Rangliste.</p>
       <div class="panel">
         <label class="field-label" style="margin-top:0" for="group-name-input">Neue Gruppe</label>
