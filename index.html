@@ -305,8 +305,9 @@
   #avatar-tools[hidden] { display: none; }
   /* Avatar-Bereich über die volle Kartenbreite ziehen (aus der psec-body-
      Einrückung neben dem Emblem heraus: 60px Emblem + 13px Abstand), damit der
-     Abstand zum goldenen Rahmen links und rechts gleich ist. */
-  #avatar-tools { margin-left: calc(-60px - 13px); }
+     Abstand zum goldenen Rahmen links und rechts gleich ist. Breite explizit
+     setzen (nicht auf auto-width-Erweiterung verlassen -> Safari-robust). */
+  #avatar-tools { margin-left: -73px; width: calc(100% + 73px); box-sizing: border-box; }
   .avatar-or { text-align: center; color: var(--muted); font-size: .76rem; margin: 12px 0 8px; }
   /* Flex statt Grid: 6 pro Reihe, unvollständige letzte Reihe wird zentriert. */
   .avatar-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
