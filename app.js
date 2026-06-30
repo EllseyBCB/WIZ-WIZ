@@ -422,6 +422,7 @@ function wireHome() {
   // Startseite initial befüllen.
   refreshResume();
   loadHomeStats();
+  updateNavAvatar();
 }
 
 // --- Tabs: Lobby / Spiele / Profil -----------------------------------------
@@ -575,12 +576,20 @@ function setAvatarDisplay(el, value) {
   if (isImg(v)) el.innerHTML = `<img class="av-img" src="${esc(avV(v))}" alt="">`;
   else el.textContent = v;
 }
+// Echtes Profilbild im unteren Profil-Tab anzeigen.
+function updateNavAvatar() {
+  const el = document.getElementById('nav-avatar');
+  if (!el) return;
+  let av; try { av = localStorage.getItem('wizard_my_avatar'); } catch (_) {}
+  setAvatarDisplay(el, av || DEFAULT_AV);
+}
 
 function fillIdentity(prof) {
   if (!prof) return;
   try { localStorage.setItem('wizard_my_avatar', prof.avatar || DEFAULT_AV); } catch (_) {}
   const uname = $('#username-input');
   setAvatarDisplay($('#avatar-current'), prof.avatar || DEFAULT_AV);
+  updateNavAvatar();
   if (uname && document.activeElement !== uname) uname.value = prof.name && prof.name !== 'Spieler' ? prof.name : '';
   renderAvatarPicker(prof.avatar || DEFAULT_AV);
 }
@@ -596,6 +605,7 @@ function renderAvatarPicker(selected) {
 async function pickAvatar(emoji) {
   try { localStorage.setItem('wizard_my_avatar', emoji); } catch (_) {}
   setAvatarDisplay($('#avatar-current'), emoji);
+  updateNavAvatar();
   $('#avatar-picker').querySelectorAll('.avatar-opt').forEach(b =>
     b.classList.toggle('sel', b.dataset.av === emoji));
   $('#avatar-tools').hidden = true;
@@ -638,6 +648,7 @@ async function onAvatarFile(e) {
     await m.upsertProfile(null, url);
     try { localStorage.setItem('wizard_my_avatar', url); } catch (_) {}
     setAvatarDisplay($('#avatar-current'), url);
+    updateNavAvatar();
     $('#avatar-tools').hidden = true;
     toast('Profilbild gespeichert', 'ok');
   } catch (err) { toast(err.message || 'Upload fehlgeschlagen', 'err'); }
