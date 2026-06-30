@@ -346,8 +346,9 @@
   /* --- Shop: Karten wie im Design (Icon + Name + Preis/Status) ------------- */
   #shop-grid { display: block; }
   .shop-sub { font-family: var(--font-myth); color: var(--gold); font-size: 1.04rem;
-    text-align: center; margin: 20px 0 12px; letter-spacing: .5px; }
-  .shop-feature { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    text-align: center; margin: 22px 0 12px; letter-spacing: .5px; }
+  #shop-grid > .shop-sub:first-child { margin-top: 6px; }
+  .shop-feature { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
   .shop-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   @media (min-width: 520px) { .shop-items { grid-template-columns: repeat(3, 1fr); } }
   .shop-card {
@@ -369,7 +370,8 @@
     width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
   .shop-name { font-family: var(--font-myth); color: #f0e6cf; font-size: .9rem; line-height: 1.2; }
   .shop-desc { color: var(--muted); font-size: .76rem; line-height: 1.35; min-height: 2.4em; }
-  .shop-card .btn { width: 100%; padding: 9px 8px; font-size: .9rem; margin-top: 2px; }
+  /* Knopf immer am unteren Rand -> Buttons aller Karten einer Reihe bündig. */
+  .shop-card .btn { width: 100%; padding: 9px 8px; font-size: .9rem; margin-top: auto; }
   .shop-tag { position: absolute; top: 8px; right: 8px; font-size: .64rem; letter-spacing: .5px;
     background: var(--gold); color: #1a1033; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
   .av-img[src$=".png"] { background: transparent; }
@@ -1581,6 +1583,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=59"></script>
+<script type="module" src="./app.js?v=60"></script>
 </body>
 </html>

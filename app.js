@@ -503,8 +503,9 @@ function loadShop() {
   const avatarCards = AVATAR_ITEMS.map(it => shopAvatarCard(it, equipped)).join('');
 
   grid.innerHTML =
+    `<div class="shop-sub">✦ Vorteile</div>` +
     `<div class="shop-feature">${cardAdfree}${cardBundle}</div>` +
-    `<div class="shop-sub">✨ Avatare</div>` +
+    `<div class="shop-sub">✦ Profilbilder</div>` +
     `<div class="shop-items">${avatarCards}</div>`;
 
   // Knöpfe verdrahten.
