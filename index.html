@@ -357,9 +357,28 @@
   /* Seite mit dezentem Außenrahmen (wie Vorlage) */
   .pane.sheet {
     border: 1.5px solid rgba(214,176,86,.40); border-radius: 20px;
-    padding: 10px 10px 16px; margin-top: 8px;
-    background: linear-gradient(180deg, rgba(26,16,50,.45), rgba(16,10,32,.55));
+    padding: 12px 14px 18px; margin-top: 8px;
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(58,38,110,.45), rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, rgba(26,16,50,.55), rgba(14,9,28,.65));
   }
+  /* Abschnitte OHNE eigene Kästen – nur durch Edelstein-Trenner getrennt. */
+  .sheet .panel.psec {
+    border: none; background: transparent; background-image: none; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    position: relative; padding: 18px 2px 8px; margin: 0;
+  }
+  .sheet .psec ~ .psec::before {
+    content: ""; position: absolute; top: 0; left: 5%; right: 5%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(214,176,86,.5), transparent);
+  }
+  .sheet .psec ~ .psec::after {
+    content: "◆"; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    color: #a78bfa; font-size: .72rem; text-shadow: 0 0 7px rgba(167,139,250,.8);
+  }
+  /* Spielverlauf-Button mit Pfeil rechts */
+  .sheet-link { display: flex; align-items: center; justify-content: space-between; }
+  .sheet-link .chev { font-size: 1.2rem; color: var(--gold); margin-left: 8px; }
   .sheet-head { text-align: center; margin: 6px 0 14px; }
   .sheet-head-ic { width: 66px; height: 66px; display: block; margin: 0 auto -4px;
     filter: drop-shadow(0 3px 7px rgba(0,0,0,.5)); }
@@ -1134,7 +1153,7 @@
         <img class="sheet-head-ic" src="./lobby/ic-solo.png?v=6" alt="" aria-hidden="true">
         <div class="sheet-head-title"><span class="gem">◆</span>Profil<span class="gem">◆</span></div>
       </div>
-      <button id="history-btn" class="btn sekundaer" type="button" style="width:100%;margin-bottom:12px">📜 Spielverlauf ansehen</button>
+      <button id="history-btn" class="btn sekundaer sheet-link" type="button" style="width:100%;margin-bottom:4px"><span>📜 Spielverlauf ansehen</span><span class="chev" aria-hidden="true">›</span></button>
 
       <!-- Benutzername (Avatar = Emblem mit Stift) -->
       <div class="panel psec" id="identity-card">
