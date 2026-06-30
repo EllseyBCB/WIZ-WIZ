@@ -43,9 +43,23 @@ export const SHOP_ADFREE = {
 
 export const SHOP_BUNDLE = {
   id: 'magier', type: 'bundle', name: 'Magier-Bundle', price: '9,99 €',
-  desc: 'Werbefrei + alle Avatare. Bester Preis.',
+  desc: 'Werbefrei + alle Avatare & Tische. Bester Preis.',
   entitlement: IAP_BUNDLE_ENTITLEMENT, productId: IAP_BUNDLE_PRODUCT_ID,
 };
+
+// Tisch-Designs. 'default' = mitgelieferte Waldlichtung (gratis). Premium-Tische
+// nutzen ein eigenes Hintergrundbild (lobby/themes/<file>) und ein Entitlement.
+const TABLE_PREFIX = 'de.alphablueprint.zaubertisch.table.';
+const T = (id, name, price, file, size, pos, free) => ({
+  id, type: 'table', name, price, free: !!free,
+  bg: file ? `lobby/themes/${file}` : null,
+  size: size || 'cover', pos: pos || 'center',
+  entitlement: `tb_${id}`, productId: TABLE_PREFIX + id,
+});
+export const TABLE_ITEMS = [
+  T('default', 'Waldlichtung', '', null, '100% auto', 'top center', true),
+  T('mystic',  'Mystischer Tisch', '2,99 €', 'mystic.jpg', 'cover', 'center'),
+];
 
 // --- Entwickler-/Browser-Vorschau: ?shop=dev schaltet alles frei (nur lokal) --
 let _dev = false;
@@ -71,8 +85,9 @@ export function grantOwned(entitlement) {
 }
 
 export function isOwned(item) {
-  if (_dev) return true;
   if (!item) return true;
+  if (item.free) return true;          // mitgelieferte Gratis-Inhalte
+  if (_dev) return true;
   if (item.type === 'adfree') return isAdFree();
   const o = ownedSet();
   if (o.has(IAP_BUNDLE_ENTITLEMENT)) return true;   // Bundle schaltet alles frei
@@ -91,4 +106,32 @@ export function avatarOwned(path) {
 }
 export function myAvatar() {
   try { return localStorage.getItem(LS_MY_AV); } catch (_) { return null; }
+}
+
+// --- Tisch-Design ----------------------------------------------------------
+const LS_TABLE = 'wizard_table';
+export function tableItem(id) {
+  return TABLE_ITEMS.find(t => t.id === id) || TABLE_ITEMS[0];
+}
+export function getTableTheme() {
+  try { return localStorage.getItem(LS_TABLE) || 'default'; } catch (_) { return 'default'; }
+}
+export function setTableTheme(id) {
+  try { localStorage.setItem(LS_TABLE, id); } catch (_) {}
+  applyTableTheme();
+}
+// Setzt die CSS-Variablen für den Tisch-Hintergrund (von .wtable genutzt).
+export function applyTableTheme() {
+  const root = document.body; if (!root) return;
+  let it = tableItem(getTableTheme());
+  if (it && !it.free && !isOwned(it)) it = TABLE_ITEMS[0];   // nicht (mehr) besessen -> Standard
+  if (!it || !it.bg) {
+    root.style.removeProperty('--table-bg');
+    root.style.removeProperty('--table-size');
+    root.style.removeProperty('--table-pos');
+    return;
+  }
+  root.style.setProperty('--table-bg', `url('${it.bg}?v=1')`);
+  root.style.setProperty('--table-size', it.size || 'cover');
+  root.style.setProperty('--table-pos', it.pos || 'center');
 }
