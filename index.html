@@ -780,11 +780,11 @@
      so sind Wald/Sterne sichtbar und es geht nahtlos vom Banner in den Tisch. */
   .wtable {
     margin: 0; padding: 4px 6px 10px;
-    /* Standard-Tisch mit LITERALEN Werten (kein var()!). Safari löst einen
-       var()-Fallback mit zwei Werten (100% auto) in background-size nicht auf
-       und fällt auf auto zurück -> Bild zu klein. Premium-Tische werden über
-       ein injiziertes <style> (literale Werte) in cosmetics.js angewandt. */
-    background: #150c2c url('lobby/table-bg.jpg?v=2') top center / 100% auto no-repeat;
+    /* Standard-Tisch mit LITERALEN Werten (kein var()!). 'cover' füllt die
+       gesamte Tischfläche – kein dunkler Streifen unten, egal wie hoch das
+       Gerät ist. Premium-Tische werden über ein injiziertes <style> (literale
+       Werte, ebenfalls cover) in cosmetics.js angewandt. */
+    background: #150c2c url('lobby/table-bg.jpg?v=2') top center / cover no-repeat;
     border: none; box-shadow: none;
   }
   .table-top {
