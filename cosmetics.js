@@ -71,6 +71,14 @@ try {
 } catch (_) {}
 export const isDevUnlock = () => _dev;
 
+// --- Inhaber-Freischaltung: bestimmte Konten bekommen alles gratis ----------
+// (z. B. der Entwickler-Account – solange echte IAP noch nicht eingerichtet ist).
+const LS_OWNER = 'wizard_owner_unlock';
+const OWNER_EMAILS = ['nedvidekelia@gmail.com'];
+export const isOwnerEmail = (e) => !!e && OWNER_EMAILS.includes(String(e).trim().toLowerCase());
+export const ownerUnlock = () => { try { return localStorage.getItem(LS_OWNER) === '1'; } catch (_) { return false; } };
+export const setOwnerUnlock = (on) => { try { localStorage.setItem(LS_OWNER, on ? '1' : '0'); } catch (_) {} };
+
 // --- Besitz ----------------------------------------------------------------
 export function ownedSet() {
   try { return new Set(JSON.parse(localStorage.getItem(LS_OWNED) || '[]')); }
@@ -87,7 +95,7 @@ export function grantOwned(entitlement) {
 export function isOwned(item) {
   if (!item) return true;
   if (item.free) return true;          // mitgelieferte Gratis-Inhalte
-  if (_dev) return true;
+  if (_dev || ownerUnlock()) return true;
   if (item.type === 'adfree') return isAdFree();
   const o = ownedSet();
   if (o.has(IAP_BUNDLE_ENTITLEMENT)) return true;   // Bundle schaltet alles frei
