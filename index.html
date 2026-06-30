@@ -780,14 +780,11 @@
      so sind Wald/Sterne sichtbar und es geht nahtlos vom Banner in den Tisch. */
   .wtable {
     margin: 0; padding: 4px 6px 10px;
-    /* Einzel-Eigenschaften statt Shorthand: var() im /Größe-Slot der
-       background-Kurzform parst Safari unzuverlässig (fällt auf auto zurück
-       -> Bild in Originalgröße). Longhands mit var() sind robust. */
-    background-color: #150c2c;
-    background-image: var(--table-bg, url('lobby/table-bg.jpg?v=2'));
-    background-position: var(--table-pos, top center);
-    background-size: var(--table-size, 100% auto);
-    background-repeat: no-repeat;
+    /* Standard-Tisch mit LITERALEN Werten (kein var()!). Safari löst einen
+       var()-Fallback mit zwei Werten (100% auto) in background-size nicht auf
+       und fällt auf auto zurück -> Bild zu klein. Premium-Tische werden über
+       ein injiziertes <style> (literale Werte) in cosmetics.js angewandt. */
+    background: #150c2c url('lobby/table-bg.jpg?v=2') top center / 100% auto no-repeat;
     border: none; box-shadow: none;
   }
   .table-top {
@@ -1597,6 +1594,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=61"></script>
+<script type="module" src="./app.js?v=62"></script>
 </body>
 </html>

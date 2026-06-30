@@ -120,18 +120,21 @@ export function setTableTheme(id) {
   try { localStorage.setItem(LS_TABLE, id); } catch (_) {}
   applyTableTheme();
 }
-// Setzt die CSS-Variablen für den Tisch-Hintergrund (von .wtable genutzt).
+// Wendet den Tisch-Hintergrund an. WICHTIG: kein var() verwenden – Safari löst
+// einen var()-Fallback mit zwei Werten in background-size nicht auf. Stattdessen
+// wird für Premium-Tische ein <style> mit LITERALEN Werten injiziert; für den
+// Standard wird es entfernt, sodass die literale .wtable-Regel greift.
 export function applyTableTheme() {
-  const root = document.body; if (!root) return;
+  if (typeof document === 'undefined') return;
   let it = tableItem(getTableTheme());
   if (it && !it.free && !isOwned(it)) it = TABLE_ITEMS[0];   // nicht (mehr) besessen -> Standard
-  if (!it || !it.bg) {
-    root.style.removeProperty('--table-bg');
-    root.style.removeProperty('--table-size');
-    root.style.removeProperty('--table-pos');
-    return;
-  }
-  root.style.setProperty('--table-bg', `url('${it.bg}?v=1')`);
-  root.style.setProperty('--table-size', it.size || 'cover');
-  root.style.setProperty('--table-pos', it.pos || 'center');
+  const id = 'wiz-table-style';
+  let el = document.getElementById(id);
+  if (!it || !it.bg) { if (el) el.remove(); return; }   // Standard -> Original-CSS
+  if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
+  el.textContent = `.wtable{` +
+    `background-image:url('${it.bg}?v=1');` +
+    `background-size:${it.size || 'cover'};` +
+    `background-position:${it.pos || 'center'};` +
+    `background-repeat:no-repeat;}`;
 }
