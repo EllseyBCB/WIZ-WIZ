@@ -337,6 +337,42 @@
   .avatar-opt:hover { transform: scale(1.08); }
   .avatar-opt.sel { background: rgba(167,139,250,.22); box-shadow: 0 0 0 2px var(--akzent); }
   .avatar-opt .av-img { width: 100%; height: 100%; object-fit: contain; }
+  .avatar-opt { position: relative; }
+  .avatar-opt.locked .av-img { opacity: .42; filter: grayscale(.35); }
+  .avatar-lock { position: absolute; right: 0; bottom: 0; font-size: .72rem; line-height: 1;
+    background: rgba(10,6,22,.82); border: 1px solid var(--gold); border-radius: 50%;
+    width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+
+  /* --- Shop: Karten wie im Design (Icon + Name + Preis/Status) ------------- */
+  #shop-grid { display: block; }
+  .shop-sub { font-family: var(--font-myth); color: var(--gold); font-size: 1.04rem;
+    text-align: center; margin: 20px 0 12px; letter-spacing: .5px; }
+  .shop-feature { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .shop-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 520px) { .shop-items { grid-template-columns: repeat(3, 1fr); } }
+  .shop-card {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 14px 10px 13px; border-radius: 16px; text-align: center;
+    background: linear-gradient(180deg, rgba(43,31,84,.55), rgba(18,12,36,.75));
+    border: 1px solid rgba(198,162,76,.55);
+    box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 0 22px rgba(120,80,200,.10);
+  }
+  .shop-card.feat { padding-top: 16px; }
+  .shop-card.owned { border-color: rgba(110,231,168,.6); }
+  .shop-ic-wrap { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; }
+  .shop-ic { width: 100%; height: 88px; object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(120,70,220,.45)); }
+  .shop-card.feat .shop-ic { height: 64px; }
+  .shop-card.owned .shop-ic, .shop-card.owned .shop-ic-wrap img { filter: drop-shadow(0 4px 12px rgba(110,231,168,.4)); }
+  .shop-lock { position: absolute; right: 2px; bottom: 2px; font-size: .8rem; line-height: 1;
+    background: rgba(10,6,22,.85); border: 1px solid var(--gold); border-radius: 50%;
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+  .shop-name { font-family: var(--font-myth); color: #f0e6cf; font-size: .9rem; line-height: 1.2; }
+  .shop-desc { color: var(--muted); font-size: .76rem; line-height: 1.35; min-height: 2.4em; }
+  .shop-card .btn { width: 100%; padding: 9px 8px; font-size: .9rem; margin-top: 2px; }
+  .shop-tag { position: absolute; top: 8px; right: 8px; font-size: .64rem; letter-spacing: .5px;
+    background: var(--gold); color: #1a1033; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+  .av-img[src$=".png"] { background: transparent; }
 
   /* Konto / E-Mail-Login */
   .acct-status { display: flex; align-items: center; gap: 8px; font-size: .92rem; margin-bottom: 4px; }
@@ -1272,16 +1308,9 @@
         <img class="sheet-head-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">
         <div class="sheet-head-title"><span class="gem">◆</span>Shop<span class="gem">◆</span></div>
       </div>
-      <div class="panel psec">
-        <img class="psec-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">
-        <div class="psec-body">
-          <div class="psec-title">Werbefrei</div>
-          <p class="muted" id="shop-note" style="margin:0 0 12px">Entfernt Banner und Vollbild-Werbung dauerhaft.</p>
-          <button class="btn" id="shop-buy" type="button" style="width:100%">✨ Werbefrei – 3,99 €</button>
-          <button class="btn sekundaer" id="shop-restore" type="button" style="width:100%;margin-top:8px">Käufe wiederherstellen</button>
-          <p class="muted" id="shop-hint" style="font-size:.78rem;margin-top:10px"></p>
-        </div>
-      </div>
+      <div id="shop-grid"></div>
+      <button class="btn sekundaer" id="shop-restore" type="button" style="width:100%;margin-top:16px">Käufe wiederherstellen</button>
+      <p class="muted" id="shop-hint" style="font-size:.78rem;margin-top:10px;text-align:center"></p>
     </div>
 
     <!-- Tab: Rangliste (alle Spieler global) -->
@@ -1552,6 +1581,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=58"></script>
+<script type="module" src="./app.js?v=59"></script>
 </body>
 </html>

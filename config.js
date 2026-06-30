@@ -17,3 +17,11 @@ export const CARD_IMAGE_BASE = './cards';
 export const REVENUECAT_IOS_KEY = '';
 export const IAP_ENTITLEMENT = 'adfree';
 export const IAP_PRODUCT_ID = 'de.alphablueprint.zaubertisch.adfree';
+
+// Weitere Shop-Angebote (alle Einmalkaeufe / Non-Consumables – kein Pay-to-Win,
+// keine Zufallspakete). Das Magier-Bundle schaltet Werbefrei + alle Avatare frei.
+// PRODUKT-ID je Avatar = IAP_AVATAR_PREFIX + <avatar-id> (in App Store Connect
+// und RevenueCat unter diesen IDs anlegen). Entitlement je Avatar = 'av_<id>'.
+export const IAP_AVATAR_PREFIX     = 'de.alphablueprint.zaubertisch.avatar.';
+export const IAP_BUNDLE_PRODUCT_ID = 'de.alphablueprint.zaubertisch.bundle.magier';
+export const IAP_BUNDLE_ENTITLEMENT = 'magier';
