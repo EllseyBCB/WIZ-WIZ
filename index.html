@@ -487,19 +487,24 @@
   /* Untere Tab-Leiste */
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-    display: flex; justify-content: space-around; align-items: stretch;
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-    background: rgba(16,10,34,.93); border-top: 1px solid var(--rand);
+    display: flex; justify-content: space-between; align-items: stretch; gap: 2px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(16,10,34,.95); border-top: 1px solid rgba(214,176,86,.45);
     -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   }
   .tab {
-    background: none; border: none; color: var(--muted); cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    font-size: .7rem; font-weight: 600; padding: 4px 20px;
+    flex: 1 1 0; min-width: 0;
+    background: none; border: none; color: #cdb98a; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-family: var(--font-myth); font-size: .62rem; font-weight: 700; letter-spacing: .2px;
+    padding: 2px 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
-  .tab .tab-ic { width: 30px; height: 30px; object-fit: contain; display: block; opacity: .58; filter: saturate(.85) brightness(.92); transition: opacity .15s, filter .15s, transform .15s; }
+  .tab .tab-ic { width: 40px; height: 40px; object-fit: contain; display: block;
+    transition: filter .15s, transform .15s; }
   .tab.active { color: var(--akzent); }
-  .tab.active .tab-ic { opacity: 1; transform: translateY(-1px); filter: drop-shadow(0 0 7px rgba(167,139,250,.75)); }
+  .tab.active .tab-ic { transform: translateY(-1px); filter: drop-shadow(0 0 8px rgba(167,139,250,.85)); }
+  .tab:active .tab-ic { transform: scale(1.08); }
 
   /* Hilfe-Overlay */
   .modal {
@@ -976,22 +981,22 @@
       <!-- Aktions-Karten -->
       <div class="home-actions">
         <button class="act-card" id="act-solo" type="button">
-          <img class="act-ic" src="./lobby/ic-solo.png?v=5" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-solo.png?v=6" alt="" aria-hidden="true">
           <span class="act-title">Solo-Spiel<br>fortsetzen</span>
           <span class="act-sub">Dein pausiertes Solo-Spiel wartet.</span>
         </button>
         <button class="act-card" id="act-comp" type="button">
-          <img class="act-ic" src="./lobby/ic-comp.png?v=5" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-comp.png?v=6" alt="" aria-hidden="true">
           <span class="act-title">Gegen<br>Computer</span>
           <span class="act-sub">Allein üben gegen Computer-Gegner.</span>
         </button>
         <button class="act-card" id="act-online" type="button">
-          <img class="act-ic" src="./lobby/ic-online.png?v=5" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
           <span class="act-title">Neues Spiel<br>(Online)</span>
           <span class="act-sub">Erstelle ein neues Online-Spiel.</span>
         </button>
         <button class="act-card" id="act-join" type="button">
-          <img class="act-ic" src="./lobby/ic-join.png?v=5" alt="" aria-hidden="true">
+          <img class="act-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">
           <span class="act-title">Beitreten</span>
           <span class="act-sub">Tritt einem Spiel mit Spiel-Code bei.</span>
         </button>
@@ -1010,7 +1015,7 @@
           </div>
         </div>
         <div class="home-box stat-box">
-          <img class="sb-ic" src="./lobby/ic-stats.png?v=5" alt="" aria-hidden="true">
+          <img class="sb-ic" src="./lobby/ic-stats.png?v=6" alt="" aria-hidden="true">
           <div class="sb-main">
             <span class="nb-label">Deine Statistik</span>
             <div class="sb-grid">
@@ -1024,7 +1029,7 @@
 
       <!-- Weiterspielen -->
       <button class="resume-big" id="resume-big" type="button">
-        <img class="rb-crown" src="./lobby/ic-crown.png?v=5" alt="" aria-hidden="true">
+        <img class="rb-crown" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">
         <span class="rb-main">
           <span class="rb-title">Weiterspielen</span>
           <span class="rb-sub" id="rb-sub">Wähle dein nächstes Abenteuer</span>
@@ -1090,7 +1095,8 @@
 
     <!-- Tab: Profil (eigener Code + Freunde) -->
     <div id="pane-profil" class="pane">
-      <h2 class="pane-title"><img class="title-ic" src="./lobby/hdr_profil.png?v=2" alt="" aria-hidden="true">Profil</h2>
+      <h2 class="pane-title"><img class="title-ic" src="./lobby/ic-profil.png?v=1" alt="" aria-hidden="true">Profil</h2>
+      <button id="history-btn" class="btn sekundaer" type="button" style="width:100%;margin-bottom:12px">📜 Spielverlauf ansehen</button>
 
       <div class="panel" id="identity-card">
         <div class="ident-head">
@@ -1149,11 +1155,13 @@
       <div id="groups-list" class="stack"></div>
     </div>
 
-    <!-- Untere Navigations-Leiste -->
+    <!-- Untere Navigations-Leiste (Embleme wie im Design) -->
     <nav class="tabbar">
-      <button class="tab active" type="button" data-tab="lobby"><img class="tab-ic" src="./lobby/lobby_ic.png?v=2" alt="" aria-hidden="true">Lobby</button>
-      <button class="tab" type="button" data-tab="spiele"><img class="tab-ic" src="./lobby/spiele_ic.png?v=2" alt="" aria-hidden="true">Spiele</button>
-      <button class="tab" type="button" data-tab="profil"><img class="tab-ic" src="./lobby/profil_ic.png?v=2" alt="" aria-hidden="true">Profil</button>
+      <button class="tab" type="button" data-nav="solo"><img class="tab-ic" src="./lobby/ic-solo.png?v=6" alt="" aria-hidden="true">Solo</button>
+      <button class="tab" type="button" data-nav="gegen"><img class="tab-ic" src="./lobby/ic-comp.png?v=6" alt="" aria-hidden="true">Gegen</button>
+      <button class="tab" type="button" data-nav="online"><img class="tab-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">Neues Spiel</button>
+      <button class="tab" type="button" data-nav="freunde"><img class="tab-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">Freunde</button>
+      <button class="tab active" type="button" data-nav="profil"><img class="tab-ic" src="./lobby/ic-profil.png?v=1" alt="" aria-hidden="true">Profil</button>
     </nav>
   </section>
 
@@ -1405,6 +1413,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=53"></script>
+<script type="module" src="./app.js?v=54"></script>
 </body>
 </html>
