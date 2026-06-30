@@ -1,16 +1,18 @@
 // Kopiert die Web-App (Repo-Wurzel, eine Ebene ueber wizapp/) in den
 // Capacitor-Web-Ordner (www). Laeuft automatisch vor jedem Build via npm-Scripts.
 // Es werden NUR die echten Web-Dateien kopiert – kein wizapp/, supabase/, .git ...
-import { cpSync, rmSync, mkdirSync, existsSync } from 'fs';
+import { cpSync, rmSync, mkdirSync, existsSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 
 const ROOT = resolve('..');   // Repo-Wurzel
 const DST = 'www';
 
+// ALLE Top-Level-*.js der Repo-Wurzel automatisch kopieren, damit neue Module
+// (z. B. cosmetics.js) nie vergessen werden. Dazu die statischen Web-Dateien.
+const jsFiles = readdirSync(ROOT).filter(f => f.endsWith('.js'));
 const FILES = [
   'index.html', 'manifest.webmanifest',
-  'app.js', 'ads.js', 'ai.js', 'audio.js', 'cards.js', 'config.js',
-  'db.js', 'engine.js', 'game.js', 'iap.js', 'local.js', 'table.js', 'ui.js',
+  ...jsFiles,
   'icon-180.png', 'icon-192.png', 'icon-512.png',
 ];
 const DIRS = ['cards', 'lobby', 'avatars'];
