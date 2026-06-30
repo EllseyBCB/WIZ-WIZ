@@ -489,6 +489,15 @@ async function loadLeaderboard() {
   } catch (e) { list.innerHTML = '<p class="empty-note">Rangliste konnte nicht geladen werden.</p>'; }
 }
 
+// Läuft die App nativ (Capacitor) oder im Browser/PWA?
+const isNativeApp = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+// Passende Erklärung, warum gerade nicht gekauft werden kann.
+function iapUnavailableHint() {
+  return isNativeApp()
+    ? 'In-App-Käufe sind in dieser Version noch nicht freigeschaltet (RevenueCat-Einrichtung nötig) – hier siehst du die Vorschau.'
+    : 'Käufe sind nur in der App möglich – hier siehst du die Vorschau.';
+}
+
 // Shop: Werbefrei + Magier-Bundle + Premium-Avatare. Echte Käufe per IAP nur in
 // der nativen App; im Browser Vorschau + Hinweis (mit ?shop=dev zum Testen frei).
 function loadShop() {
@@ -496,7 +505,7 @@ function loadShop() {
   const hint = document.getElementById('shop-hint');
   if (!grid) return;
   const canBuy = iapAvailable() || isDevUnlock();
-  if (hint) hint.textContent = canBuy ? '' : 'Käufe sind nur in der iOS-App möglich – hier siehst du die Vorschau.';
+  if (hint) hint.textContent = canBuy ? '' : iapUnavailableHint();
 
   const equipped = myAvatar();
   const curTable = getTableTheme();
@@ -599,7 +608,7 @@ async function buyShopItem(id) {
   if (!item) return;
   // Browser-/Dev-Vorschau: ohne echten Kauf freischalten.
   if (!iapAvailable()) {
-    if (!isDevUnlock()) { toast('Käufe sind nur in der iOS-App möglich.', 'info'); return; }
+    if (!isDevUnlock()) { toast(isNativeApp() ? 'In-App-Käufe sind noch nicht freigeschaltet.' : 'Käufe sind nur in der App möglich.', 'info'); return; }
     grantOwned(item.entitlement);
     if (item.type === 'adfree' || item.type === 'bundle') setAdFree(true);
     loadShop(); refreshAvatarPicker();
