@@ -85,10 +85,11 @@
   .icon-btn:hover { background: rgba(255,255,255,.13); }
 
   /* Titel-Banner (CSS-Text-Titel) */
-  header.banner-head { position: relative; display: block; padding: 6px 0 2px; }
+  header.banner-head { position: relative; display: block; padding: 0; margin: 0; }
+  /* Banner rahmenlos & randlos – fließt direkt in den Tisch über (wie Mockup). */
   .title-banner {
-    width: 100%; max-width: 640px; display: block; margin: 0 auto; border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    width: 100%; max-width: none; display: block; margin: 0; border-radius: 0;
+    box-shadow: none;
   }
   .title-banner.title-text {
     box-sizing: border-box; text-align: center; padding: 24px 16px 20px;
@@ -112,12 +113,12 @@
      Beide Buttons werden einzeln gepinnt (definierte Breite, kein Flex). */
   header.banner-head .lh-actions { position: absolute; inset: 0; margin: 0; z-index: 2; pointer-events: none; }
   header.banner-head .icon-btn {
-    position: absolute; top: 5.5%; width: 8%; height: auto; aspect-ratio: 1 / 1;
+    position: absolute; top: 8%; width: 9%; height: auto; aspect-ratio: 1 / 1;
     min-width: 0; padding: 0; pointer-events: auto;
     background: transparent; border: none; color: transparent;
   }
-  header.banner-head #help-btn     { left: 77.5%; }   /* Mitte ~81.5% -> "?" */
-  header.banner-head #settings-btn { left: 88.2%; }   /* Mitte ~92.2% -> "⚙" */
+  header.banner-head #help-btn     { left: 77.5%; }   /* Mitte ~82% -> "?" */
+  header.banner-head #settings-btn { left: 87.5%; }   /* Mitte ~92% -> "⚙" */
   header.banner-head .icon-btn:hover { background: transparent; }
 
   .view { display: none; }
@@ -652,25 +653,27 @@
   .wcard-svg, .wcard-img { height: 100%; width: auto; display: block; border-radius: 8% / 5%; }
 
   /* ===== Spieltisch ===== */
+  /* Durchgehende Szene: das Banner oben geht nahtlos in den Tisch über. Der
+     Hintergrund liegt fest hinter dem ganzen Spielbildschirm; Tisch & Filz sind
+     transparent und randlos – keine Kästen mehr. */
+  body:has(#game-view.active) { background: #150c2c; }
+  /* Volle Szene über die ganze Tischbreite (oben verankert), darunter dunkel –
+     so sind Wald/Sterne sichtbar und es geht nahtlos vom Banner in den Tisch. */
   .wtable {
-    margin: 12px 0; padding: 10px; border-radius: 22px;
-    background: radial-gradient(ellipse at 50% 0%, #2a1d57 0%, #1a1138 55%, #120b28 100%);
-    background-color: #160d2e;
-    border: 2px solid rgba(214,176,90,.55);
-    box-shadow: 0 10px 34px rgba(0,0,0,.55), inset 0 0 0 2px rgba(196,160,96,.20), inset 0 0 60px rgba(0,0,0,.4);
+    margin: 0; padding: 4px 6px 10px;
+    background: #150c2c url('lobby/table-bg.jpg?v=2') top center / 100% auto no-repeat;
+    border: none; box-shadow: none;
   }
   .table-top {
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    flex-wrap: wrap; font-size: .9rem; padding: 4px 8px 10px; color: #f0e6cf;
+    flex-wrap: wrap; font-size: .9rem; padding: 8px 8px 10px; color: #f0e6cf;
+    text-shadow: 0 1px 4px rgba(0,0,0,.85);
   }
-  /* Groesserer Tisch-"Arena": Spieler:innen sitzen absolut in ihren Ecken. */
+  /* Groesserer Tisch-"Arena": Spieler:innen sitzen absolut in ihren Ecken.
+     Kein eigener Hintergrund/Rahmen – die durchgehende Szene scheint durch. */
   .felt {
-    position: relative; height: clamp(360px, 56vh, 540px); border-radius: 18px;
-    background:
-      linear-gradient(rgba(18,10,38,.16), rgba(18,10,38,.40)),
-      url('lobby/table-bg.jpg?v=2') center/cover no-repeat,
-      radial-gradient(ellipse 82% 62% at 50% 40%, #3a2a6e 0%, #241646 48%, #150c2c 100%);
-    box-shadow: inset 0 0 70px rgba(0,0,0,.5), inset 0 0 0 2px rgba(196,160,96,.22);
+    position: relative; height: clamp(360px, 56vh, 540px);
+    background: transparent;
     overflow: hidden; cursor: pointer;
   }
 
@@ -950,7 +953,7 @@
 <div id="invite-banner" class="invite-banner" hidden></div>
 
 <header class="lobby-head banner-head">
-  <img class="title-banner" src="./lobby/title.png?v=3" alt="Zaubertisch – Das Stichspiel, online mit Freunden">
+  <img class="title-banner" src="./lobby/game-banner.jpg?v=1" alt="Zaubertisch – Das Stichspiel, online mit Freunden">
   <div class="lh-actions">
     <button class="icon-btn" id="help-btn" type="button" aria-label="Hilfe / Regeln">?</button>
     <button class="icon-btn" id="settings-btn" type="button" aria-label="Einstellungen">⚙</button>
