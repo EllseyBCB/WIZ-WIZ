@@ -5,7 +5,9 @@ import { render } from './game.js?v=47';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=36';
 import { preloadCards } from './cards.js?v=14';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
-import { initIAP, purchaseAdFree, restorePurchases, iapAvailable } from './iap.js?v=1';
+import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
+import { AVATAR_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
+         isDevUnlock, grantOwned, myAvatar } from './cosmetics.js?v=1';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
@@ -486,40 +488,109 @@ async function loadLeaderboard() {
   } catch (e) { list.innerHTML = '<p class="empty-note">Rangliste konnte nicht geladen werden.</p>'; }
 }
 
-// Shop: Werbefrei per echtem IAP (nur native App). Im Browser nur Hinweis.
+// Shop: Werbefrei + Magier-Bundle + Premium-Avatare. Echte Käufe per IAP nur in
+// der nativen App; im Browser Vorschau + Hinweis (mit ?shop=dev zum Testen frei).
 function loadShop() {
-  const buy = document.getElementById('shop-buy');
-  const restore = document.getElementById('shop-restore');
-  const note = document.getElementById('shop-note');
+  const grid = document.getElementById('shop-grid');
   const hint = document.getElementById('shop-hint');
-  if (!buy) return;
-  const sync = () => {
-    if (isAdFree()) {
-      buy.textContent = '✓ Werbefrei aktiv'; buy.disabled = true; buy.classList.add('sekundaer');
-      if (restore) restore.hidden = true;
-      if (note) note.textContent = 'Danke! Es wird keine Werbung mehr angezeigt.';
-      if (hint) hint.textContent = '';
-    } else {
-      buy.textContent = '✨ Werbefrei – 3,99 €'; buy.disabled = false; buy.classList.remove('sekundaer');
-      if (restore) restore.hidden = false;
-      if (note) note.textContent = 'Entfernt Banner und Vollbild-Werbung dauerhaft.';
-      if (hint) hint.textContent = iapAvailable() ? '' : 'Käufe sind nur in der iOS-App möglich.';
-    }
-  };
-  sync();
-  buy.onclick = async () => {
-    if (!iapAvailable()) { toast('Käufe sind nur in der iOS-App möglich.', 'info'); return; }
-    buy.disabled = true;
-    const r = await purchaseAdFree(); sync();
-    if (r.ok) { hideBanner(); toast('Werbefrei freigeschaltet – danke! 🎉', 'ok'); }
-    else if (!r.cancelled) toast('Kauf nicht möglich. Bitte später erneut versuchen.', 'err');
-  };
-  if (restore) restore.onclick = async () => {
-    restore.disabled = true;
-    const r = await restorePurchases(); restore.disabled = false; sync();
-    if (r.ok) { hideBanner(); toast('Käufe wiederhergestellt – Werbefrei aktiv 🎉', 'ok'); }
-    else toast('Kein früherer Werbefrei-Kauf gefunden.', 'err');
-  };
+  if (!grid) return;
+  const canBuy = iapAvailable() || isDevUnlock();
+  if (hint) hint.textContent = canBuy ? '' : 'Käufe sind nur in der iOS-App möglich – hier siehst du die Vorschau.';
+
+  const equipped = myAvatar();
+  const cardAdfree = shopFeatureCard(SHOP_ADFREE);
+  const cardBundle = shopFeatureCard(SHOP_BUNDLE);
+  const avatarCards = AVATAR_ITEMS.map(it => shopAvatarCard(it, equipped)).join('');
+
+  grid.innerHTML =
+    `<div class="shop-feature">${cardAdfree}${cardBundle}</div>` +
+    `<div class="shop-sub">✨ Avatare</div>` +
+    `<div class="shop-items">${avatarCards}</div>`;
+
+  // Knöpfe verdrahten.
+  grid.querySelectorAll('[data-buy]').forEach(b => {
+    b.onclick = () => buyShopItem(b.dataset.buy);
+  });
+  grid.querySelectorAll('[data-equip]').forEach(b => {
+    b.onclick = () => equipAvatar(b.dataset.equip);
+  });
+
+  const restore = document.getElementById('shop-restore');
+  if (restore) {
+    restore.hidden = false;
+    restore.onclick = async () => {
+      if (!iapAvailable()) { toast('Käufe sind nur in der iOS-App möglich.', 'info'); return; }
+      restore.disabled = true;
+      const r = await restorePurchases(); restore.disabled = false; loadShop();
+      if (r.ok) { hideBanner(); toast('Käufe wiederhergestellt 🎉', 'ok'); }
+      else toast('Keine früheren Käufe gefunden.', 'err');
+    };
+  }
+}
+
+function shopFeatureCard(item) {
+  const owned = isOwned(item);
+  const btn = owned
+    ? `<button class="btn sekundaer" disabled>✓ Im Besitz</button>`
+    : `<button class="btn" data-buy="${item.id}">${esc(item.price)}</button>`;
+  const tag = item.type === 'bundle' ? '<span class="shop-tag">Bestpreis</span>' : '';
+  const ic = item.type === 'bundle' ? './lobby/ic-crown.png?v=6' : './lobby/ic-stats.png?v=6';
+  return `<div class="shop-card feat${owned ? ' owned' : ''}">
+    ${tag}
+    <img class="shop-ic" src="${ic}" alt="" aria-hidden="true">
+    <div class="shop-name">${esc(item.name)}</div>
+    <div class="shop-desc">${esc(item.desc || '')}</div>
+    ${btn}
+  </div>`;
+}
+
+function shopAvatarCard(item, equipped) {
+  const owned = isOwned(item);
+  let btn;
+  if (!owned) {
+    btn = `<button class="btn" data-buy="${item.id}">${esc(item.price)}</button>`;
+  } else if (item.avatar === equipped) {
+    btn = `<button class="btn sekundaer" disabled>✓ Aktiv</button>`;
+  } else {
+    btn = `<button class="btn" data-equip="${esc(item.avatar)}">Auswählen</button>`;
+  }
+  const lock = owned ? '' : '<span class="shop-lock">🔒</span>';
+  return `<div class="shop-card${owned ? ' owned' : ''}">
+    <div class="shop-ic-wrap">${lock}<img class="shop-ic" src="${esc(avV(item.avatar))}" alt=""></div>
+    <div class="shop-name">${esc(item.name)}</div>
+    ${btn}
+  </div>`;
+}
+
+async function buyShopItem(id) {
+  const item = id === SHOP_ADFREE.id ? SHOP_ADFREE
+            : id === SHOP_BUNDLE.id ? SHOP_BUNDLE
+            : AVATAR_ITEMS.find(i => i.id === id);
+  if (!item) return;
+  // Browser-/Dev-Vorschau: ohne echten Kauf freischalten.
+  if (!iapAvailable()) {
+    if (!isDevUnlock()) { toast('Käufe sind nur in der iOS-App möglich.', 'info'); return; }
+    grantOwned(item.entitlement);
+    if (item.type === 'adfree' || item.type === 'bundle') setAdFree(true);
+    loadShop(); refreshAvatarPicker();
+    toast('Freigeschaltet (Vorschau).', 'ok');
+    return;
+  }
+  const r = await purchaseProduct(item.productId);
+  if (r.ok) {
+    if (item.type === 'adfree' || item.type === 'bundle') hideBanner();
+    loadShop(); refreshAvatarPicker();
+    toast('Freigeschaltet – danke! 🎉', 'ok');
+  } else if (!r.cancelled) {
+    toast('Kauf nicht möglich. Bitte später erneut versuchen.', 'err');
+  }
+}
+
+// Premium-Avatar als Profilbild setzen (nur wenn im Besitz).
+async function equipAvatar(path) {
+  if (!avatarOwned(path)) { switchPane('shop'); return; }
+  await pickAvatar(path);
+  loadShop();
 }
 
 function offlineNote(el) {
@@ -663,12 +734,22 @@ function fillIdentity(prof) {
 function renderAvatarPicker(selected) {
   const grid = $('#avatar-picker');
   if (!grid) return;
-  grid.innerHTML = AVATARS.map(a =>
-    `<button type="button" class="avatar-opt ${a === selected ? 'sel' : ''}" data-av="${a}"><img class="av-img" src="${avV(a)}" alt=""></button>`).join('');
+  const free = AVATARS.map(a =>
+    `<button type="button" class="avatar-opt ${a === selected ? 'sel' : ''}" data-av="${a}"><img class="av-img" src="${avV(a)}" alt=""></button>`);
+  const prem = AVATAR_ITEMS.map(it => {
+    const owned = avatarOwned(it.avatar);
+    const sel = it.avatar === selected ? 'sel' : '';
+    const lk = owned ? '' : '<span class="avatar-lock">🔒</span>';
+    return `<button type="button" class="avatar-opt ${sel} ${owned ? '' : 'locked'}" data-av="${esc(it.avatar)}">${lk}<img class="av-img" src="${avV(it.avatar)}" alt=""></button>`;
+  });
+  grid.innerHTML = free.concat(prem).join('');
   grid.querySelectorAll('.avatar-opt').forEach(b => { b.onclick = () => pickAvatar(b.dataset.av); });
 }
+function refreshAvatarPicker() { renderAvatarPicker(myAvatar() || DEFAULT_AV); }
 
 async function pickAvatar(emoji) {
+  // Premium-Avatar nicht im Besitz -> in den Shop leiten statt setzen.
+  if (!avatarOwned(emoji)) { toast('Dieser Avatar ist im Shop erhältlich.', 'info'); switchPane('shop'); return; }
   try { localStorage.setItem('wizard_my_avatar', emoji); } catch (_) {}
   setAvatarDisplay($('#avatar-current'), emoji);
   updateNavAvatar();
