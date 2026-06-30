@@ -351,6 +351,7 @@ function wireHome() {
     t.hidden = !t.hidden;
   };
   const histBtn = $('#history-btn'); if (histBtn) histBtn.onclick = () => switchPane('spiele');
+  const histBack = $('#hist-back'); if (histBack) histBack.onclick = () => switchPane('profil');
   $('#save-username').onclick = saveUsername;
   $('#username-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveUsername(); });
   $('#upload-avatar').onclick = () => $('#avatar-file').click();

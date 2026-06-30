@@ -349,9 +349,35 @@
   .auth-fields label { margin-top: 10px; }
   .auth-fields .row { margin-top: 12px; }
   /* Profil-Abschnitte mit rundem Emblem links (wie im Design). */
-  .panel.psec { display: flex; align-items: flex-start; gap: 12px; }
-  .psec-ic { width: 56px; height: 56px; flex: none; margin-top: 2px; }
+  .panel.psec { display: flex; align-items: flex-start; gap: 13px; }
+  .psec-ic { width: 60px; height: 60px; flex: none; margin-top: 2px; }
   .psec-body { flex: 1; min-width: 0; }
+  .psec-title { font-family: var(--font-myth); color: var(--gold); font-size: 1.06rem;
+    letter-spacing: .6px; text-transform: uppercase; margin: 0 0 7px; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  /* Seite mit dezentem Außenrahmen (wie Vorlage) */
+  .pane.sheet {
+    border: 1.5px solid rgba(214,176,86,.40); border-radius: 20px;
+    padding: 10px 10px 16px; margin-top: 8px;
+    background: linear-gradient(180deg, rgba(26,16,50,.45), rgba(16,10,32,.55));
+  }
+  .sheet-head { text-align: center; margin: 6px 0 14px; }
+  .sheet-head-ic { width: 66px; height: 66px; display: block; margin: 0 auto -4px;
+    filter: drop-shadow(0 3px 7px rgba(0,0,0,.5)); }
+  .sheet-head-title { display: flex; align-items: center; justify-content: center; gap: 14px;
+    font-family: var(--font-myth); color: var(--gold); font-size: clamp(1.4rem, 6.5vw, 1.7rem); letter-spacing: 1px;
+    text-transform: uppercase; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .sheet-head-title .gem { color: #a78bfa; font-size: .7rem; text-shadow: 0 0 6px rgba(167,139,250,.7); }
+  /* Avatar als Emblem mit Stift-Badge */
+  .psec-avatar-wrap { position: relative; width: 60px; height: 60px; flex: none; margin-top: 2px; }
+  .psec-avatar {
+    width: 60px; height: 60px; border-radius: 50%; overflow: hidden; padding: 0; cursor: pointer;
+    border: 2px solid var(--goldsoft); background: #34205e center/cover no-repeat; color: #fff;
+    font-size: 1.7rem; display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .psec-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .av-pencil { position: absolute; right: -3px; bottom: -3px; width: 23px; height: 23px; border-radius: 50%;
+    background: var(--akzent); color: #1a1033; font-size: .72rem; display: flex; align-items: center;
+    justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
   .auth-fields .btn { flex: 1; }
   .field-label { display: block; font-size: .82rem; color: var(--muted); margin: 14px 2px 6px; }
 
@@ -1091,48 +1117,61 @@
     </div><!-- /pane-lobby -->
 
     <!-- Tab: Spiele (Verlauf) -->
-    <div id="pane-spiele" class="pane">
-      <h2 class="pane-title"><img class="title-ic" src="./lobby/ic_verlauf.png?v=2" alt="" aria-hidden="true">Spielverlauf</h2>
-      <p class="muted pane-sub">Deine abgeschlossenen Online-Spiele – wer gewonnen hat und mit wie vielen Punkten.</p>
+    <div id="pane-spiele" class="pane sheet">
+      <div class="sheet-head">
+        <img class="sheet-head-ic" src="./lobby/ic-medal.png?v=1" alt="" aria-hidden="true">
+        <div class="sheet-head-title"><span class="gem">◆</span>Spielverlauf<span class="gem">◆</span></div>
+      </div>
+      <p class="muted pane-sub" style="text-align:center;margin-bottom:12px">Deine abgeschlossenen Online-Spiele – wer gewonnen hat und mit wie vielen Punkten.</p>
+      <button id="hist-back" class="btn sekundaer" type="button" style="width:100%;margin-bottom:12px">← Zurück zum Profil</button>
       <div id="history-list" class="stack"></div>
     </div>
 
     <!-- Tab: Profil (eigener Code + Freunde) -->
-    <div id="pane-profil" class="pane">
-      <h2 class="pane-title"><img class="title-ic" src="./lobby/ic-profil.png?v=1" alt="" aria-hidden="true">Profil</h2>
+    <div id="pane-profil" class="pane sheet">
+      <!-- Zentrierter Titel mit Hut-Emblem -->
+      <div class="sheet-head">
+        <img class="sheet-head-ic" src="./lobby/ic-solo.png?v=6" alt="" aria-hidden="true">
+        <div class="sheet-head-title"><span class="gem">◆</span>Profil<span class="gem">◆</span></div>
+      </div>
       <button id="history-btn" class="btn sekundaer" type="button" style="width:100%;margin-bottom:12px">📜 Spielverlauf ansehen</button>
 
-      <div class="panel" id="identity-card">
-        <div class="ident-head">
-          <button class="ident-avatar" id="avatar-current" type="button" aria-label="Profilbild ändern">🧙</button>
-          <div class="ident-main">
-            <label class="field-label" style="margin-top:0" for="username-input">Benutzername</label>
-            <div class="ident-name-row">
-              <input id="username-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
-              <button id="save-username" class="btn small-btn" type="button">Speichern</button>
-            </div>
-            <p class="muted" style="font-size:.78rem;margin-top:6px">So sehen dich deine Freunde. Tippe auf das Bild, um den Avatar zu wählen.</p>
-          </div>
+      <!-- Benutzername (Avatar = Emblem mit Stift) -->
+      <div class="panel psec" id="identity-card">
+        <div class="psec-ic psec-avatar-wrap">
+          <button class="psec-avatar" id="avatar-current" type="button" aria-label="Profilbild ändern">🧙</button>
+          <span class="av-pencil" aria-hidden="true">✏️</span>
         </div>
-        <div id="avatar-tools" hidden>
-          <button id="upload-avatar" class="btn sekundaer small-btn" type="button" style="width:100%;margin-top:14px">📷 Eigenes Foto hochladen</button>
-          <input id="avatar-file" type="file" accept="image/*" hidden>
-          <div class="avatar-or">oder ein Symbol wählen</div>
-          <div id="avatar-picker" class="avatar-picker"></div>
+        <div class="psec-body">
+          <div class="psec-title">Benutzername</div>
+          <div class="ident-name-row">
+            <input id="username-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
+            <button id="save-username" class="btn small-btn" type="button">Speichern</button>
+          </div>
+          <p class="muted" style="font-size:.78rem;margin-top:6px">So sehen dich deine Freunde. Tippe auf das Bild, um den Avatar zu wählen.</p>
+          <div id="avatar-tools" hidden>
+            <button id="upload-avatar" class="btn sekundaer small-btn" type="button" style="width:100%;margin-top:14px">📷 Eigenes Foto hochladen</button>
+            <input id="avatar-file" type="file" accept="image/*" hidden>
+            <div class="avatar-or">oder ein Symbol wählen</div>
+            <div id="avatar-picker" class="avatar-picker"></div>
+          </div>
         </div>
       </div>
 
+      <!-- Konto -->
       <div class="panel psec" id="account-card">
-        <img class="psec-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">
+        <img class="psec-ic" src="./lobby/ic-comp.png?v=6" alt="" aria-hidden="true">
         <div class="psec-body">
-          <label class="field-label" style="margin-top:0">Konto</label>
+          <div class="psec-title">Konto</div>
           <div id="account-box"><p class="muted">Lädt…</p></div>
         </div>
       </div>
+
+      <!-- Freundescode -->
       <div class="panel psec" id="profile-card">
         <img class="psec-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
         <div class="psec-body">
-          <label class="field-label" style="margin-top:0">Dein Freundescode</label>
+          <div class="psec-title">Dein Freundescode</div>
           <p class="muted" style="margin-bottom:8px">Teile diesen Code mit Freunden, damit sie dich hinzufügen können.</p>
           <div class="code-share">
             <span id="my-code" class="code-pill">······</span>
@@ -1141,10 +1180,11 @@
         </div>
       </div>
 
+      <!-- Freund:in hinzufügen -->
       <div class="panel psec">
         <img class="psec-ic" src="./lobby/ic-addfriend.png?v=1" alt="" aria-hidden="true">
         <div class="psec-body">
-          <label class="field-label" style="margin-top:0" for="friend-code-input">Freund:in hinzufügen</label>
+          <div class="psec-title">Freund:in hinzufügen</div>
           <div class="add-friend-row">
             <input id="friend-code-input" type="text" maxlength="6" placeholder="Code z. B. KX7QPM"
                    autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.18rem">
@@ -1153,19 +1193,29 @@
         </div>
       </div>
 
-      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">Freunde</h3>
-      <div id="friends-list" class="stack"></div>
-
-      <h3 class="pane-title sub"><img class="title-ic" src="./lobby/ic-group.png?v=1" alt="" aria-hidden="true">Gruppen</h3>
-      <p class="muted pane-sub">Spielt nur eure Gruppe zusammen, zählen Siege in die Rangliste.</p>
-      <div class="panel">
-        <label class="field-label" style="margin-top:0" for="group-name-input">Neue Gruppe</label>
-        <div class="add-friend-row">
-          <input id="group-name-input" type="text" maxlength="24" placeholder="z. B. Freitagsrunde" autocomplete="off">
-          <button id="create-group-btn" class="btn small-btn" type="button">Erstellen</button>
+      <!-- Freunde -->
+      <div class="panel psec">
+        <img class="psec-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">
+        <div class="psec-body">
+          <div class="psec-title">Freunde</div>
+          <div id="friends-list" class="stack"></div>
         </div>
       </div>
-      <div id="groups-list" class="stack"></div>
+
+      <!-- Gruppen -->
+      <div class="panel psec">
+        <img class="psec-ic" src="./lobby/ic-group.png?v=1" alt="" aria-hidden="true">
+        <div class="psec-body">
+          <div class="psec-title">Gruppen</div>
+          <p class="muted" style="margin:0 0 10px">Spielt nur eure Gruppe zusammen, zählen Siege in die Rangliste.</p>
+          <label class="field-label" style="margin-top:0" for="group-name-input">Neue Gruppe</label>
+          <div class="add-friend-row">
+            <input id="group-name-input" type="text" maxlength="24" placeholder="z. B. Freitagsrunde" autocomplete="off">
+            <button id="create-group-btn" class="btn small-btn" type="button">Erstellen</button>
+          </div>
+          <div id="groups-list" class="stack"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Untere Navigations-Leiste (Embleme wie im Design) -->
@@ -1426,6 +1476,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=54"></script>
+<script type="module" src="./app.js?v=55"></script>
 </body>
 </html>
