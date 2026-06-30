@@ -129,6 +129,7 @@ export const addFriend     = (code)  => rpc('wizard_add_friend',     { p_code: c
 export const removeFriend  = (uid)   => rpc('wizard_remove_friend',  { p_friend: uid });
 export const listFriends   = ()      => rpc('wizard_list_friends');
 export const matchHistory  = ()      => rpc('wizard_match_history');
+export const leaderboard   = ()      => rpc('wizard_leaderboard');
 
 // --- Einladungen -----------------------------------------------------------
 export const inviteFriend   = (gameId, friendUid) =>

@@ -379,6 +379,19 @@
   /* Spielverlauf-Button mit Pfeil rechts */
   .sheet-link { display: flex; align-items: center; justify-content: space-between; }
   .sheet-link .chev { font-size: 1.2rem; color: var(--gold); margin-left: 8px; }
+  /* Rangliste */
+  .rank-row { display: flex; align-items: center; gap: 11px; padding: 10px 12px;
+    border: 1.5px solid var(--rand); border-radius: 12px; background: rgba(20,12,40,.45); }
+  .rank-row.me { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent); }
+  .rank-row.top { border-color: var(--goldsoft); box-shadow: 0 0 10px rgba(214,176,86,.25); }
+  .rank-pos { width: 30px; text-align: center; font-weight: 800; font-size: 1.05rem; color: var(--gold); flex: none; }
+  .rank-av { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex: none;
+    border: 1.5px solid var(--goldsoft); background: #34205e center/cover no-repeat;
+    display: flex; align-items: center; justify-content: center; font-size: 1.05rem; }
+  .rank-av img { width: 100%; height: 100%; object-fit: cover; }
+  .rank-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .rank-wins { color: var(--akzent); font-weight: 800; font-size: .9rem; flex: none; }
+  .rank-sub { color: var(--muted); font-size: .72rem; }
   .sheet-head { text-align: center; margin: 6px 0 14px; }
   .sheet-head-ic { width: 66px; height: 66px; display: block; margin: 0 auto -4px;
     filter: drop-shadow(0 3px 7px rgba(0,0,0,.5)); }
@@ -1253,11 +1266,39 @@
       </div>
     </div><!-- /pane-freunde -->
 
+    <!-- Tab: Shop -->
+    <div id="pane-shop" class="pane sheet">
+      <div class="sheet-head">
+        <img class="sheet-head-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">
+        <div class="sheet-head-title"><span class="gem">◆</span>Shop<span class="gem">◆</span></div>
+      </div>
+      <div class="panel psec">
+        <img class="psec-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">
+        <div class="psec-body">
+          <div class="psec-title">Werbefrei</div>
+          <p class="muted" id="shop-note" style="margin:0 0 12px">Entfernt Banner und Vollbild-Werbung dauerhaft.</p>
+          <button class="btn" id="shop-buy" type="button" style="width:100%">✨ Werbefrei – 3,99 €</button>
+          <button class="btn sekundaer" id="shop-restore" type="button" style="width:100%;margin-top:8px">Käufe wiederherstellen</button>
+          <p class="muted" id="shop-hint" style="font-size:.78rem;margin-top:10px"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Rangliste (alle Spieler global) -->
+    <div id="pane-rangliste" class="pane sheet">
+      <div class="sheet-head">
+        <img class="sheet-head-ic" src="./lobby/ic-rang.png?v=1" alt="" aria-hidden="true">
+        <div class="sheet-head-title"><span class="gem">◆</span>Rangliste<span class="gem">◆</span></div>
+      </div>
+      <p class="muted pane-sub" style="text-align:center;margin-bottom:12px">Alle Spieler nach gewonnenen Spielen – der Beste ganz oben.</p>
+      <div id="rank-list" class="stack"></div>
+    </div>
+
     <!-- Untere Navigations-Leiste (Embleme wie im Design) -->
     <nav class="tabbar">
-      <button class="tab" type="button" data-nav="solo"><img class="tab-ic" src="./lobby/ic-solo.png?v=6" alt="" aria-hidden="true">Solo</button>
-      <button class="tab" type="button" data-nav="gegen"><img class="tab-ic" src="./lobby/ic-comp.png?v=6" alt="" aria-hidden="true">Gegen</button>
-      <button class="tab" type="button" data-nav="online"><img class="tab-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">Neues Spiel</button>
+      <button class="tab" type="button" data-nav="shop"><img class="tab-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">Shop</button>
+      <button class="tab" type="button" data-nav="rangliste"><img class="tab-ic" src="./lobby/ic-rang.png?v=1" alt="" aria-hidden="true">Rangliste</button>
+      <button class="tab" type="button" data-nav="start"><img class="tab-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">Neues Spiel</button>
       <button class="tab" type="button" data-nav="freunde"><img class="tab-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">Freunde</button>
       <button class="tab" type="button" data-nav="profil"><span class="tab-av" id="nav-avatar" aria-hidden="true">🧙</span>Profil</button>
     </nav>
@@ -1511,6 +1552,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=57"></script>
+<script type="module" src="./app.js?v=58"></script>
 </body>
 </html>
