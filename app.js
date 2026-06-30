@@ -6,8 +6,9 @@ import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=36';
 import { preloadCards } from './cards.js?v=14';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
-import { AVATAR_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
-         isDevUnlock, grantOwned, myAvatar } from './cosmetics.js?v=1';
+import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
+         isDevUnlock, grantOwned, myAvatar,
+         getTableTheme, setTableTheme, applyTableTheme } from './cosmetics.js?v=2';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
@@ -498,13 +499,17 @@ function loadShop() {
   if (hint) hint.textContent = canBuy ? '' : 'Käufe sind nur in der iOS-App möglich – hier siehst du die Vorschau.';
 
   const equipped = myAvatar();
+  const curTable = getTableTheme();
   const cardAdfree = shopFeatureCard(SHOP_ADFREE);
   const cardBundle = shopFeatureCard(SHOP_BUNDLE);
   const avatarCards = AVATAR_ITEMS.map(it => shopAvatarCard(it, equipped)).join('');
+  const tableCards = TABLE_ITEMS.map(it => shopTableCard(it, curTable)).join('');
 
   grid.innerHTML =
     `<div class="shop-sub">✦ Vorteile</div>` +
     `<div class="shop-feature">${cardAdfree}${cardBundle}</div>` +
+    `<div class="shop-sub">✦ Tisch-Designs</div>` +
+    `<div class="shop-tables">${tableCards}</div>` +
     `<div class="shop-sub">✦ Profilbilder</div>` +
     `<div class="shop-items">${avatarCards}</div>`;
 
@@ -514,6 +519,9 @@ function loadShop() {
   });
   grid.querySelectorAll('[data-equip]').forEach(b => {
     b.onclick = () => equipAvatar(b.dataset.equip);
+  });
+  grid.querySelectorAll('[data-equip-table]').forEach(b => {
+    b.onclick = () => equipTable(b.dataset.equipTable);
   });
 
   const restore = document.getElementById('shop-restore');
@@ -563,10 +571,31 @@ function shopAvatarCard(item, equipped) {
   </div>`;
 }
 
+function shopTableCard(item, current) {
+  const owned = isOwned(item);
+  const active = item.id === current;
+  let btn;
+  if (!owned) {
+    btn = `<button class="btn" data-buy="${item.id}">${esc(item.price)}</button>`;
+  } else if (active) {
+    btn = `<button class="btn sekundaer" disabled>✓ Aktiv</button>`;
+  } else {
+    btn = `<button class="btn" data-equip-table="${esc(item.id)}">Auswählen</button>`;
+  }
+  const lock = owned ? '' : '<span class="shop-lock">🔒</span>';
+  const prev = item.bg ? `url('${item.bg}?v=1')` : "url('lobby/table-bg.jpg?v=2')";
+  return `<div class="shop-card table${owned ? ' owned' : ''}${active ? ' active' : ''}">
+    <div class="shop-table-prev" style="background-image:${prev}">${lock}</div>
+    <div class="shop-name">${esc(item.name)}</div>
+    ${btn}
+  </div>`;
+}
+
 async function buyShopItem(id) {
   const item = id === SHOP_ADFREE.id ? SHOP_ADFREE
             : id === SHOP_BUNDLE.id ? SHOP_BUNDLE
-            : AVATAR_ITEMS.find(i => i.id === id);
+            : AVATAR_ITEMS.find(i => i.id === id)
+            || TABLE_ITEMS.find(i => i.id === id);
   if (!item) return;
   // Browser-/Dev-Vorschau: ohne echten Kauf freischalten.
   if (!iapAvailable()) {
@@ -592,6 +621,15 @@ async function equipAvatar(path) {
   if (!avatarOwned(path)) { switchPane('shop'); return; }
   await pickAvatar(path);
   loadShop();
+}
+
+// Tisch-Design auswählen (nur wenn im Besitz oder gratis).
+function equipTable(id) {
+  const it = TABLE_ITEMS.find(t => t.id === id);
+  if (it && !isOwned(it)) { toast('Dieses Tisch-Design ist im Shop erhältlich.', 'info'); return; }
+  setTableTheme(id);
+  loadShop();
+  toast('Tisch-Design gewählt', 'ok');
 }
 
 function offlineNote(el) {
@@ -1411,6 +1449,7 @@ function showConsentIfNeeded() {
 
 async function init() {
   // Buttons sofort verdrahten – der Solo-Modus braucht keine Anmeldung.
+  applyTableTheme();   // gewähltes Tisch-Design auf den Spieltisch anwenden
   wireHome();
   wireLegal();
   showConsentIfNeeded();
