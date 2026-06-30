@@ -308,7 +308,7 @@ function wireHome() {
   if (helpModal) helpModal.addEventListener('click', e => { if (e.target === helpModal) helpModal.hidden = true; });
   wireSettings();
   document.querySelectorAll('.tab').forEach(tab => {
-    tab.onclick = () => switchPane(tab.dataset.tab);
+    tab.onclick = () => handleNav(tab.dataset.nav, tab);
   });
 
   // --- Neue Startseite: Hero-Tippflächen, Aktionskarten, Weiterspielen -----
@@ -350,6 +350,7 @@ function wireHome() {
     const t = $('#avatar-tools');
     t.hidden = !t.hidden;
   };
+  const histBtn = $('#history-btn'); if (histBtn) histBtn.onclick = () => switchPane('spiele');
   $('#save-username').onclick = saveUsername;
   $('#username-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveUsername(); });
   $('#upload-avatar').onclick = () => $('#avatar-file').click();
@@ -429,11 +430,35 @@ function switchPane(name) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('active', k === name);
   });
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  // Profil-Tab aktiv markieren, wenn das Profil offen ist (sonst keiner).
+  const navForPane = { profil: 'profil' };
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.nav === navForPane[name]));
   window.scrollTo(0, 0);
   if (name === 'spiele') loadHistoryPane();
   else if (name === 'profil') loadProfilePane();
   else if (name === 'lobby') { refreshResume(); loadHomeStats(); }
+}
+
+// Untere Navigationsleiste: Solo/Gegen/Neues Spiel sind Aktionen (öffnen das
+// passende Fenster auf der Lobby), Freunde/Profil wechseln zur Profilseite.
+function setActiveTab(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === el));
+}
+function handleNav(nav, el) {
+  if (nav === 'profil' || nav === 'freunde') {
+    switchPane('profil');
+    setActiveTab(el);
+    if (nav === 'freunde') {
+      const inp = document.getElementById('friend-code-input');
+      if (inp) { inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => inp.focus(), 250); }
+    }
+    return;
+  }
+  switchPane('lobby');
+  setActiveTab(el);
+  if (nav === 'solo') { if (hasSoloSave()) resumeSoloUI(); else openLobbyModal('solo-modal'); }
+  else if (nav === 'gegen') openLobbyModal('solo-modal');
+  else if (nav === 'online') openLobbyModal('online-modal');
 }
 
 function offlineNote(el) {
