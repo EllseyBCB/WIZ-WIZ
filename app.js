@@ -35,7 +35,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=2'));
+const db = async () => (DB ||= await import('./db.js?v=3'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 const actions = {
@@ -427,17 +427,20 @@ function wireHome() {
 
 // --- Tabs: Lobby / Spiele / Profil -----------------------------------------
 function switchPane(name) {
-  const panes = { lobby: 'pane-lobby', spiele: 'pane-spiele', profil: 'pane-profil', freunde: 'pane-freunde' };
+  const panes = { lobby: 'pane-lobby', spiele: 'pane-spiele', profil: 'pane-profil',
+                  freunde: 'pane-freunde', shop: 'pane-shop', rangliste: 'pane-rangliste' };
   Object.entries(panes).forEach(([k, id]) => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('active', k === name);
   });
-  // Passenden Tab aktiv markieren (Profil/Freunde), sonst keiner.
-  const navForPane = { profil: 'profil', freunde: 'freunde' };
+  // Passenden Tab aktiv markieren.
+  const navForPane = { profil: 'profil', freunde: 'freunde', shop: 'shop', rangliste: 'rangliste', lobby: 'start' };
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.nav === navForPane[name]));
   window.scrollTo(0, 0);
   if (name === 'spiele') loadHistoryPane();
   else if (name === 'profil' || name === 'freunde') loadProfilePane();
+  else if (name === 'rangliste') loadLeaderboard();
+  else if (name === 'shop') loadShop();
   else if (name === 'lobby') { refreshResume(); loadHomeStats(); }
 }
 
@@ -449,11 +452,74 @@ function setActiveTab(el) {
 function handleNav(nav, el) {
   if (nav === 'profil') { switchPane('profil'); setActiveTab(el); return; }
   if (nav === 'freunde') { switchPane('freunde'); setActiveTab(el); return; }
-  switchPane('lobby');
-  setActiveTab(el);
-  if (nav === 'solo') { if (hasSoloSave()) resumeSoloUI(); else openLobbyModal('solo-modal'); }
-  else if (nav === 'gegen') openLobbyModal('solo-modal');
-  else if (nav === 'online') openLobbyModal('online-modal');
+  if (nav === 'shop') { switchPane('shop'); setActiveTab(el); return; }
+  if (nav === 'rangliste') { switchPane('rangliste'); setActiveTab(el); return; }
+  // "Neues Spiel" (start) führt zur Startseite – dort wählt man Solo/Online/Beitreten.
+  switchPane('lobby'); setActiveTab(el);
+}
+
+// Globale Rangliste: alle Spieler nach gewonnenen Spielen, Bester oben.
+async function loadLeaderboard() {
+  const list = document.getElementById('rank-list');
+  if (!list) return;
+  list.innerHTML = '<p class="empty-note">Lädt…</p>';
+  const m = await ensureOnline();
+  if (!m) { offlineNote(list); return; }
+  try {
+    const rows = await m.leaderboard();
+    if (!rows || !rows.length) {
+      list.innerHTML = '<p class="empty-note">Noch keine abgeschlossenen Spiele.<br>Spielt eine Online-Partie zu Ende – dann erscheint ihr hier.</p>';
+      return;
+    }
+    list.innerHTML = rows.map((r, i) => {
+      const me = r.uid === state.uid;
+      const av = r.avatar || DEFAULT_AV;
+      const avHtml = isImg(av) ? `<img class="av-img" src="${esc(avV(av))}" alt="">` : esc(av);
+      const pos = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+      return `<div class="rank-row${me ? ' me' : ''}${i === 0 ? ' top' : ''}">
+        <span class="rank-pos">${pos}</span>
+        <span class="rank-av">${avHtml}</span>
+        <span class="rank-name">${esc(r.name)}${me ? ' (Du)' : ''}<br><span class="rank-sub">${r.games} Spiele · ${r.points} Pkt.</span></span>
+        <span class="rank-wins">${r.wins} ${r.wins === 1 ? 'Sieg' : 'Siege'}</span>
+      </div>`;
+    }).join('');
+  } catch (e) { list.innerHTML = '<p class="empty-note">Rangliste konnte nicht geladen werden.</p>'; }
+}
+
+// Shop: Werbefrei per echtem IAP (nur native App). Im Browser nur Hinweis.
+function loadShop() {
+  const buy = document.getElementById('shop-buy');
+  const restore = document.getElementById('shop-restore');
+  const note = document.getElementById('shop-note');
+  const hint = document.getElementById('shop-hint');
+  if (!buy) return;
+  const sync = () => {
+    if (isAdFree()) {
+      buy.textContent = '✓ Werbefrei aktiv'; buy.disabled = true; buy.classList.add('sekundaer');
+      if (restore) restore.hidden = true;
+      if (note) note.textContent = 'Danke! Es wird keine Werbung mehr angezeigt.';
+      if (hint) hint.textContent = '';
+    } else {
+      buy.textContent = '✨ Werbefrei – 3,99 €'; buy.disabled = false; buy.classList.remove('sekundaer');
+      if (restore) restore.hidden = false;
+      if (note) note.textContent = 'Entfernt Banner und Vollbild-Werbung dauerhaft.';
+      if (hint) hint.textContent = iapAvailable() ? '' : 'Käufe sind nur in der iOS-App möglich.';
+    }
+  };
+  sync();
+  buy.onclick = async () => {
+    if (!iapAvailable()) { toast('Käufe sind nur in der iOS-App möglich.', 'info'); return; }
+    buy.disabled = true;
+    const r = await purchaseAdFree(); sync();
+    if (r.ok) { hideBanner(); toast('Werbefrei freigeschaltet – danke! 🎉', 'ok'); }
+    else if (!r.cancelled) toast('Kauf nicht möglich. Bitte später erneut versuchen.', 'err');
+  };
+  if (restore) restore.onclick = async () => {
+    restore.disabled = true;
+    const r = await restorePurchases(); restore.disabled = false; sync();
+    if (r.ok) { hideBanner(); toast('Käufe wiederhergestellt – Werbefrei aktiv 🎉', 'ok'); }
+    else toast('Kein früherer Werbefrei-Kauf gefunden.', 'err');
+  };
 }
 
 function offlineNote(el) {
