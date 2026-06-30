@@ -1199,6 +1199,15 @@
         </div>
       </div>
 
+    </div><!-- /pane-profil -->
+
+    <!-- Tab: Freunde (Freunde + Gruppen) -->
+    <div id="pane-freunde" class="pane sheet">
+      <div class="sheet-head">
+        <img class="sheet-head-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">
+        <div class="sheet-head-title"><span class="gem">◆</span>Freunde<span class="gem">◆</span></div>
+      </div>
+
       <!-- Freund:in hinzufügen -->
       <div class="panel psec">
         <img class="psec-ic" src="./lobby/ic-addfriend.png?v=1" alt="" aria-hidden="true">
@@ -1235,7 +1244,7 @@
           <div id="groups-list" class="stack"></div>
         </div>
       </div>
-    </div>
+    </div><!-- /pane-freunde -->
 
     <!-- Untere Navigations-Leiste (Embleme wie im Design) -->
     <nav class="tabbar">
@@ -1495,6 +1504,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=55"></script>
+<script type="module" src="./app.js?v=56"></script>
 </body>
 </html>

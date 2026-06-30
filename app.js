@@ -426,17 +426,17 @@ function wireHome() {
 
 // --- Tabs: Lobby / Spiele / Profil -----------------------------------------
 function switchPane(name) {
-  const panes = { lobby: 'pane-lobby', spiele: 'pane-spiele', profil: 'pane-profil' };
+  const panes = { lobby: 'pane-lobby', spiele: 'pane-spiele', profil: 'pane-profil', freunde: 'pane-freunde' };
   Object.entries(panes).forEach(([k, id]) => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('active', k === name);
   });
-  // Profil-Tab aktiv markieren, wenn das Profil offen ist (sonst keiner).
-  const navForPane = { profil: 'profil' };
+  // Passenden Tab aktiv markieren (Profil/Freunde), sonst keiner.
+  const navForPane = { profil: 'profil', freunde: 'freunde' };
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.nav === navForPane[name]));
   window.scrollTo(0, 0);
   if (name === 'spiele') loadHistoryPane();
-  else if (name === 'profil') loadProfilePane();
+  else if (name === 'profil' || name === 'freunde') loadProfilePane();
   else if (name === 'lobby') { refreshResume(); loadHomeStats(); }
 }
 
@@ -446,15 +446,8 @@ function setActiveTab(el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === el));
 }
 function handleNav(nav, el) {
-  if (nav === 'profil' || nav === 'freunde') {
-    switchPane('profil');
-    setActiveTab(el);
-    if (nav === 'freunde') {
-      const inp = document.getElementById('friend-code-input');
-      if (inp) { inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => inp.focus(), 250); }
-    }
-    return;
-  }
+  if (nav === 'profil') { switchPane('profil'); setActiveTab(el); return; }
+  if (nav === 'freunde') { switchPane('freunde'); setActiveTab(el); return; }
   switchPane('lobby');
   setActiveTab(el);
   if (nav === 'solo') { if (hasSoloSave()) resumeSoloUI(); else openLobbyModal('solo-modal'); }
