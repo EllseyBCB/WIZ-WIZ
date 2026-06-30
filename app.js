@@ -8,7 +8,8 @@ import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPre
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
-         getTableTheme, setTableTheme, applyTableTheme } from './cosmetics.js?v=3';
+         getTableTheme, setTableTheme, applyTableTheme,
+         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=4';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
@@ -491,6 +492,23 @@ async function loadLeaderboard() {
 
 // Läuft die App nativ (Capacitor) oder im Browser/PWA?
 const isNativeApp = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+// Inhaber-Konten (z. B. Entwickler) bekommen alles freigeschaltet. Prüft die
+// eingeloggte E-Mail und setzt/entfernt die Freischaltung; aktualisiert sichtbare
+// Bereiche. Nur für Online-/eingeloggte Nutzer (lädt sonst Supabase nicht).
+async function checkOwnerUnlock() {
+  if (!localStorage.getItem('wizard_online')) return;
+  let info;
+  try { info = await (await db()).authInfo(); } catch (_) { return; }
+  const owner = isOwnerEmail(info && info.email);
+  if (owner === ownerUnlock()) { if (owner) setAdFree(true); return; }
+  setOwnerUnlock(owner);
+  if (owner) setAdFree(true);
+  applyTableTheme();
+  refreshAvatarPicker();
+  updateNavAvatar();
+  if (document.getElementById('pane-shop')?.classList.contains('active')) loadShop();
+}
 // Passende Erklärung, warum gerade nicht gekauft werden kann.
 function iapUnavailableHint() {
   return isNativeApp()
@@ -504,7 +522,8 @@ function loadShop() {
   const grid = document.getElementById('shop-grid');
   const hint = document.getElementById('shop-hint');
   if (!grid) return;
-  const canBuy = iapAvailable() || isDevUnlock();
+  checkOwnerUnlock();   // Inhaber-Konto ggf. freischalten (rendert danach neu)
+  const canBuy = iapAvailable() || isDevUnlock() || ownerUnlock();
   if (hint) hint.textContent = canBuy ? '' : iapUnavailableHint();
 
   const equipped = myAvatar();
@@ -984,6 +1003,14 @@ async function renderAccount(m) {
   if (!box) return;
   let info;
   try { info = await m.authInfo(); } catch (_) { info = { isAnonymous: true }; }
+
+  // Inhaber-Konto: alles freischalten (oder bei anderem Konto wieder entfernen).
+  const owner = isOwnerEmail(info.email);
+  if (owner !== ownerUnlock()) {
+    setOwnerUnlock(owner);
+    if (owner) setAdFree(true);
+    applyTableTheme(); refreshAvatarPicker(); updateNavAvatar();
+  } else if (owner) { setAdFree(true); }
 
   if (info.email && !info.isAnonymous) {
     box.innerHTML =
@@ -1487,6 +1514,9 @@ async function init() {
   // In-App-Kauf (RevenueCat) initialisieren – erkennt einen frueheren Werbefrei-
   // Kauf, BEVOR Werbung geladen wird. Danach Werbung + Banner (nur native App).
   initIAP().finally(() => initAds().then(showBanner));
+
+  // Inhaber-Konto (eingeloggt) ggf. komplett freischalten.
+  checkOwnerUnlock();
 
   // Dezenter Klick-Sound für Lobby-Aktionen (nur auf der Startseite – im Spiel
   // sorgen die eigenen Spiel-Sounds für Rückmeldung).
