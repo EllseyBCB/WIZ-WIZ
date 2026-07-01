@@ -905,12 +905,12 @@
      Overlays unten auf dem Filz und flankieren den eigenen Platz – genau ueber
      dem Handfaecher, wie im Design-Entwurf. */
   .tl-left  {
-    position: absolute; left: 8px; bottom: clamp(150px, 20vh, 230px); z-index: 4;
+    position: absolute; left: 8px; bottom: clamp(168px, 18vh, 205px); z-index: 4;
     display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
     max-width: clamp(118px, 31vw, 210px);
   }
   .tl-right {
-    position: absolute; right: 8px; bottom: clamp(150px, 20vh, 230px); z-index: 4;
+    position: absolute; right: 8px; bottom: clamp(168px, 18vh, 205px); z-index: 4;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
   }
   /* alte Klassen (unbenutzt, Kompatibilitaet) */
@@ -968,6 +968,8 @@
   /* Trumpf-Karte in der unteren rechten Leiste (ueber "Alle Karten"). */
   .trump-badge { text-align: center; z-index: 3; }
   .trump-badge.empty { display: none; }
+  /* Trumpf-Karte etwas kleiner (stoert das rechte Profil nicht mehr) */
+  .trump-badge .wcard { height: clamp(76px, 9.5vh, 112px); }
   .trump-cap { font-size: clamp(.7rem, 2.1vw, .92rem); color: #f0e6cf; margin-top: 1px; letter-spacing: .5px; }
 
   /* Ablagestapel / Stich = Drop-Zone (kompakt, bleibt in der Mitte) */
