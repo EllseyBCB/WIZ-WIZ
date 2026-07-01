@@ -605,22 +605,20 @@ function buildTrickPile(state) {
   if (!trick.length) {
     inner.innerHTML = '<div class="pile-empty">Stich<br><small>Karte hierher ziehen</small></div>';
   } else {
-    // Sauberer, symmetrischer Faecher wie die Handkarten: jede Karte dreht um
-    // ihre UNTERE Mitte (gemeinsamer Drehpunkt) und ueberlappt leicht.
+    // Sauberer, symmetrischer Faecher (wie die Handkarten): absolute Positionen
+    // per CSS-Berechnung aus --i (Index) und --n (Anzahl) -> immer gleichmaessig.
     const n = trick.length;
-    const ov = n >= 6 ? 18 : n === 5 ? 15 : n === 4 ? 12 : 9;   // Ueberlappung
-    const step = n > 1 ? Math.min(8, 40 / (n - 1)) : 0;         // Grad je Karte
+    inner.classList.add('has-cards');
+    inner.style.setProperty('--n', n);
     trick.forEach((p, i) => {
-      const ang = (i - (n - 1) / 2) * step;
       const slot = document.createElement('div');
       slot.className = 'pile-slot' + (p.is_winner ? ' winner' : '');
-      slot.style.margin = `0 -${ov}px`;
+      slot.style.setProperty('--i', i);
       const rotor = document.createElement('div');       // dreht nur die Karte
       rotor.className = 'pile-rot';
-      rotor.style.transform = `rotate(${ang}deg)`;
       rotor.appendChild(renderCard(p.card, { small: true }));
       slot.appendChild(rotor);
-      const nm = document.createElement('div');          // Name bleibt aufrecht
+      const nm = document.createElement('div');          // Name aufrecht darunter
       nm.className = 'pile-name';
       nm.textContent = nameOfSeat(players, p.seat);
       slot.appendChild(nm);
