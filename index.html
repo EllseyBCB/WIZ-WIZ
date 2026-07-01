@@ -845,6 +845,12 @@
   }
   .seat::before, .seat::after { display: none; }   /* Edelsteine sind im Rahmenbild */
   .seat.turn { filter: drop-shadow(0 0 7px rgba(255,214,107,.85)); }
+  /* Premium-Tisch: eigenes Profil kompakter, sitzt an der unteren Tischkante,
+     damit das mittige Motiv (Kompass/Mandala) frei bleibt (clean look). */
+  .seat.me-bottom {
+    width: calc(var(--sw) * .8);
+    height: calc(var(--sw) * .8 * 1.7419);
+  }
   /* Avatar absolut auf die Kreismitte des Rahmens gesetzt (Ring-Mittelpunkt
      liegt bei 31,9 % der Hoehe; Durchmesser knapp unter dem Fenster, damit
      der goldene Rand ringsum sichtbar bleibt). */
@@ -1601,6 +1607,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=64"></script>
+<script type="module" src="./app.js?v=65"></script>
 </body>
 </html>
