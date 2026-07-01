@@ -796,8 +796,18 @@
   }
   .table-top {
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    flex-wrap: wrap; font-size: .9rem; padding: 8px 8px 10px; color: #f0e6cf;
+    flex-wrap: nowrap; font-size: .9rem; padding: 9px 14px; color: #f0e6cf;
     text-shadow: 0 1px 4px rgba(0,0,0,.85);
+    /* Kopfzeile als gerahmte Leiste (wie Design-Entwurf). */
+    margin: 6px 6px 4px; border-radius: 14px;
+    background: rgba(20,13,44,.55);
+    border: 1px solid rgba(214,176,86,.45);
+    box-shadow: inset 0 0 0 1px rgba(214,176,86,.10), 0 2px 10px rgba(0,0,0,.35);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  }
+  .table-top .phase-tag {
+    padding: 4px 12px; border-radius: 10px; font-size: .82rem; font-weight: 700;
+    color: #cdb4ff; border: 1px solid rgba(214,176,86,.45); background: rgba(40,26,80,.5);
   }
   /* Groesserer Tisch-"Arena": Spieler:innen sitzen absolut in ihren Ecken.
      Kein eigener Hintergrund/Rahmen – die durchgehende Szene scheint durch. */
@@ -806,6 +816,11 @@
     background: transparent;
     overflow: hidden; cursor: pointer;
   }
+
+  /* Im laufenden Spiel: das grosse Lobby-Banner ausblenden (wie im Design-
+     Entwurf) – oben beginnt direkt die Kopfzeile, der Tisch fuellt den Rest. */
+  body:has(#game-view.active) header.banner-head { display: none; }
+  body:has(#game-view.active) .felt { height: clamp(400px, 56vh, 560px); }
 
   /* "Statische" Tischansicht: Tisch fixiert, kein Scrollen zum Punktestand.
      Wird per Tipp auf den Tisch aktiviert, per Knopf wieder aufgehoben. */
@@ -845,12 +860,6 @@
   }
   .seat::before, .seat::after { display: none; }   /* Edelsteine sind im Rahmenbild */
   .seat.turn { filter: drop-shadow(0 0 7px rgba(255,214,107,.85)); }
-  /* Premium-Tisch: eigenes Profil kompakter, sitzt an der unteren Tischkante,
-     damit das mittige Motiv (Kompass/Mandala) frei bleibt (clean look). */
-  .seat.me-bottom {
-    width: calc(var(--sw) * .8);
-    height: calc(var(--sw) * .8 * 1.7419);
-  }
   /* Avatar absolut auf die Kreismitte des Rahmens gesetzt (Ring-Mittelpunkt
      liegt bei 31,9 % der Hoehe; Durchmesser knapp unter dem Fenster, damit
      der goldene Rand ringsum sichtbar bleibt). */
@@ -878,7 +887,18 @@
   .st-tb .sep { margin: 0 2px; color: #e7dcc0; opacity: .8; font-weight: 600; }
   .st-score { font-size: calc(var(--sw) * .115); font-weight: 700; color: #e7dcc0; opacity: .85; }
 
-  /* Aktionsleiste zwischen Filz und Hand */
+  /* Untere Leiste: flankiert den eigenen Platz (Aktion links, Trumpf + "Alle
+     Karten" rechts). Wird per negativem Rand nach oben neben den eigenen
+     Platz gezogen; die Mitte bleibt fuer den Platz frei (pointer-events). */
+  .table-lower {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 8px; padding: 0 10px; margin-top: -70px; min-height: 96px;
+    position: relative; z-index: 3; pointer-events: none;
+  }
+  .table-lower > * { pointer-events: auto; }
+  .tl-left  { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .tl-right { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  /* alte Aktionsleiste (unbenutzt, Kompatibilitaet) */
   .action-dock { display: flex; justify-content: center; margin-top: 6px; min-height: 104px; align-items: center; }
   /* "Stiche ansagen": gemalter Zauberstab-Rahmen als Hintergrund, Text zentriert. */
   .bid-open-btn {
@@ -922,11 +942,10 @@
     border: 1px solid rgba(214,180,255,.18);
     box-shadow: inset 0 0 0 1px rgba(214,180,255,.06), 0 0 50px rgba(120,80,200,.18);
   }
-  /* Trumpf unten rechts neben dem eigenen Platz (stoert die Mitte nicht mehr) */
-  .trump-badge { position: absolute; right: 10px; bottom: 8px; text-align: center;
-    pointer-events: none; z-index: 2; }
+  /* Trumpf-Karte in der unteren rechten Leiste (ueber "Alle Karten"). */
+  .trump-badge { text-align: center; z-index: 3; }
   .trump-badge.empty { display: none; }
-  .trump-cap { font-size: .64rem; color: #f0e6cf; margin-top: 2px; letter-spacing: .5px; }
+  .trump-cap { font-size: .64rem; color: #f0e6cf; margin-top: 1px; letter-spacing: .5px; }
 
   /* Ablagestapel / Stich = Drop-Zone (kompakt, bleibt in der Mitte) */
   .trick-pile {
@@ -1015,10 +1034,10 @@
   /* "Alle Karten"-Button + Vollbild-Kartenansicht */
   /* "Alle Karten": gemalte Pille als Hintergrund */
   .hand-view-btn {
-    position: absolute; top: -20px; right: 8px; z-index: 6;
+    position: static; z-index: 6;
     border: none; box-shadow: none; background: url('lobby/ui-pill.png?v=1') center/100% 100% no-repeat;
     color: #f5eeda; font-size: .8rem; font-weight: 700; cursor: pointer;
-    width: 138px; aspect-ratio: 353 / 102; display: inline-flex; align-items: center; justify-content: center;
+    width: 132px; aspect-ratio: 353 / 102; display: inline-flex; align-items: center; justify-content: center;
   }
   .hand-view-btn:hover { filter: brightness(1.1); }
   /* Steuer-Pillen mit gemalten Rahmen */
@@ -1046,6 +1065,21 @@
     box-shadow: 0 16px 30px rgba(0,0,0,.6); opacity: .96;
   }
   .table-controls { justify-content: center; margin-top: 10px; }
+
+  /* Untere Navigationsleiste (Menue / Pause) – wie im Design-Entwurf */
+  .table-nav {
+    display: flex; justify-content: space-around; align-items: center; gap: 8px;
+    margin-top: 6px; padding: 7px 12px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(214,176,86,.22);
+  }
+  .table-nav.single { justify-content: center; }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: transparent; border: none; color: #cdb4ff; cursor: pointer;
+    font-size: .72rem; font-weight: 600; padding: 4px 22px; letter-spacing: .3px;
+  }
+  .nav-item .nav-ic { font-size: 1.25rem; line-height: 1; color: #e7dcc0; }
+  .nav-item:hover { color: #fff; }
 
   /* Wertung */
   .score-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -1607,6 +1641,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=65"></script>
+<script type="module" src="./app.js?v=66"></script>
 </body>
 </html>
