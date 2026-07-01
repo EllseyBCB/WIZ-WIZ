@@ -70,7 +70,7 @@ export function renderCard(code, opts = {}) {
       img.alt = 'Rückseite';
       img.loading = 'eager';
       img.decoding = 'async';
-      img.src = `${CARD_IMAGE_BASE.replace(/\/$/, '')}/back.png?v=1`;
+      img.src = `${CARD_IMAGE_BASE.replace(/\/$/, '')}/back.png?v=2`;
       img.onerror = () => { el.innerHTML = backSvg(); };   // Fallback auf SVG-Rueckseite
       el.appendChild(img);
     } else {

@@ -855,8 +855,8 @@
      der Avatar deterministisch im Rahmen, in Safari wie in der App. */
   .seat {
     position: absolute; transform: translate(-50%, -50%);
-    width: var(--sw); height: calc(var(--sw) * 1.7419); box-sizing: border-box;
-    background: url('lobby/ui-seat.png?v=1') center/100% 100% no-repeat;
+    width: var(--sw); height: calc(var(--sw) * 1.8095); box-sizing: border-box;
+    background: url('lobby/ui-seat2.png?v=1') center/100% 100% no-repeat;
     color: #efe6d2; z-index: 2;
     overflow: hidden;   /* nichts ragt ueber den Rahmen hinaus */
   }
@@ -864,13 +864,13 @@
   .seat.turn { filter: drop-shadow(0 0 7px rgba(255,214,107,.85)); }
   /* Dekorativer verdeckter Handkarten-Faecher, ragt ueber den Platz hinaus und
      liegt hinter dem Sitz (eigenes Overlay, da der Sitz overflow:hidden hat). */
-  .seat-slot { position: absolute; width: var(--sw); height: calc(var(--sw) * 1.7419);
+  .seat-slot { position: absolute; width: var(--sw); height: calc(var(--sw) * 1.8095);
     box-sizing: border-box; pointer-events: none; z-index: 1; }
   .seat-hand { position: absolute; left: 50%; bottom: calc(100% - 10px); transform: translateX(-50%);
     display: flex; justify-content: center; align-items: flex-end; }
   .seat-hand .hb {
     width: calc(var(--sw) * .40); aspect-ratio: 62 / 94; margin: 0 calc(var(--sw) * -.12);
-    background: #221a3d url('cards/back.png') center/cover no-repeat;
+    background: #221a3d url('cards/back.png?v=2') center/cover no-repeat;
     border-radius: 11% / 7%; transform-origin: center bottom;
     box-shadow: 0 2px 5px rgba(0,0,0,.55); border: 1px solid rgba(8,5,18,.7);
   }
@@ -879,21 +879,21 @@
      der goldene Rand ringsum sichtbar bleibt). */
   .seat-av {
     position: absolute; left: 50%; top: 31.9%; transform: translate(-50%, -50%);
-    width: calc(var(--sw) * .63); height: calc(var(--sw) * .63);
+    width: calc(var(--sw) * .66); height: calc(var(--sw) * .66);
     border-radius: 50%; overflow: hidden; border: none; background: transparent;
     display: flex; align-items: center; justify-content: center; line-height: 1;
   }
   .seat-av .av-img { width: 100%; height: 100%; object-fit: cover; }
   .seat.offline { opacity: .45; }
   .seat-name {
-    position: absolute; left: 0; top: 56%; width: 100%; box-sizing: border-box;
+    position: absolute; left: 0; top: 58%; width: 100%; box-sizing: border-box;
     padding: 0 calc(var(--sw) * .12); text-align: center;
     font-weight: 700; font-size: calc(var(--sw) * .135); white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis;
     text-shadow: 0 1px 3px rgba(0,0,0,.85);
   }
   .seat-stats {
-    position: absolute; left: 0; top: 68%; width: 100%;
+    position: absolute; left: 0; top: 70%; width: 100%;
     display: flex; flex-direction: column; align-items: center; line-height: 1.12;
   }
   .st-tb { font-size: calc(var(--sw) * .17); font-weight: 800; color: var(--stat, #ffd66b);
@@ -1042,7 +1042,7 @@
   .flip-back {
     position: absolute; inset: 0; border-radius: 8% / 5%; overflow: hidden;
     transform-origin: 50% 50%; transition: transform .30s cubic-bezier(.45,.05,.55,.95), filter .30s ease; transform: scaleX(1);
-    background: #221a3d url('cards/back.png') center/cover no-repeat;
+    background: #221a3d url('cards/back.png?v=2') center/cover no-repeat;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.45);
   }
   /* aufgedeckt: Rueckseite klappt zu, dann Vorderseite auf (kurzer Glanz = Tiefe) */
@@ -1662,6 +1662,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=71"></script>
+<script type="module" src="./app.js?v=72"></script>
 </body>
 </html>
