@@ -1383,7 +1383,7 @@ function notifyYourTurn() {
     try {
       LN.schedule({ notifications: [{
         id: Date.now() % 100000,
-        title: 'Zaubertisch – du bist dran! 🧙',
+        title: 'Zaubertisch – du bist dran!',
         body: 'Tippe, um weiterzuspielen.'
       }] }).catch(() => {});
     } catch (_) {}
@@ -1391,7 +1391,7 @@ function notifyYourTurn() {
   }
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
-    const n = new Notification('Zaubertisch – du bist dran! 🧙', { body: 'Tippe, um weiterzuspielen.', tag: 'wiz-turn', icon: './icon-192.png' });
+    const n = new Notification('Zaubertisch – du bist dran!', { body: 'Tippe, um weiterzuspielen.', tag: 'wiz-turn', icon: './icon-192.png' });
     n.onclick = () => { window.focus(); n.close(); };
   } catch (_) {}
 }
