@@ -872,13 +872,13 @@ function overDrop(e, dz) {
 // Wie im Design-Entwurf: schlichte Leiste am unteren Rand mit "Menü" (Spiel
 // verlassen, mit Rueckfrage) links und "Pause" rechts. Nach Spielende ein
 // einzelner "Zurueck zur Startseite"-Knopf.
-function navItem(iconImg, label, onClick) {
+// Fertige Grafik-Buttons (Text ist Teil des Bildes): "Spiel verlassen" (links)
+// und "Spiel pausieren" (rechts). Nach Spielende: "Spiel verlassen" -> Startseite.
+function navBtn(key, label, onClick) {
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'nav-item';
-  const ic = iconImg ? `<img class="nav-ic" src="${iconImg}" alt="" aria-hidden="true">` : '';
-  b.innerHTML = `${ic}<span class="nav-lb">${label}</span>`;
-  b.setAttribute('aria-label', label);
+  b.className = 'nav-btn ' + key;
+  b.setAttribute('aria-label', label);   // Beschriftung ist Teil der Grafik
   b.onclick = onClick;
   return b;
 }
@@ -886,15 +886,15 @@ function buildControls(game, actions) {
   const ctl = document.createElement('div');
   ctl.className = 'table-nav';
   if (game.status === 'running') {
-    ctl.appendChild(navItem('lobby/ui-menu.png?v=1', 'Menü', () => {
+    ctl.appendChild(navBtn('nav-leave', 'Spiel verlassen', () => {
       if (confirm('Laufendes Spiel verlassen? Der Spielstand geht verloren.\n(Zum späteren Weiterspielen lieber „Pausieren".)')) actions.onLeave();
     }));
     if (actions.onPause) {
-      ctl.appendChild(navItem('lobby/ui-pause.png?v=1', 'Pause', () => actions.onPause()));
+      ctl.appendChild(navBtn('nav-pause', 'Spiel pausieren', () => actions.onPause()));
     }
   } else if (game.status === 'finished' || game.status === 'aborted') {
     ctl.classList.add('single');
-    ctl.appendChild(navItem('lobby/ui-menu.png?v=1', 'Zur Startseite', () => actions.onLeave()));
+    ctl.appendChild(navBtn('nav-leave', 'Zur Startseite', () => actions.onLeave()));
   }
   return ctl;
 }
