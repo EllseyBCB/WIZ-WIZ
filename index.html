@@ -1053,6 +1053,8 @@
   /* aufgedeckt: Rueckseite klappt zu, dann Vorderseite auf (kurzer Glanz = Tiefe) */
   .flip-inner.show .flip-back  { transform: scaleX(0); filter: brightness(1.25); }
   .flip-inner.show .flip-front { transform: scaleX(1); transition-delay: .30s; }
+  /* Sofort-Zustand ohne Animation (Neu-Render nach dem Aufdecken -> kein 2. Flip) */
+  .flip-inner.no-anim .flip-front, .flip-inner.no-anim .flip-back { transition: none !important; }
   @media (prefers-reduced-motion: reduce) {
     .flip-front, .flip-back { transition: none; }
   }
@@ -1667,6 +1669,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=73"></script>
+<script type="module" src="./app.js?v=74"></script>
 </body>
 </html>
