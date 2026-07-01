@@ -340,8 +340,10 @@ function wireHome() {
   // Avatar in der Namensbox: zeigt das eigene Bild, Tipp führt ins Profil.
   const homeAv = $('#home-avatar');
   if (homeAv) {
-    const av = localStorage.getItem('wizard_my_avatar');
-    if (av && /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(av)) homeAv.innerHTML = `<img src="${esc(avV(av))}" alt="">`;
+    // Immer ein echtes Bild zeigen – ohne gespeichertes Profil den Standard-
+    // Zauberer (kein Emoji-Platzhalter mehr).
+    const av = localStorage.getItem('wizard_my_avatar') || DEFAULT_AV;
+    if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(av)) homeAv.innerHTML = `<img src="${esc(avV(av))}" alt="">`;
     homeAv.onclick = () => switchPane('profil');
   }
   // Lobby-Modals: Schließen per ✕ oder Klick auf den Hintergrund.
