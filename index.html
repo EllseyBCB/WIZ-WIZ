@@ -766,13 +766,13 @@
   /* feste Hoehe, Breite folgt dem Bild -> alle Karten gleich hoch,
      unabhaengig vom Seitenverhaeltnis (Zauberer/Narr/11er) */
   .wcard {
-    height: 124px; width: auto; padding: 0; border: none; background: #0c0a18;
+    height: clamp(124px, 15.5vh, 195px); width: auto; padding: 0; border: none; background: #0c0a18;
     cursor: default; border-radius: 8% / 5%; line-height: 0; overflow: hidden;
   }
   /* kleine Karten (Stich/Trumpf): feste Hoehe, Breite nach natuerlichem
      Seitenverhaeltnis -> der komplette goldene Rand bleibt sichtbar (kein
      Zuschnitt). Zauberer/Narr sind dadurch minimal breiter. */
-  .wcard.small { height: 93px; width: auto; }
+  .wcard.small { height: clamp(96px, 12vh, 150px); width: auto; }
   .wcard.small .wcard-img, .wcard.small .wcard-svg { height: 100%; width: auto; object-fit: contain; }
   button.wcard:not(.disabled) { cursor: pointer; }
   .wcard.disabled { opacity: .42; }
@@ -796,7 +796,7 @@
   }
   .table-top {
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    flex-wrap: nowrap; font-size: .9rem; padding: 9px 14px; color: #f0e6cf;
+    flex-wrap: nowrap; font-size: clamp(.94rem, 2.9vw, 1.15rem); padding: 11px 16px; color: #f0e6cf;
     text-shadow: 0 1px 4px rgba(0,0,0,.85);
     /* Kopfzeile als gerahmte Leiste (wie Design-Entwurf). */
     margin: 6px 6px 4px; border-radius: 14px;
@@ -820,7 +820,7 @@
   /* Im laufenden Spiel: das grosse Lobby-Banner ausblenden (wie im Design-
      Entwurf) – oben beginnt direkt die Kopfzeile, der Tisch fuellt den Rest. */
   body:has(#game-view.active) header.banner-head { display: none; }
-  body:has(#game-view.active) .felt { height: clamp(400px, 56vh, 560px); }
+  body:has(#game-view.active) .felt { height: calc(100svh - 142px); min-height: 450px; }
 
   /* "Statische" Tischansicht: Tisch fixiert, kein Scrollen zum Punktestand.
      Wird per Tipp auf den Tisch aktiviert, per Knopf wieder aufgehoben. */
@@ -844,9 +844,11 @@
   /* Sitzplaetze rund um den Tisch (per Inline-Style top/left positioniert) */
   /* Sitz-Groesse skaliert mit der Spielerzahl (--sw); bei 5/6 kleiner, damit
      sich nichts ueberschneidet. Alles im Kaertchen rechnet von --sw ab. */
-  .seats { position: absolute; inset: 0; --sw: 92px; }
-  .seats.np5 { --sw: 84px; }
-  .seats.np6 { --sw: 72px; }
+  /* Groesse waechst mit der Bildschirmbreite (grosszuegig wie im Design-Entwurf),
+     mit Unter-/Obergrenze. */
+  .seats { position: absolute; inset: 0; --sw: clamp(78px, 20.5vw, 128px); }
+  .seats.np5 { --sw: clamp(72px, 18.5vw, 116px); }
+  .seats.np6 { --sw: clamp(66px, 16.5vw, 104px); }
   /* Spieler-Kaertchen = gemalter Rahmen (avatar-Fenster oben, Inhalt darunter) */
   /* Hoehe FEST aus dem Bildverhaeltnis (432/248) – NICHT via aspect-ratio,
      das ist in der iOS-WebView fehlerhaft und verschob den Avatar. So sitzt
@@ -887,26 +889,28 @@
   .st-tb .sep { margin: 0 2px; color: #e7dcc0; opacity: .8; font-weight: 600; }
   .st-score { font-size: calc(var(--sw) * .115); font-weight: 700; color: #e7dcc0; opacity: .85; }
 
-  /* Untere Leiste: flankiert den eigenen Platz (Aktion links, Trumpf + "Alle
-     Karten" rechts). Wird per negativem Rand nach oben neben den eigenen
-     Platz gezogen; die Mitte bleibt fuer den Platz frei (pointer-events). */
-  .table-lower {
-    display: flex; justify-content: space-between; align-items: flex-end;
-    gap: 8px; padding: 0 10px; margin-top: -70px; min-height: 96px;
-    position: relative; z-index: 3; pointer-events: none;
+  /* Aktion (links) und Trumpf+"Alle Karten" (rechts) liegen als absolute
+     Overlays unten auf dem Filz und flankieren den eigenen Platz – genau ueber
+     dem Handfaecher, wie im Design-Entwurf. */
+  .tl-left  {
+    position: absolute; left: 8px; bottom: clamp(150px, 20vh, 230px); z-index: 4;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+    max-width: clamp(118px, 31vw, 210px);
   }
-  .table-lower > * { pointer-events: auto; }
-  .tl-left  { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-  .tl-right { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  /* alte Aktionsleiste (unbenutzt, Kompatibilitaet) */
+  .tl-right {
+    position: absolute; right: 8px; bottom: clamp(150px, 20vh, 230px); z-index: 4;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  /* alte Klassen (unbenutzt, Kompatibilitaet) */
+  .table-lower { display: none; }
   .action-dock { display: flex; justify-content: center; margin-top: 6px; min-height: 104px; align-items: center; }
   /* "Stiche ansagen": gemalter Zauberstab-Rahmen als Hintergrund, Text zentriert. */
   .bid-open-btn {
     background: url('lobby/ui-bidbtn.png?v=1') center/100% 100% no-repeat;
     border: none; box-shadow: none; color: #fff; font-weight: 800;
-    font-size: .82rem; letter-spacing: .3px;
-    width: 188px; height: 77px; padding: 0 19px 0 39px;
-    display: inline-flex; align-items: center; justify-content: center;
+    font-size: clamp(.8rem, 2.5vw, .98rem); letter-spacing: .2px; line-height: 1.05;
+    width: clamp(120px, 30vw, 200px); aspect-ratio: 188 / 77; padding: 0 14px 0 34px;
+    display: inline-flex; align-items: center; justify-content: center; text-align: center;
     animation: bidPulse 1.9s ease-in-out infinite;
   }
   .bid-open-btn:hover { filter: brightness(1.08); }
@@ -932,25 +936,27 @@
   @media (prefers-reduced-motion: reduce) { .deal-overlay { display: none; } }
 
   /* Mittleres Band: Stich + Trumpf, absolut zentriert im Filz */
-  .felt-mid { position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
+  .felt-mid { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
     display: flex; justify-content: center; align-items: center; z-index: 1; }
   /* zarter Tierkreis-/Magie-Ring hinter dem Stich-Feld */
   .felt-mid::before {
     content: ''; position: absolute; left: 50%; top: 50%;
     transform: translate(-50%, -50%); pointer-events: none; z-index: -1;
-    width: 300px; height: 300px; max-width: 76vw; max-height: 76vw; border-radius: 50%;
+    width: clamp(320px, 84vw, 620px); height: clamp(320px, 84vw, 620px);
+    max-width: 92vw; max-height: 92vw; border-radius: 50%;
     border: 1px solid rgba(214,180,255,.18);
     box-shadow: inset 0 0 0 1px rgba(214,180,255,.06), 0 0 50px rgba(120,80,200,.18);
   }
   /* Trumpf-Karte in der unteren rechten Leiste (ueber "Alle Karten"). */
   .trump-badge { text-align: center; z-index: 3; }
   .trump-badge.empty { display: none; }
-  .trump-cap { font-size: .64rem; color: #f0e6cf; margin-top: 1px; letter-spacing: .5px; }
+  .trump-cap { font-size: clamp(.7rem, 2.1vw, .92rem); color: #f0e6cf; margin-top: 1px; letter-spacing: .5px; }
 
   /* Ablagestapel / Stich = Drop-Zone (kompakt, bleibt in der Mitte) */
   .trick-pile {
-    margin: auto; min-width: 104px; min-height: 100px; padding: 8px 9px;
-    display: flex; align-items: center; justify-content: center; border-radius: 16px;
+    margin: auto; min-width: clamp(132px, 34vw, 240px); min-height: clamp(140px, 18vh, 230px);
+    padding: 10px 12px;
+    display: flex; align-items: center; justify-content: center; border-radius: 18px;
     border: 2px dashed rgba(245,235,200,.30);
     background: radial-gradient(circle at 50% 50%, rgba(0,0,0,.18), rgba(0,0,0,0) 70%);
     transition: box-shadow .15s, border-color .15s, background .15s;
@@ -971,14 +977,17 @@
   .pile-slot.winner .wcard { box-shadow: 0 0 0 3px #ffd66b, 0 0 16px rgba(255,214,107,.7); }
   .pile-name { font-size: .58rem; color: #ede3c8; margin-top: 4px; max-width: 64px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: auto; margin-right: auto; }
-  .pile-empty { color: #eaf5ec; opacity: .75; text-align: center; font-weight: 600; }
-  .pile-empty small { font-weight: 400; opacity: .7; font-size: .7rem; }
+  .pile-empty { color: #eaf5ec; opacity: .78; text-align: center; font-weight: 700;
+    font-size: clamp(1.2rem, 5vw, 2rem); letter-spacing: 1px; }
+  .pile-empty small { display: block; font-weight: 400; opacity: .72; font-size: clamp(.72rem, 2.4vw, .95rem);
+    letter-spacing: .3px; margin-top: 3px; }
 
   /* Aktionsbereich auf dem Filz */
   .table-action {
     width: 100%; max-width: 460px; text-align: center; padding: 12px 14px; border-radius: 14px;
   }
-  .table-action.hint { color: #eaf5ec; background: rgba(0,0,0,.22); font-size: .9rem; }
+  .table-action.hint { color: #eaf5ec; background: rgba(0,0,0,.28); font-size: clamp(.76rem, 2.3vw, .92rem);
+    padding: 8px 10px; line-height: 1.2; }
   .parchment {
     background: linear-gradient(180deg, #efe2c2, #e3d2a8); color: #2a1d0c;
     border: 1px solid #b89b62; box-shadow: 0 6px 18px rgba(0,0,0,.35);
@@ -987,8 +996,9 @@
   .parchment .muted { color: #6b5836; }
 
   /* Hand als Faecher */
-  .hand-dock { position: relative; display: flex; justify-content: center; margin-top: 6px; padding: 0 6px 4px; }
-  .hand-fan { position: relative; width: 100%; max-width: 620px; min-height: 130px; }
+  .hand-dock { position: absolute; left: 0; right: 0; bottom: 4px; z-index: 5;
+    display: flex; justify-content: center; padding: 0 6px; }
+  .hand-fan { position: relative; width: 100%; max-width: 680px; min-height: 130px; }
   .fan-card {
     position: absolute; left: 50%; bottom: 0; transform-origin: center bottom;
     transform: translateX(-50%) translate(var(--x,0), var(--y,0)) rotate(var(--rot,0deg));
@@ -1036,8 +1046,8 @@
   .hand-view-btn {
     position: static; z-index: 6;
     border: none; box-shadow: none; background: url('lobby/ui-pill.png?v=1') center/100% 100% no-repeat;
-    color: #f5eeda; font-size: .8rem; font-weight: 700; cursor: pointer;
-    width: 132px; aspect-ratio: 353 / 102; display: inline-flex; align-items: center; justify-content: center;
+    color: #f5eeda; font-size: clamp(.8rem, 2.5vw, .98rem); font-weight: 700; cursor: pointer;
+    width: clamp(118px, 30vw, 200px); aspect-ratio: 353 / 102; display: inline-flex; align-items: center; justify-content: center;
   }
   .hand-view-btn:hover { filter: brightness(1.1); }
   /* Steuer-Pillen mit gemalten Rahmen */
@@ -1076,9 +1086,9 @@
   .nav-item {
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     background: transparent; border: none; color: #cdb4ff; cursor: pointer;
-    font-size: .72rem; font-weight: 600; padding: 4px 22px; letter-spacing: .3px;
+    font-size: clamp(.76rem, 2.2vw, .92rem); font-weight: 600; padding: 4px 26px; letter-spacing: .3px;
   }
-  .nav-item .nav-ic { font-size: 1.25rem; line-height: 1; color: #e7dcc0; }
+  .nav-item .nav-ic { font-size: clamp(1.35rem, 4vw, 1.7rem); line-height: 1; color: #e7dcc0; }
   .nav-item:hover { color: #fff; }
 
   /* Wertung */
@@ -1641,6 +1651,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=66"></script>
+<script type="module" src="./app.js?v=69"></script>
 </body>
 </html>
