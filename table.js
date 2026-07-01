@@ -605,15 +605,20 @@ function buildTrickPile(state) {
   if (!trick.length) {
     inner.innerHTML = '<div class="pile-empty">Stich<br><small>Karte hierher ziehen</small></div>';
   } else {
-    // Sauberer, symmetrischer Faecher (wie die Handkarten): absolute Positionen
-    // per CSS-Berechnung aus --i (Index) und --n (Anzahl) -> immer gleichmaessig.
+    // Sauberer, symmetrischer Faecher (wie die Handkarten): Abstand + Drehung aus
+    // --i/--n per CSS; der vertikale Bogen (--y, Raender tiefer) kommt aus JS.
     const n = trick.length;
     inner.classList.add('has-cards');
     inner.style.setProperty('--n', n);
+    const half = (n - 1) / 2;
+    const arcDepth = Math.min(18, 4 + n * 2);
     trick.forEach((p, i) => {
+      const kn = half > 0 ? (i - half) / half : 0;       // -1 .. 1
+      const yy = (kn * kn * arcDepth).toFixed(1);        // Raender tiefer (Bogen)
       const slot = document.createElement('div');
       slot.className = 'pile-slot' + (p.is_winner ? ' winner' : '');
       slot.style.setProperty('--i', i);
+      slot.style.setProperty('--y', yy + 'px');
       const rotor = document.createElement('div');       // dreht nur die Karte
       rotor.className = 'pile-rot';
       rotor.appendChild(renderCard(p.card, { small: true }));
