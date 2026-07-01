@@ -3,7 +3,6 @@
 // Alles haengt am bestehenden State + actions.onPlay – keine Parallel-Logik.
 import { renderCard, COLORS } from './cards.js?v=14';
 import { esc } from './ui.js?v=2';
-import { getTableTheme } from './cosmetics.js?v=4';
 
 // Hellere, gut lesbare Variante der Trumpf-Farbe fuer Text auf dunklem Grund.
 const TRUMP_TEXT = { R: '#ff6f73', Y: '#ffd24d', G: '#5fe39b', B: '#8ab0ff' };
@@ -203,23 +202,23 @@ export function renderTable(root, state, actions) {
   const pile = buildTrickPile(state);       // = Drop-Zone
   mid.appendChild(pile);
   felt.appendChild(mid);
-  felt.appendChild(buildTrumpBadge(game));   // Trumpf unten rechts neben dem eigenen Platz
   table.appendChild(felt);
 
-  // Aktionsbereich: schmale Leiste (Gebot-Button / Trumpf / Hinweis). Das Gebot
-  // selbst oeffnet sich als Modal -> die Leiste bleibt niedrig und verschiebt die
-  // Hand kaum, sodass die ausgeteilten Karten dort landen, wo sie sich umdrehen.
-  const action = buildAction(state, actions, mySeat);
-  if (action) {
-    const ad = document.createElement('div');
-    ad.className = 'action-dock';
-    ad.appendChild(action);
-    table.appendChild(ad);
-  }
+  // Untere Leiste unter dem Filz: links der Aktions-Button (Stiche ansagen /
+  // Hinweis), rechts die Trumpf-Karte mit "Alle Karten" darunter – flankiert
+  // den eigenen Platz wie im Design-Entwurf.
+  const lower = document.createElement('div');
+  lower.className = 'table-lower';
 
-  // Eigene Hand als Faecher unten (an der Tischkante).
-  const dock = document.createElement('div');
-  dock.className = 'hand-dock';
+  const lLeft = document.createElement('div');
+  lLeft.className = 'tl-left';
+  const action = buildAction(state, actions, mySeat);
+  if (action) lLeft.appendChild(action);
+  lower.appendChild(lLeft);
+
+  const lRight = document.createElement('div');
+  lRight.className = 'tl-right';
+  lRight.appendChild(buildTrumpBadge(game));
   if (state.hand.some(h => !h.played)) {
     const viewBtn = document.createElement('button');
     viewBtn.type = 'button';
@@ -227,8 +226,14 @@ export function renderTable(root, state, actions) {
     viewBtn.textContent = 'Alle Karten';
     viewBtn.setAttribute('aria-label', 'Alle Handkarten gross anzeigen');
     viewBtn.addEventListener('click', () => openHandViewer(state, actions));
-    dock.appendChild(viewBtn);
+    lRight.appendChild(viewBtn);
   }
+  lower.appendChild(lRight);
+  table.appendChild(lower);
+
+  // Eigene Hand als Faecher unten (an der Tischkante).
+  const dock = document.createElement('div');
+  dock.className = 'hand-dock';
   dock.appendChild(buildHandFan(state, actions, pile));
   table.appendChild(dock);
 
@@ -347,28 +352,18 @@ function buildSeats(state) {
   const me = players.find(p => p.uid === uid);
   const mySeat = me?.seat ?? (players[0]?.seat ?? 0);
   const layout = computeSeatLayout(players, mySeat);
-  // Bei einem Premium-Tisch (z. B. Mystischer Tisch) sitzt das eigene Profil
-  // kompakt an der unteren Tischkante, damit das mittige Mandala/Motiv frei
-  // bleibt und der Tisch "clean" wirkt. Beim Standard-Tisch wie gehabt mittig.
-  const premiumTable = getTableTheme() !== 'default';
   const wrap = document.createElement('div');
-  wrap.className = 'seats np' + players.length + (premiumTable ? ' theme-premium' : '');   // Groesse skaliert per CSS mit Spielerzahl
+  wrap.className = 'seats np' + players.length;   // Groesse skaliert per CSS mit Spielerzahl
   layout.forEach(({ player: p, pos, isMe }) => {
     const isTurn = p.seat === game.current_seat && game.status === 'running';
     const el = document.createElement('div');
-    const meBottom = isMe && premiumTable;
-    el.className = 'seat' + (isMe ? ' me' : '') + (meBottom ? ' me-bottom' : '') + (isTurn ? ' turn' : '') + (p.connected ? '' : ' offline');
-    if (meBottom) {
-      // Eigenes Profil an der unteren Kante zentriert (kleiner, siehe CSS).
-      el.style.left = '50%'; el.style.bottom = '2px'; el.style.transform = 'translateX(-50%)';
-    } else {
-      el.style.top = pos.t + '%';
-      // Randplaetze an der Kante verankern (sonst haengt die halbe Box ueber den
-      // Filzrand und wird abgeschnitten); mittlere Plaetze bleiben zentriert.
-      if (pos.l <= 22) { el.style.left = '6px'; el.style.transform = 'translateY(-50%)'; }
-      else if (pos.l >= 78) { el.style.right = '6px'; el.style.transform = 'translateY(-50%)'; }
-      else { el.style.left = pos.l + '%'; }   // CSS: transform translate(-50%,-50%)
-    }
+    el.className = 'seat' + (isMe ? ' me' : '') + (isTurn ? ' turn' : '') + (p.connected ? '' : ' offline');
+    el.style.top = pos.t + '%';
+    // Randplaetze an der Kante verankern (sonst haengt die halbe Box ueber den
+    // Filzrand und wird abgeschnitten); mittlere Plaetze bleiben zentriert.
+    if (pos.l <= 22) { el.style.left = '6px'; el.style.transform = 'translateY(-50%)'; }
+    else if (pos.l >= 78) { el.style.right = '6px'; el.style.transform = 'translateY(-50%)'; }
+    else { el.style.left = pos.l + '%'; }   // CSS: transform translate(-50%,-50%)
     const av = p.avatar || DEFAULT_AV;
     const avHtml = isImg(av) ? `<img class="av-img" src="${esc(avV(av))}" alt="">` : `<span class="seat-emoji">${esc(av)}</span>`;
     const badges = (p.seat === game.dealer_seat ? ' 🂠' : '') + (p.is_host ? ' 👑' : '');
@@ -823,31 +818,32 @@ function overDrop(e, dz) {
          e.clientY >= r.top - m && e.clientY <= r.bottom + m;
 }
 
-// --- Verlassen / Zurueck ---------------------------------------------------
+// --- Untere Navigationsleiste: Menue / Pause -------------------------------
+// Wie im Design-Entwurf: schlichte Leiste am unteren Rand mit "Menü" (Spiel
+// verlassen, mit Rueckfrage) links und "Pause" rechts. Nach Spielende ein
+// einzelner "Zurueck zur Startseite"-Knopf.
+function navItem(icon, label, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'nav-item';
+  b.innerHTML = `<span class="nav-ic" aria-hidden="true">${icon}</span><span class="nav-lb">${label}</span>`;
+  b.setAttribute('aria-label', label);
+  b.onclick = onClick;
+  return b;
+}
 function buildControls(game, actions) {
   const ctl = document.createElement('div');
-  ctl.className = 'row table-controls';
+  ctl.className = 'table-nav';
   if (game.status === 'running') {
-    if (actions.onPause) {
-      const p = document.createElement('button');
-      p.className = 'btn small-btn';
-      p.textContent = '⏸ Pausieren';
-      p.onclick = () => actions.onPause();
-      ctl.appendChild(p);
-    }
-    const b = document.createElement('button');
-    b.className = 'btn sekundaer small-btn';
-    b.textContent = 'Spiel verlassen';
-    b.onclick = () => {
+    ctl.appendChild(navItem('▤', 'Menü', () => {
       if (confirm('Laufendes Spiel verlassen? Der Spielstand geht verloren.\n(Zum späteren Weiterspielen lieber „Pausieren".)')) actions.onLeave();
-    };
-    ctl.appendChild(b);
+    }));
+    if (actions.onPause) {
+      ctl.appendChild(navItem('⏸', 'Pause', () => actions.onPause()));
+    }
   } else if (game.status === 'finished' || game.status === 'aborted') {
-    const b = document.createElement('button');
-    b.className = 'btn small-btn';
-    b.textContent = 'Zurück zur Startseite';
-    b.onclick = () => actions.onLeave();
-    ctl.appendChild(b);
+    ctl.classList.add('single');
+    ctl.appendChild(navItem('⌂', 'Zur Startseite', () => actions.onLeave()));
   }
   return ctl;
 }
