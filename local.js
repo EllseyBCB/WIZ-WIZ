@@ -2,7 +2,7 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=2';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=2';
-import { render } from './game.js?v=57';
+import { render } from './game.js?v=58';
 import { showScreen, toast, esc } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=4';
 import { showBanner, hideBanner } from './ads.js?v=3';
