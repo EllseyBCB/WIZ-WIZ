@@ -946,7 +946,7 @@
   .deal-card > .wcard { box-shadow: 0 4px 10px rgba(0,0,0,.5); }
   /* Zur Hand fliegende Austeil-Karten in Handkarten-Groesse (nahtloser Uebergang);
      die zu den Gegnern fliegenden (.small) bleiben klein. */
-  .deal-card .wcard:not(.small) { height: clamp(100px, 12.5vh, 158px); }
+  .deal-card .wcard:not(.small) { height: clamp(88px, 11vh, 142px); }
   /* deal-fill: Flieger nimmt exakt die gemessene Box der Zielkarte an (Breite +
      Hoehe inline gesetzt); die Rueckseite fuellt die Box passgenau. */
   .deal-card .wcard.deal-fill .wcard-img,
@@ -986,8 +986,10 @@
     box-shadow: 0 0 0 2px #ffd66b, 0 0 26px rgba(255,214,107,.55) inset;
     background: radial-gradient(circle at 50% 50%, rgba(255,214,107,.18), rgba(0,0,0,0) 70%);
   }
-  .pile-cards { display: flex; align-items: center; justify-content: center; }
+  .pile-cards { display: flex; align-items: flex-end; justify-content: center; }
   .pile-slot { text-align: center; margin: 0 -7px; transition: transform .15s; }
+  /* Faecher: jede Karte dreht um ihre untere Mitte (gemeinsamer Drehpunkt) */
+  .pile-rot { transform-origin: 50% 100%; display: inline-block; }
   /* gelegte Karten im Stich kleiner (Trumpf-Karte bleibt unveraendert) */
   .pile-slot .wcard { height: clamp(78px, 9.5vh, 124px); }
   /* Karte "landet" beim Legen in der Stichmitte */
@@ -1022,7 +1024,7 @@
     display: flex; justify-content: center; padding: 0 6px; }
   .hand-fan { position: relative; width: 100%; max-width: 680px; min-height: 110px; }
   /* Handkarten kleiner als die Standard-Kartengroesse (Trumpf/Stich bleiben). */
-  .hand-dock .wcard { height: clamp(100px, 12.5vh, 158px); }
+  .hand-dock .wcard { height: clamp(88px, 11vh, 142px); }
   .fan-card {
     position: absolute; left: 50%; bottom: 0; transform-origin: center bottom;
     transform: translateX(-50%) translate(var(--x,0), var(--y,0)) rotate(var(--rot,0deg));
@@ -1677,6 +1679,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=76"></script>
+<script type="module" src="./app.js?v=77"></script>
 </body>
 </html>

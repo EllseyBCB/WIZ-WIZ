@@ -605,18 +605,22 @@ function buildTrickPile(state) {
   if (!trick.length) {
     inner.innerHTML = '<div class="pile-empty">Stich<br><small>Karte hierher ziehen</small></div>';
   } else {
-    // Je mehr Karten, desto staerker ueberlappen sie sich -> der Stich bleibt
-    // in einer zentralen Zone und wandert nicht hinter die seitlichen Spieler.
-    const ov = trick.length >= 6 ? 16 : trick.length === 5 ? 12 : trick.length === 4 ? 9 : 7;
+    // Sauberer, symmetrischer Faecher wie die Handkarten: jede Karte dreht um
+    // ihre UNTERE Mitte (gemeinsamer Drehpunkt) und ueberlappt leicht.
+    const n = trick.length;
+    const ov = n >= 6 ? 18 : n === 5 ? 15 : n === 4 ? 12 : 9;   // Ueberlappung
+    const step = n > 1 ? Math.min(8, 40 / (n - 1)) : 0;         // Grad je Karte
     trick.forEach((p, i) => {
+      const ang = (i - (n - 1) / 2) * step;
       const slot = document.createElement('div');
       slot.className = 'pile-slot' + (p.is_winner ? ' winner' : '');
       slot.style.margin = `0 -${ov}px`;
-      // leichte Streuung wie ein echter Ablagestapel
-      const ang = (i - (trick.length - 1) / 2) * 4.5;
-      slot.style.transform = `rotate(${ang}deg)`;
-      slot.appendChild(renderCard(p.card, { small: true }));
-      const nm = document.createElement('div');
+      const rotor = document.createElement('div');       // dreht nur die Karte
+      rotor.className = 'pile-rot';
+      rotor.style.transform = `rotate(${ang}deg)`;
+      rotor.appendChild(renderCard(p.card, { small: true }));
+      slot.appendChild(rotor);
+      const nm = document.createElement('div');          // Name bleibt aufrecht
       nm.className = 'pile-name';
       nm.textContent = nameOfSeat(players, p.seat);
       slot.appendChild(nm);
