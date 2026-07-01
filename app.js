@@ -310,6 +310,16 @@ function wireHome() {
   if (helpBtn && helpModal) helpBtn.onclick = () => helpModal.hidden = false;
   if (helpClose && helpModal) helpClose.onclick = () => helpModal.hidden = true;
   if (helpModal) helpModal.addEventListener('click', e => { if (e.target === helpModal) helpModal.hidden = true; });
+  // Escape schliesst offene statische Modals (nicht das Consent – das muss
+  // aktiv bestaetigt werden). Fuer Desktop-/Tastatur-Nutzung.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    ['help-modal', 'settings-modal', 'privacy-modal', 'terms-modal', 'imprint-modal',
+     'mydata-modal', 'delete-modal', 'solo-modal', 'online-modal'].forEach(id => {
+      const m = document.getElementById(id);
+      if (m && !m.hidden) m.hidden = true;
+    });
+  });
   wireSettings();
   document.querySelectorAll('.tab').forEach(tab => {
     tab.onclick = () => handleNav(tab.dataset.nav, tab);
