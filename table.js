@@ -473,7 +473,11 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
     // Reduzierte Bewegung: keine Flug-Animation, aber Hand kurz verborgen
     // halten, damit die Karten nicht schon vor dem Austeilen sichtbar sind.
     dealEndsAt = Date.now() + 500;
-    dealRevealTimer = setTimeout(() => { dealEndsAt = 0; dealRevealTimer = null; revealHand(); }, 500);
+    dealRevealTimer = setTimeout(() => {
+      dealEndsAt = 0; dealRevealTimer = null;
+      stripCovers();      // evtl. verdeckt aufgebaute Karten direkt aufdecken
+      revealHand();
+    }, 500);
     return true;
   }
 
@@ -786,6 +790,13 @@ function buildHandFan(state, actions, dropZone) {
 
   // Waehrend der Aufdeck-Phase auch bei Neu-Render verdeckt halten + Flip nachholen.
   if (dealCoverActive) coverAndScheduleFlip(fan);
+  // Waehrend des GESAMTEN Austeil-Fensters die Hand schon VERDECKT aufbauen
+  // (Rueckseite als DOM-Zustand, nicht nur visibility:hidden). Selbst wenn der
+  // Browser (Safari) einen Frame zu frueh malt, sieht man nur Rueckseiten –
+  // nie kurz die Vorderseiten. Aufgedeckt wird wie gehabt beim Reveal.
+  else if (Date.now() < dealEndsAt || dealPendingKey) {
+    items.forEach(el => buildFlip(el));
+  }
 
   const layout = () => layoutFan(fan, items);
   activeRelayout = layout;
