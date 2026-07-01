@@ -1,5 +1,7 @@
 // Datenzugriff: Supabase-Client, anonyme Anmeldung, RPC-Wrapper, Realtime.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// Exakt gepinnte Version -> reproduzierbare Builds (kein ueberraschendes
+// Update durch den CDN). Bei Bedarf bewusst hochziehen und testen.
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {

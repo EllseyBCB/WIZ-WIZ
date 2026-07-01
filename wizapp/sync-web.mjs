@@ -15,7 +15,7 @@ const FILES = [
   ...jsFiles,
   'icon-180.png', 'icon-192.png', 'icon-512.png',
 ];
-const DIRS = ['cards', 'lobby', 'avatars'];
+const DIRS = ['cards', 'lobby', 'avatars', 'fonts'];
 
 if (!existsSync(`${ROOT}/index.html`)) {
   console.error('Repo-Wurzel nicht gefunden – bitte aus dem Ordner wizapp/ ausfuehren.');
