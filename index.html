@@ -60,8 +60,12 @@
       calc(14px + env(safe-area-inset-left));
     overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
     -webkit-user-select: none; user-select: none;   /* App-Gefühl: keine Auswahl-Highlights */
+    /* iOS: KEIN Vorschau-/Teilen-Menü bei langem Druck (z. B. auf Karten). */
+    -webkit-touch-callout: none;
   }
   input, textarea, .code-big { -webkit-user-select: text; user-select: text; }
+  /* Bilder (Karten, Avatare, UI-Grafiken): kein Lang-Druck-Menü, kein Drag-Bild. */
+  img { -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
   main { max-width: 640px; margin: 0 auto; }
 
   /* Thematischer Sternenhimmel-Hintergrund (fix hinter allem) */
