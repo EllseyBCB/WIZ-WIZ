@@ -253,12 +253,21 @@ export function renderTable(root, state, actions) {
     else closeHandViewer();
   }
 
+  // Handfaecher JETZT (synchron) auslegen, solange er im DOM haengt – sonst
+  // lauefe die Austeil-Animation gegen noch nicht positionierte Karten und die
+  // Flieger landen an der falschen Stelle (v. a. die frueh ausgeteilten Karten).
+  if (activeRelayout) activeRelayout();
+
   // Austeil-Animation bei Rundenbeginn (laeuft als Overlay ueber dem Filz).
   maybeDealAnimation(state, felt, dock);
 
+  // IMMER die aktuelle Hand-Leiste merken – sonst zeigen Aufdeck-/Sicherheitsnetz
+  // (revealHand/stripCovers/coverAndScheduleFlip) auf eine alte, ersetzte Leiste
+  // und die sichtbare Hand bleibt verdeckt (Karten als Rueckseite haengen).
+  lastDockEl = dock;
   // Eigene Karten erst zeigen, nachdem sie ausgeteilt wurden: waehrend der
   // Austeil-Animation die Hand-Leiste verbergen (Layout bleibt erhalten).
-  if (Date.now() < dealEndsAt || dealPendingKey) { dock.style.visibility = 'hidden'; lastDockEl = dock; }
+  if (Date.now() < dealEndsAt || dealPendingKey) dock.style.visibility = 'hidden';
 }
 
 // --- Vollbild-Kartenansicht ("Alle Karten") --------------------------------
@@ -527,7 +536,10 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
     coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
     revealHand();                             // ... dann die (verdeckte) Hand sichtbar machen
     if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
-    dealTimers.push(setTimeout(() => { dealCoverActive = false; }, 200 + handCards * 150 + 700));
+    dealTimers.push(setTimeout(() => {
+      dealCoverActive = false;
+      stripCovers();   // Sicherheitsnetz: am Ende ALLE Handkarten aufgedeckt zeigen
+    }, 200 + handCards * 150 + 700));
   }, totalMs);
   return true;
 }
