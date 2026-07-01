@@ -1009,7 +1009,9 @@
   /* Hand als Faecher */
   .hand-dock { position: absolute; left: 0; right: 0; bottom: 4px; z-index: 5;
     display: flex; justify-content: center; padding: 0 6px; }
-  .hand-fan { position: relative; width: 100%; max-width: 680px; min-height: 130px; }
+  .hand-fan { position: relative; width: 100%; max-width: 680px; min-height: 110px; }
+  /* Handkarten kleiner als die Standard-Kartengroesse (Trumpf/Stich bleiben). */
+  .hand-dock .wcard { height: clamp(100px, 12.5vh, 158px); }
   .fan-card {
     position: absolute; left: 50%; bottom: 0; transform-origin: center bottom;
     transform: translateX(-50%) translate(var(--x,0), var(--y,0)) rotate(var(--rot,0deg));
