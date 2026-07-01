@@ -3,6 +3,7 @@
 // Alles haengt am bestehenden State + actions.onPlay – keine Parallel-Logik.
 import { renderCard, COLORS } from './cards.js?v=14';
 import { esc } from './ui.js?v=2';
+import { getTableTheme } from './cosmetics.js?v=4';
 
 // Hellere, gut lesbare Variante der Trumpf-Farbe fuer Text auf dunklem Grund.
 const TRUMP_TEXT = { R: '#ff6f73', Y: '#ffd24d', G: '#5fe39b', B: '#8ab0ff' };
@@ -346,18 +347,28 @@ function buildSeats(state) {
   const me = players.find(p => p.uid === uid);
   const mySeat = me?.seat ?? (players[0]?.seat ?? 0);
   const layout = computeSeatLayout(players, mySeat);
+  // Bei einem Premium-Tisch (z. B. Mystischer Tisch) sitzt das eigene Profil
+  // kompakt an der unteren Tischkante, damit das mittige Mandala/Motiv frei
+  // bleibt und der Tisch "clean" wirkt. Beim Standard-Tisch wie gehabt mittig.
+  const premiumTable = getTableTheme() !== 'default';
   const wrap = document.createElement('div');
-  wrap.className = 'seats np' + players.length;   // Groesse skaliert per CSS mit Spielerzahl
+  wrap.className = 'seats np' + players.length + (premiumTable ? ' theme-premium' : '');   // Groesse skaliert per CSS mit Spielerzahl
   layout.forEach(({ player: p, pos, isMe }) => {
     const isTurn = p.seat === game.current_seat && game.status === 'running';
     const el = document.createElement('div');
-    el.className = 'seat' + (isMe ? ' me' : '') + (isTurn ? ' turn' : '') + (p.connected ? '' : ' offline');
-    el.style.top = pos.t + '%';
-    // Randplaetze an der Kante verankern (sonst haengt die halbe Box ueber den
-    // Filzrand und wird abgeschnitten); mittlere Plaetze bleiben zentriert.
-    if (pos.l <= 22) { el.style.left = '6px'; el.style.transform = 'translateY(-50%)'; }
-    else if (pos.l >= 78) { el.style.right = '6px'; el.style.transform = 'translateY(-50%)'; }
-    else { el.style.left = pos.l + '%'; }   // CSS: transform translate(-50%,-50%)
+    const meBottom = isMe && premiumTable;
+    el.className = 'seat' + (isMe ? ' me' : '') + (meBottom ? ' me-bottom' : '') + (isTurn ? ' turn' : '') + (p.connected ? '' : ' offline');
+    if (meBottom) {
+      // Eigenes Profil an der unteren Kante zentriert (kleiner, siehe CSS).
+      el.style.left = '50%'; el.style.bottom = '2px'; el.style.transform = 'translateX(-50%)';
+    } else {
+      el.style.top = pos.t + '%';
+      // Randplaetze an der Kante verankern (sonst haengt die halbe Box ueber den
+      // Filzrand und wird abgeschnitten); mittlere Plaetze bleiben zentriert.
+      if (pos.l <= 22) { el.style.left = '6px'; el.style.transform = 'translateY(-50%)'; }
+      else if (pos.l >= 78) { el.style.right = '6px'; el.style.transform = 'translateY(-50%)'; }
+      else { el.style.left = pos.l + '%'; }   // CSS: transform translate(-50%,-50%)
+    }
     const av = p.avatar || DEFAULT_AV;
     const avHtml = isImg(av) ? `<img class="av-img" src="${esc(avV(av))}" alt="">` : `<span class="seat-emoji">${esc(av)}</span>`;
     const badges = (p.seat === game.dealer_seat ? ' 🂠' : '') + (p.is_host ? ' 👑' : '');
