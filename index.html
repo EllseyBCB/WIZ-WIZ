@@ -1234,7 +1234,7 @@
       <!-- Name + Statistik -->
       <div class="home-row">
         <div class="home-box name-box">
-          <button class="nb-avatar" id="home-avatar" type="button" aria-label="Profilbild">🧙</button>
+          <button class="nb-avatar" id="home-avatar" type="button" aria-label="Profilbild"><img src="avatars/av01.png?v=7" alt=""></button>
           <div class="nb-main">
             <span class="nb-label">Dein Name</span>
             <div class="nb-edit">
@@ -1338,7 +1338,7 @@
       <!-- Benutzername (Avatar = Emblem mit Stift) -->
       <div class="panel psec" id="identity-card">
         <div class="psec-ic psec-avatar-wrap">
-          <button class="psec-avatar" id="avatar-current" type="button" aria-label="Profilbild ändern">🧙</button>
+          <button class="psec-avatar" id="avatar-current" type="button" aria-label="Profilbild ändern"><img class="av-img" src="avatars/av01.png?v=7" alt=""></button>
           <span class="av-pencil" aria-hidden="true">✏️</span>
         </div>
         <div class="psec-body">
@@ -1453,7 +1453,7 @@
       <button class="tab" type="button" data-nav="rangliste"><img class="tab-ic" src="./lobby/ic-rang.png?v=1" alt="" aria-hidden="true">Rangliste</button>
       <button class="tab" type="button" data-nav="start"><img class="tab-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">Neues Spiel</button>
       <button class="tab" type="button" data-nav="freunde"><img class="tab-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">Freunde</button>
-      <button class="tab" type="button" data-nav="profil"><span class="tab-av" id="nav-avatar" aria-hidden="true">🧙</span>Profil</button>
+      <button class="tab" type="button" data-nav="profil"><span class="tab-av" id="nav-avatar" aria-hidden="true"><img class="av-img" src="avatars/av01.png?v=7" alt=""></span>Profil</button>
     </nav>
   </section>
 
@@ -1705,6 +1705,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=81"></script>
+<script type="module" src="./app.js?v=82"></script>
 </body>
 </html>
