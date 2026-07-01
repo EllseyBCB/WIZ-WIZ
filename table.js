@@ -221,8 +221,7 @@ export function renderTable(root, state, actions) {
     const viewBtn = document.createElement('button');
     viewBtn.type = 'button';
     viewBtn.className = 'hand-view-btn';
-    viewBtn.textContent = 'Alle Karten';
-    viewBtn.setAttribute('aria-label', 'Alle Handkarten gross anzeigen');
+    viewBtn.setAttribute('aria-label', 'Alle Handkarten gross anzeigen');   // Text ist Teil der Grafik
     viewBtn.addEventListener('click', () => openHandViewer(state, actions));
     lRight.appendChild(viewBtn);
   }
@@ -344,25 +343,65 @@ function buildTopBar(game) {
   return bar;
 }
 
+// Dekorativer Handkarten-Faecher (verdeckte Karten) hinter/ueber einem
+// Gegner-Platz – zeigt, dass die Person Karten haelt (wie im Design-Entwurf).
+function buildSeatHand(n) {
+  const wrap = document.createElement('div');
+  wrap.className = 'seat-hand';
+  const count = Math.max(1, Math.min(n, 8));
+  const spread = Math.min(7 * (count - 1), 34);
+  for (let i = 0; i < count; i++) {
+    const t = count > 1 ? i / (count - 1) : 0.5;
+    const rot = (t - 0.5) * spread;
+    const lift = Math.abs(t - 0.5) * 9;
+    const c = document.createElement('div');
+    c.className = 'hb';
+    c.style.transform = `rotate(${rot.toFixed(1)}deg) translateY(${lift.toFixed(1)}px)`;
+    wrap.appendChild(c);
+  }
+  return wrap;
+}
+
 // --- Mitspieler als Sitzplaetze rund um den Tisch --------------------------
 // Jede:r sitzt in der eigenen Ecke; ich unten-Mitte. Mit Profilbild/Avatar.
 function buildSeats(state) {
-  const { players, game, uid } = state;
+  const { players, game, uid, trick } = state;
   const me = players.find(p => p.uid === uid);
   const mySeat = me?.seat ?? (players[0]?.seat ?? 0);
   const layout = computeSeatLayout(players, mySeat);
+  // Verdeckte Handkarten-Faecher der Gegner (nur waehrend einer laufenden Runde).
+  const cardsThisRound = game.cards_this_round || 0;
+  const tricksDone = Math.max(0, (game.trick_no || 1) - 1);
+  const showHands = game.status === 'running' &&
+    (game.phase === 'bidding' || game.phase === 'playing' || game.phase === 'trumpselect');
   const wrap = document.createElement('div');
   wrap.className = 'seats np' + players.length;   // Groesse skaliert per CSS mit Spielerzahl
+  // Platzierung (top/left/transform) – identisch fuer Sitz und Karten-Faecher.
+  const placeAt = (node, pos) => {
+    node.style.top = pos.t + '%';
+    if (pos.l <= 22) { node.style.left = '6px'; node.style.transform = 'translateY(-50%)'; }
+    else if (pos.l >= 78) { node.style.right = '6px'; node.style.transform = 'translateY(-50%)'; }
+    else { node.style.left = pos.l + '%'; node.style.transform = 'translate(-50%, -50%)'; }
+  };
   layout.forEach(({ player: p, pos, isMe }) => {
     const isTurn = p.seat === game.current_seat && game.status === 'running';
+    // Verdeckter Handkarten-Faecher als eigenes Overlay (gleiche Box wie der
+    // Sitz), damit er ueber den Platz hinausragen darf (Sitz hat overflow:hidden)
+    // und HINTER dem Sitz einsortiert wird (davor im DOM).
+    if (!isMe && showHands) {
+      const played = trick && trick.some(t => t.seat === p.seat) ? 1 : 0;
+      const rem = Math.max(0, Math.min(cardsThisRound, cardsThisRound - tricksDone - played));
+      if (rem > 0) {
+        const slot = document.createElement('div');
+        slot.className = 'seat-slot';
+        placeAt(slot, pos);
+        slot.appendChild(buildSeatHand(rem));
+        wrap.appendChild(slot);
+      }
+    }
     const el = document.createElement('div');
     el.className = 'seat' + (isMe ? ' me' : '') + (isTurn ? ' turn' : '') + (p.connected ? '' : ' offline');
-    el.style.top = pos.t + '%';
-    // Randplaetze an der Kante verankern (sonst haengt die halbe Box ueber den
-    // Filzrand und wird abgeschnitten); mittlere Plaetze bleiben zentriert.
-    if (pos.l <= 22) { el.style.left = '6px'; el.style.transform = 'translateY(-50%)'; }
-    else if (pos.l >= 78) { el.style.right = '6px'; el.style.transform = 'translateY(-50%)'; }
-    else { el.style.left = pos.l + '%'; }   // CSS: transform translate(-50%,-50%)
+    placeAt(el, pos);
     const av = p.avatar || DEFAULT_AV;
     const avHtml = isImg(av) ? `<img class="av-img" src="${esc(avV(av))}" alt="">` : `<span class="seat-emoji">${esc(av)}</span>`;
     const badges = (p.seat === game.dealer_seat ? ' 🂠' : '') + (p.is_host ? ' 👑' : '');
@@ -625,7 +664,7 @@ function bidOpenButton(game, players, actions) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn bid-open-btn';
-  btn.textContent = 'Stiche ansagen';
+  btn.setAttribute('aria-label', 'Stiche ansagen');   // Text ist Teil der Grafik
   btn.onclick = () => openBidModal(game, players, actions);
   return btn;
 }
@@ -821,11 +860,12 @@ function overDrop(e, dz) {
 // Wie im Design-Entwurf: schlichte Leiste am unteren Rand mit "Menü" (Spiel
 // verlassen, mit Rueckfrage) links und "Pause" rechts. Nach Spielende ein
 // einzelner "Zurueck zur Startseite"-Knopf.
-function navItem(icon, label, onClick) {
+function navItem(iconImg, label, onClick) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'nav-item';
-  b.innerHTML = `<span class="nav-ic" aria-hidden="true">${icon}</span><span class="nav-lb">${label}</span>`;
+  const ic = iconImg ? `<img class="nav-ic" src="${iconImg}" alt="" aria-hidden="true">` : '';
+  b.innerHTML = `${ic}<span class="nav-lb">${label}</span>`;
   b.setAttribute('aria-label', label);
   b.onclick = onClick;
   return b;
@@ -834,15 +874,15 @@ function buildControls(game, actions) {
   const ctl = document.createElement('div');
   ctl.className = 'table-nav';
   if (game.status === 'running') {
-    ctl.appendChild(navItem('▤', 'Menü', () => {
+    ctl.appendChild(navItem('lobby/ui-menu.png?v=1', 'Menü', () => {
       if (confirm('Laufendes Spiel verlassen? Der Spielstand geht verloren.\n(Zum späteren Weiterspielen lieber „Pausieren".)')) actions.onLeave();
     }));
     if (actions.onPause) {
-      ctl.appendChild(navItem('⏸', 'Pause', () => actions.onPause()));
+      ctl.appendChild(navItem('lobby/ui-pause.png?v=1', 'Pause', () => actions.onPause()));
     }
   } else if (game.status === 'finished' || game.status === 'aborted') {
     ctl.classList.add('single');
-    ctl.appendChild(navItem('⌂', 'Zur Startseite', () => actions.onLeave()));
+    ctl.appendChild(navItem('lobby/ui-menu.png?v=1', 'Zur Startseite', () => actions.onLeave()));
   }
   return ctl;
 }

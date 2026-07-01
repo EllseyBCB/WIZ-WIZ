@@ -141,7 +141,7 @@ export function applyTableTheme() {
   if (!it || !it.bg) { if (el) el.remove(); return; }   // Standard -> Original-CSS
   if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
   el.textContent = `.wtable{` +
-    `background-image:url('${it.bg}?v=1');` +
+    `background-image:url('${it.bg}?v=2');` +
     `background-size:${it.size || 'cover'};` +
     `background-position:${it.pos || 'center'};` +
     `background-repeat:no-repeat;}`;

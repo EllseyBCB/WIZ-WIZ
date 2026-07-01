@@ -820,7 +820,7 @@
   /* Im laufenden Spiel: das grosse Lobby-Banner ausblenden (wie im Design-
      Entwurf) – oben beginnt direkt die Kopfzeile, der Tisch fuellt den Rest. */
   body:has(#game-view.active) header.banner-head { display: none; }
-  body:has(#game-view.active) .felt { height: calc(100svh - 142px); min-height: 450px; }
+  body:has(#game-view.active) .felt { height: calc(100svh - 158px); min-height: 450px; }
 
   /* "Statische" Tischansicht: Tisch fixiert, kein Scrollen zum Punktestand.
      Wird per Tipp auf den Tisch aktiviert, per Knopf wieder aufgehoben. */
@@ -862,6 +862,18 @@
   }
   .seat::before, .seat::after { display: none; }   /* Edelsteine sind im Rahmenbild */
   .seat.turn { filter: drop-shadow(0 0 7px rgba(255,214,107,.85)); }
+  /* Dekorativer verdeckter Handkarten-Faecher, ragt ueber den Platz hinaus und
+     liegt hinter dem Sitz (eigenes Overlay, da der Sitz overflow:hidden hat). */
+  .seat-slot { position: absolute; width: var(--sw); height: calc(var(--sw) * 1.7419);
+    box-sizing: border-box; pointer-events: none; z-index: 1; }
+  .seat-hand { position: absolute; left: 50%; bottom: calc(100% - 10px); transform: translateX(-50%);
+    display: flex; justify-content: center; align-items: flex-end; }
+  .seat-hand .hb {
+    width: calc(var(--sw) * .40); aspect-ratio: 62 / 94; margin: 0 calc(var(--sw) * -.12);
+    background: #221a3d url('cards/back.png') center/cover no-repeat;
+    border-radius: 11% / 7%; transform-origin: center bottom;
+    box-shadow: 0 2px 5px rgba(0,0,0,.55); border: 1px solid rgba(8,5,18,.7);
+  }
   /* Avatar absolut auf die Kreismitte des Rahmens gesetzt (Ring-Mittelpunkt
      liegt bei 31,9 % der Hoehe; Durchmesser knapp unter dem Fenster, damit
      der goldene Rand ringsum sichtbar bleibt). */
@@ -904,13 +916,12 @@
   /* alte Klassen (unbenutzt, Kompatibilitaet) */
   .table-lower { display: none; }
   .action-dock { display: flex; justify-content: center; margin-top: 6px; min-height: 104px; align-items: center; }
-  /* "Stiche ansagen": gemalter Zauberstab-Rahmen als Hintergrund, Text zentriert. */
+  /* "Stiche ansagen": fertige Grafik (Text ist Teil des Bildes). */
   .bid-open-btn {
-    background: url('lobby/ui-bidbtn.png?v=1') center/100% 100% no-repeat;
-    border: none; box-shadow: none; color: #fff; font-weight: 800;
-    font-size: clamp(.8rem, 2.5vw, .98rem); letter-spacing: .2px; line-height: 1.05;
-    width: clamp(120px, 30vw, 200px); aspect-ratio: 188 / 77; padding: 0 14px 0 34px;
-    display: inline-flex; align-items: center; justify-content: center; text-align: center;
+    background: url('lobby/ui-bid.png?v=1') center/100% 100% no-repeat;
+    border: none; box-shadow: none; color: transparent; font-size: 0; padding: 0;
+    width: clamp(120px, 29vw, 224px); aspect-ratio: 772 / 320;
+    display: inline-block; cursor: pointer;
     animation: bidPulse 1.9s ease-in-out infinite;
   }
   .bid-open-btn:hover { filter: brightness(1.08); }
@@ -936,7 +947,7 @@
   @media (prefers-reduced-motion: reduce) { .deal-overlay { display: none; } }
 
   /* Mittleres Band: Stich + Trumpf, absolut zentriert im Filz */
-  .felt-mid { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+  .felt-mid { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%);
     display: flex; justify-content: center; align-items: center; z-index: 1; }
   /* zarter Tierkreis-/Magie-Ring hinter dem Stich-Feld */
   .felt-mid::before {
@@ -1045,9 +1056,9 @@
   /* "Alle Karten": gemalte Pille als Hintergrund */
   .hand-view-btn {
     position: static; z-index: 6;
-    border: none; box-shadow: none; background: url('lobby/ui-pill.png?v=1') center/100% 100% no-repeat;
-    color: #f5eeda; font-size: clamp(.8rem, 2.5vw, .98rem); font-weight: 700; cursor: pointer;
-    width: clamp(118px, 30vw, 200px); aspect-ratio: 353 / 102; display: inline-flex; align-items: center; justify-content: center;
+    border: none; box-shadow: none; background: url('lobby/ui-allcards.png?v=1') center/100% 100% no-repeat;
+    color: transparent; font-size: 0; padding: 0; cursor: pointer;
+    width: clamp(120px, 29vw, 224px); aspect-ratio: 773 / 296; display: inline-block;
   }
   .hand-view-btn:hover { filter: brightness(1.1); }
   /* Steuer-Pillen mit gemalten Rahmen */
@@ -1084,11 +1095,11 @@
   }
   .table-nav.single { justify-content: center; }
   .nav-item {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
     background: transparent; border: none; color: #cdb4ff; cursor: pointer;
-    font-size: clamp(.76rem, 2.2vw, .92rem); font-weight: 600; padding: 4px 26px; letter-spacing: .3px;
+    font-size: clamp(.76rem, 2.2vw, .92rem); font-weight: 600; padding: 2px 26px; letter-spacing: .3px;
   }
-  .nav-item .nav-ic { font-size: clamp(1.35rem, 4vw, 1.7rem); line-height: 1; color: #e7dcc0; }
+  .nav-item .nav-ic { width: clamp(34px, 9vw, 48px); height: auto; display: block; }
   .nav-item:hover { color: #fff; }
 
   /* Wertung */
@@ -1651,6 +1662,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=69"></script>
+<script type="module" src="./app.js?v=71"></script>
 </body>
 </html>
