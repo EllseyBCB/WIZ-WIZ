@@ -986,21 +986,37 @@
     box-shadow: 0 0 0 2px #ffd66b, 0 0 26px rgba(255,214,107,.55) inset;
     background: radial-gradient(circle at 50% 50%, rgba(255,214,107,.18), rgba(0,0,0,0) 70%);
   }
-  .pile-cards { display: flex; align-items: flex-end; justify-content: center; }
-  .pile-slot { text-align: center; margin: 0 -7px; transition: transform .15s; }
-  /* Faecher: jede Karte dreht um ihre untere Mitte (gemeinsamer Drehpunkt) */
-  .pile-rot { transform-origin: 50% 100%; display: inline-block; }
+  /* Leerer Stich: Text zentriert. */
+  .pile-cards { display: flex; align-items: center; justify-content: center; }
   /* gelegte Karten im Stich kleiner (Trumpf-Karte bleibt unveraendert) */
-  .pile-slot .wcard { height: clamp(78px, 9.5vh, 124px); }
-  /* Karte "landet" beim Legen in der Stichmitte */
+  .pile-slot .wcard { height: clamp(78px, 9.5vh, 124px); animation: cardLand .26s ease-out; }
   @keyframes cardLand { from { opacity: 0; transform: translateY(-26px) scale(.82); } to { opacity: 1; transform: none; } }
-  .pile-slot .wcard { animation: cardLand .26s ease-out; }
   @media (prefers-reduced-motion: reduce) { .pile-slot .wcard { animation: none; } }
-  /* Gewinnerkarte: weicher goldener Ring (folgt den runden Ecken) statt
-     rechteckigem outline -> kein "komischer Rahmen" mehr. */
-  .pile-slot.winner .wcard { box-shadow: 0 0 0 3px #ffd66b, 0 0 16px rgba(255,214,107,.7); }
-  .pile-name { font-size: .58rem; color: #ede3c8; margin-top: 4px; max-width: 64px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: auto; margin-right: auto; }
+  /* Gefaecherter Stich: absolute, symmetrische Positionen aus --i/--n berechnet. */
+  .pile-cards.has-cards {
+    display: block; position: relative; margin: auto;
+    --ch: clamp(78px, 9.5vh, 124px);          /* Kartenhoehe */
+    --cw: calc(var(--ch) * 0.68);             /* geschaetzte Kartenbreite */
+    --step: clamp(30px, 8.5vw, 54px);         /* horizontaler Abstand je Karte */
+    --ang: 9deg;                              /* Drehung je Karte */
+    width: calc(var(--cw) + (var(--n) - 1) * var(--step));
+    height: calc(var(--ch) * 1.3 + 16px);     /* Platz fuer Neigung + Name */
+  }
+  .pile-cards.has-cards .pile-slot {
+    position: absolute; left: 50%; bottom: 16px; margin: 0;
+    --k: calc(var(--i) - (var(--n) - 1) / 2);
+    transform: translateX(calc(-50% + var(--k) * var(--step)));
+  }
+  .pile-cards.has-cards .pile-rot {
+    transform-origin: 50% 100%;
+    transform: rotate(calc(var(--k) * var(--ang)));
+  }
+  .pile-cards.has-cards .pile-slot.winner .wcard { box-shadow: 0 0 0 3px #ffd66b, 0 0 16px rgba(255,214,107,.7); }
+  .pile-cards.has-cards .pile-name {
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px;
+    font-size: .56rem; color: #ede3c8; max-width: calc(var(--step) + 14px);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .pile-empty { color: #eaf5ec; opacity: .78; text-align: center; font-weight: 700;
     font-size: clamp(1.2rem, 5vw, 2rem); letter-spacing: 1px; }
   .pile-empty small { display: block; font-weight: 400; opacity: .72; font-size: clamp(.72rem, 2.4vw, .95rem);
@@ -1679,6 +1695,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=77"></script>
+<script type="module" src="./app.js?v=78"></script>
 </body>
 </html>
