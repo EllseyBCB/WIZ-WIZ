@@ -947,6 +947,10 @@
   /* Zur Hand fliegende Austeil-Karten in Handkarten-Groesse (nahtloser Uebergang);
      die zu den Gegnern fliegenden (.small) bleiben klein. */
   .deal-card .wcard:not(.small) { height: clamp(100px, 12.5vh, 158px); }
+  /* deal-fill: Flieger nimmt exakt die gemessene Box der Zielkarte an (Breite +
+     Hoehe inline gesetzt); die Rueckseite fuellt die Box passgenau. */
+  .deal-card .wcard.deal-fill .wcard-img,
+  .deal-card .wcard.deal-fill .wcard-svg { width: 100%; height: 100%; object-fit: cover; }
   @media (prefers-reduced-motion: reduce) { .deal-overlay { display: none; } }
 
   /* Mittleres Band: Stich + Trumpf, absolut zentriert im Filz */
@@ -982,6 +986,8 @@
   }
   .pile-cards { display: flex; align-items: center; justify-content: center; }
   .pile-slot { text-align: center; margin: 0 -7px; transition: transform .15s; }
+  /* gelegte Karten im Stich kleiner (Trumpf-Karte bleibt unveraendert) */
+  .pile-slot .wcard { height: clamp(78px, 9.5vh, 124px); }
   /* Karte "landet" beim Legen in der Stichmitte */
   @keyframes cardLand { from { opacity: 0; transform: translateY(-26px) scale(.82); } to { opacity: 1; transform: none; } }
   .pile-slot .wcard { animation: cardLand .26s ease-out; }
@@ -1669,6 +1675,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=75"></script>
+<script type="module" src="./app.js?v=76"></script>
 </body>
 </html>
