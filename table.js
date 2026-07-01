@@ -105,7 +105,7 @@ const SEAT_SLOTS = {
   4: [{ t: 40, l: 5 }, { t: 17, l: 29 }, { t: 17, l: 71 }, { t: 40, l: 95 }],
   5: [{ t: 44, l: 12 }, { t: 15, l: 18 }, { t: 15, l: 50 }, { t: 15, l: 82 }, { t: 44, l: 88 }],
 };
-const ME_SLOT = { t: 84, l: 50 };
+const ME_SLOT = { t: 68, l: 50 };
 // Liefert je Spieler seine Sitz-Position; ich zuerst (unten), Rest reihum ab mir.
 function computeSeatLayout(players, mySeat) {
   const sorted = [...players].sort((a, b) => a.seat - b.seat);
@@ -202,20 +202,18 @@ export function renderTable(root, state, actions) {
   const pile = buildTrickPile(state);       // = Drop-Zone
   mid.appendChild(pile);
   felt.appendChild(mid);
-  table.appendChild(felt);
 
-  // Untere Leiste unter dem Filz: links der Aktions-Button (Stiche ansagen /
-  // Hinweis), rechts die Trumpf-Karte mit "Alle Karten" darunter – flankiert
-  // den eigenen Platz wie im Design-Entwurf.
-  const lower = document.createElement('div');
-  lower.className = 'table-lower';
-
+  // Der Filz ist die grosse Buehne (wie im Design-Entwurf). Aktion, Trumpf,
+  // "Alle Karten" und die eigene Hand liegen als absolute Overlays auf dem Filz
+  // (unten), sodass Groessen-Verhaeltnisse zum Entwurf passen.
+  // Aktion links unten (Stiche ansagen / Hinweis).
   const lLeft = document.createElement('div');
   lLeft.className = 'tl-left';
   const action = buildAction(state, actions, mySeat);
   if (action) lLeft.appendChild(action);
-  lower.appendChild(lLeft);
+  felt.appendChild(lLeft);
 
+  // Trumpf-Karte + "Alle Karten" rechts unten (Trumpf oben, Button darunter).
   const lRight = document.createElement('div');
   lRight.className = 'tl-right';
   lRight.appendChild(buildTrumpBadge(game));
@@ -228,14 +226,15 @@ export function renderTable(root, state, actions) {
     viewBtn.addEventListener('click', () => openHandViewer(state, actions));
     lRight.appendChild(viewBtn);
   }
-  lower.appendChild(lRight);
-  table.appendChild(lower);
+  felt.appendChild(lRight);
 
-  // Eigene Hand als Faecher unten (an der Tischkante).
+  // Eigene Hand als Faecher, ueberlagert die Unterkante des Filzes.
   const dock = document.createElement('div');
   dock.className = 'hand-dock';
   dock.appendChild(buildHandFan(state, actions, pile));
-  table.appendChild(dock);
+  felt.appendChild(dock);
+
+  table.appendChild(felt);
 
   root.appendChild(table);
   root.appendChild(buildControls(game, actions));
