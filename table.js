@@ -1,7 +1,7 @@
 // Spieltisch-Komponenten: Tisch, Mitspieler, Ablagestapel (Stich) und die
 // gefaecherte Hand inkl. Interaktion (Doppelklick / Drag&Drop / Touch).
 // Alles haengt am bestehenden State + actions.onPlay – keine Parallel-Logik.
-import { renderCard, COLORS } from './cards.js?v=14';
+import { renderCard, COLORS } from './cards.js?v=15';
 import { esc } from './ui.js?v=2';
 
 // Hellere, gut lesbare Variante der Trumpf-Farbe fuer Text auf dunklem Grund.
