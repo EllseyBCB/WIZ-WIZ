@@ -1010,7 +1010,7 @@
   .parchment .muted { color: #6b5836; }
 
   /* Hand als Faecher */
-  .hand-dock { position: absolute; left: 0; right: 0; bottom: 4px; z-index: 5;
+  .hand-dock { position: absolute; left: 0; right: 0; bottom: 30px; z-index: 5;
     display: flex; justify-content: center; padding: 0 6px; }
   .hand-fan { position: relative; width: 100%; max-width: 680px; min-height: 110px; }
   /* Handkarten kleiner als die Standard-Kartengroesse (Trumpf/Stich bleiben). */
@@ -1667,6 +1667,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=72"></script>
+<script type="module" src="./app.js?v=73"></script>
 </body>
 </html>

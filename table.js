@@ -528,7 +528,7 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
 // (verdeckt) liegen – die Hand baut sich so Karte fuer Karte auf. Die exakte
 // Zielposition wird JETZT (beim Abflug) an der aktuellen Hand gemessen.
 function flyToHand(overlay, ox, oy, cardIndex, fallback) {
-  let tx = fallback.x, ty = fallback.y, rot = 0;
+  let tx = fallback.x, ty = fallback.y, rot = 0, targetH = 0;
   const dock = lastDockEl;
   const el = dock && dock.querySelectorAll('.fan-card')[cardIndex];
   if (el) {
@@ -536,11 +536,15 @@ function flyToHand(overlay, ox, oy, cardIndex, fallback) {
     if (r.width > 4 && r.height > 4) {
       tx = r.left + r.width / 2; ty = r.top + r.height / 2;
       rot = parseFloat(el.style.getPropertyValue('--rot')) || 0;
+      targetH = r.height;   // exakte Endhoehe uebernehmen (Breite folgt dem Bild)
     }
   }
   const card = document.createElement('div');
   card.className = 'deal-card';
-  card.appendChild(renderCard('Z1', { faceDown: true }));
+  const back = renderCard('Z1', { faceDown: true });
+  // Flieger genau so gross wie die spaeter liegende Handkarte -> nahtlos.
+  if (targetH) back.style.height = targetH + 'px';
+  card.appendChild(back);
   card.style.left = ox + 'px'; card.style.top = oy + 'px';
   overlay.appendChild(card);
   const dx = Math.round(tx - ox), dy = Math.round(ty - oy);
