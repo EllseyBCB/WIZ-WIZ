@@ -84,8 +84,16 @@ function coverAndScheduleFlip(scopeEl) {
   const elapsed = Date.now() - dealRevealStart;
   cards.forEach((el, i) => {
     const inner = buildFlip(el);
-    const delay = Math.max(0, (200 + i * 150) - elapsed);
-    dealTimers.push(setTimeout(() => inner.classList.add('show'), delay));
+    const t = 200 + i * 150;               // Aufdeck-Zeitpunkt dieser Karte
+    if (elapsed >= t) {
+      // Bereits aufgedeckt (z. B. Neu-Render durch ein Bot-Gebot): sofort und
+      // OHNE Animation auf die Vorderseite setzen -> kein erneutes Umdrehen.
+      inner.classList.add('no-anim', 'show');
+      void inner.offsetWidth;              // Reflow erzwingen (Snap)
+      inner.classList.remove('no-anim');
+    } else {
+      dealTimers.push(setTimeout(() => inner.classList.add('show'), t - elapsed));
+    }
   });
 }
 function stripCovers() {            // beim Ueberspringen: alle sofort aufdecken
