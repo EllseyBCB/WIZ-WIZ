@@ -534,8 +534,10 @@
 
   /* Aktions-Karten mit überstehendem Emblem */
   .home-actions {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 44px 10px;
-    margin: 46px 0 16px;
+    /* Artwork-Kacheln: Embleme sind im Bild integriert (kein Ueberstand mehr),
+       daher enge Reihenabstaende wie im Design-Mockup. */
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 10px;
+    margin: 26px 0 16px;
   }
   @media (min-width: 640px) { .home-actions { grid-template-columns: repeat(4, 1fr); } }
   .act-card {
@@ -1347,27 +1349,25 @@
 
       <!-- Aktions-Karten -->
       <div class="home-actions">
-        <button class="act-card" id="act-solo" type="button">
-          <img class="act-ic" src="./lobby/ic-solo.png?v=6" alt="" aria-hidden="true">
-          <span class="act-title">Solo-Spiel<br>fortsetzen</span>
-          <span class="act-sub">Dein pausiertes Solo-Spiel wartet.</span>
+        <button class="act-card act-imgcard" id="act-solo" type="button"
+                aria-label="Solo-Spiel fortsetzen">
+          <img class="act-img" src="./lobby/card-solo.jpg?v=1" alt="">
         </button>
         <button class="act-card act-imgcard" id="act-comp" type="button"
                 aria-label="Gegen Computer – allein üben gegen Computer-Gegner">
-          <img class="act-img" src="./lobby/card-comp.jpg?v=1" alt="">
+          <img class="act-img" src="./lobby/card-comp.jpg?v=2" alt="">
         </button>
-        <button class="act-card" id="act-online" type="button">
-          <img class="act-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
-          <span class="act-title">Neues Spiel<br>(Online)</span>
-          <span class="act-sub">Erstelle ein neues Online-Spiel.</span>
+        <button class="act-card act-imgcard" id="act-online" type="button"
+                aria-label="Neues Spiel (Online) – erstelle ein neues Online-Spiel">
+          <img class="act-img" src="./lobby/card-online.jpg?v=1" alt="">
         </button>
         <button class="act-card act-imgcard" id="act-join" type="button"
                 aria-label="Beitreten – tritt einem Spiel mit Spiel-Code bei">
-          <img class="act-img" src="./lobby/card-join.jpg?v=1" alt="">
+          <img class="act-img" src="./lobby/card-join.jpg?v=2" alt="">
         </button>
         <button class="act-card act-wide act-imgcard" id="act-quick" type="button"
                 aria-label="Schnelle Runde – spiele sofort mit anderen, die gerade Mitspieler suchen">
-          <img class="act-img" src="./lobby/card-quick.jpg?v=1" alt="">
+          <img class="act-img" src="./lobby/card-quick.jpg?v=2" alt="">
         </button>
       </div>
 
