@@ -83,15 +83,18 @@ export function fullDeck() { return deck(); }
 export function dealRound(G) {
   const np = G.numPlayers;
   const n = G.roundNo + 1;
+  // Pyramide: bis zur Haelfte des Spiels steigt die Kartenzahl (1,2,3,…),
+  // danach faellt sie wieder, bis am Ende nur noch 1 Karte gespielt wird.
+  const c = Math.min(n, G.totalRounds - n + 1);
   G.dealerSeat = G.roundNo === 0 ? G.dealerSeat : (G.dealerSeat + 1) % np;
   G.players.forEach(p => { p.bid = null; p.tricksWon = 0; });
 
   const d = shuffle(deck());
   for (let s = 0; s < np; s++) {
-    G.hands[s] = d.slice(s * n, s * n + n)
+    G.hands[s] = d.slice(s * c, s * c + c)
       .sort((a, b) => sortKey(a) - sortKey(b));
   }
-  const dealt = np * n;
+  const dealt = np * c;
 
   if (dealt >= 60) {                       // letzte Runde: kein Trumpf
     G.trumpColor = null; G.trumpCard = null; G.trumpPending = false;
@@ -104,7 +107,7 @@ export function dealRound(G) {
     else                     { G.trumpColor = flip[0]; G.trumpPending = false; }
   }
 
-  G.roundNo = n; G.cardsThisRound = n; G.trickNo = 0;
+  G.roundNo = n; G.cardsThisRound = c; G.trickNo = 0;
   G.trick = []; G.ledColor = null; G.playedThisRound = [];
   G.leadSeat = (G.dealerSeat + 1) % np;
   if (G.trumpPending) { G.phase = 'trumpselect'; G.currentSeat = G.dealerSeat; }
