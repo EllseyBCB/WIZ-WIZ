@@ -3,7 +3,7 @@
 //   'normal' – solide Heuristik (Stich holen/vermeiden je nach Gebot)
 //   'hard'   – wie normal, plus Kartenmitzaehlen (garantierte Sticher erkennen,
 //              Zauberer/Top-Trumpf nicht verschwenden, genaueres Gebot)
-import { leadOf, winnerIndex, legalCards, fullDeck, forbiddenBid } from './engine.js?v=2';
+import { leadOf, winnerIndex, legalCards, fullDeck, forbiddenBid } from './engine.js?v=3';
 
 const rank = c => parseInt(c.slice(1), 10);
 const isWizard = c => c.startsWith('Z');

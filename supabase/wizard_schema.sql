@@ -332,6 +332,7 @@ declare
   v_game  public.wizard_games%rowtype;
   v_deck  text[];
   v_n     int;
+  v_c     int;
   v_np    int;
   v_dealt int;
   v_flip  text;
@@ -344,7 +345,10 @@ declare
 begin
   select * into v_game from public.wizard_games where id = p_game for update;
   v_np := v_game.num_players;
-  v_n  := v_game.round_no + 1;          -- neue Rundennummer = Kartenzahl
+  v_n  := v_game.round_no + 1;          -- neue Rundennummer
+  -- Pyramide: bis zur Haelfte des Spiels steigt die Kartenzahl (1,2,3,…),
+  -- danach faellt sie wieder, bis am Ende nur noch 1 Karte gespielt wird.
+  v_c  := least(v_n, v_game.total_rounds - v_n + 1);
 
   -- Geber: Runde 1 behaelt den gewaehlten Geber, danach reihum.
   if v_game.round_no = 0 then
@@ -364,10 +368,10 @@ begin
   -- Austeilen: Sitze sind 0..np-1 (bei Start umnummeriert).
   for r in select seat, uid from public.wizard_players where game_id = p_game order by seat loop
     insert into public.wizard_hands (game_id, round_no, uid, seat, card)
-    select p_game, v_n, r.uid, r.seat, unnest(v_deck[(r.seat*v_n + 1):(r.seat*v_n + v_n)]);
+    select p_game, v_n, r.uid, r.seat, unnest(v_deck[(r.seat*v_c + 1):(r.seat*v_c + v_c)]);
   end loop;
 
-  v_dealt := v_np * v_n;
+  v_dealt := v_np * v_c;
 
   -- Trumpf bestimmen.
   if v_dealt >= 60 then                 -- letzte Runde: alle Karten verteilt
@@ -398,7 +402,7 @@ begin
   end if;
 
   update public.wizard_games set
-    round_no = v_n, cards_this_round = v_n, dealer_seat = v_dealer,
+    round_no = v_n, cards_this_round = v_c, dealer_seat = v_dealer,
     trump_color = v_trump, trump_card = v_flip, trump_pending = v_pending,
     phase = v_phase, current_seat = v_first, lead_seat = (v_dealer + 1) % v_np,
     led_color = null, trick_no = 0, updated_at = now()
