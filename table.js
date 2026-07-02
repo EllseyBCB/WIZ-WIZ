@@ -57,7 +57,44 @@ let dealRevealStart = 0;
 // Frische Runde erkannt, Animation aber noch nicht gestartet -> Hand verbergen,
 // damit die Karten nicht eine Frame lang aufblitzen (z. B. Lobby -> Tisch).
 let dealPendingKey = null;
+// Flug der EIGENEN Karten: die echten Handkarten starten (verdeckt) an der
+// Tischmitte und gleiten an ihren Faecherplatz. departs[i] = Abflugzeit der
+// Handkarte i. Da das fliegende Element die Karte SELBST ist, landet sie
+// konstruktionsbedingt exakt dort, wo sie sich spaeter umdreht.
+let dealFlight = null;
 function revealHand() { if (lastDockEl && lastDockEl.isConnected) lastDockEl.style.visibility = 'visible'; }
+
+// Noch nicht abgeflogene Handkarten an die Tischmitte versetzen (per-Karte
+// Delta als CSS-Variablen; alles IN der Seite -> scroll-/layoutfest).
+function applyDealFlight(dock) {
+  if (!dealFlight || !dock) return;
+  const felt = dock.closest('.felt');
+  if (!felt) return;
+  const fr = felt.getBoundingClientRect();
+  const ox = fr.left + fr.width / 2, oy = fr.top + fr.height * 0.46;
+  const now = Date.now();
+  dock.querySelectorAll('.fan-card').forEach((el, i) => {
+    // Bis zum Aufdecken verdeckt (Rueckseite) – auch beim ALLERERSTEN Render
+    // der Runde, wo das Austeil-Fenster beim Handaufbau noch nicht gesetzt war.
+    buildFlip(el);
+    const t = dealFlight.departs[i];
+    if (t === undefined || now >= t) return;      // schon unterwegs/gelandet
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--ddx', Math.round(ox - (r.left + r.width / 2)) + 'px');
+    el.style.setProperty('--ddy', Math.round(oy - (r.top + r.height / 2)) + 'px');
+    el.classList.add('pre-deal');
+  });
+}
+
+// Handkarte i "abfliegen" lassen: weiche Transition zum normalen Faecherplatz.
+function releaseDealCard(i) {
+  const el = lastDockEl && lastDockEl.querySelectorAll('.fan-card')[i];
+  if (!el || !el.classList.contains('pre-deal')) return;
+  el.classList.add('deal-fly');
+  void el.offsetWidth;                            // Reflow -> Transition greift
+  el.classList.remove('pre-deal');
+  dealTimers.push(setTimeout(() => el.classList.remove('deal-fly'), 620));
+}
 
 // Baut um eine Handkarte eine Flip-Struktur: Vorderseite (vorhandenes Bild) +
 // Rueckseite, beide uebereinander. Start = Rueckseite sichtbar.
@@ -284,9 +321,15 @@ export function renderTable(root, state, actions) {
     dealCoverActive = false; stripCovers();
   }
 
-  // Eigene Karten erst zeigen, nachdem sie ausgeteilt wurden: waehrend der
-  // Austeil-Animation die Hand-Leiste verbergen (Layout bleibt erhalten).
-  if (Date.now() < dealEndsAt || dealPendingKey) dock.style.visibility = 'hidden';
+  // Waehrend der Austeil-Animation: noch nicht abgeflogene Handkarten an der
+  // Tischmitte platzieren (die Karten selbst fliegen -> Landeplatz exakt).
+  applyDealFlight(dock);
+
+  // Hand-Leiste nur verbergen, solange die Animation noch nicht laeuft
+  // (dealPendingKey) oder ohne Karten-Flug gearbeitet wird (Reduced Motion);
+  // waehrend des Karten-Flugs ist die Hand sichtbar (Karten starten verdeckt
+  // an der Mitte).
+  if (dealPendingKey || (Date.now() < dealEndsAt && !dealFlight)) dock.style.visibility = 'hidden';
 }
 
 // --- Vollbild-Kartenansicht ("Alle Karten") --------------------------------
@@ -460,7 +503,10 @@ function clearDeal() {
   if (dealTimers.length) { dealTimers.forEach(clearTimeout); dealTimers = []; }
   if (dealOverlayNode) { dealOverlayNode.remove(); dealOverlayNode = null; }
   if (dealRevealTimer) { clearTimeout(dealRevealTimer); dealRevealTimer = null; }
-  dealEndsAt = 0; dealCoverActive = false; dealPendingKey = null; stripCovers(); revealHand();   // beim Ueberspringen Hand sofort zeigen
+  dealEndsAt = 0; dealCoverActive = false; dealPendingKey = null; dealFlight = null;
+  // Eigene Karten sofort an ihren Faecherplatz setzen (ohne Animation).
+  if (lastDockEl) lastDockEl.querySelectorAll('.fan-card').forEach(el => el.classList.remove('pre-deal', 'deal-fly'));
+  stripCovers(); revealHand();   // beim Ueberspringen Hand sofort zeigen
 }
 
 function maybeDealAnimation(state, feltEl, dockEl) {
@@ -531,26 +577,38 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   dealEndsAt = Date.now() + totalMs;          // eigene Hand bis zum Aufdecken verborgen
   const handCards = cardsPer;
 
-  // Die eigene Zielposition wird PRO Karte erst beim Abflug an der aktuellen
-  // (verborgenen, aber fertig gelayouteten) Hand gemessen -> die Karte landet
-  // genau dort, wo sie danach liegt und sich umdreht.
-  const meFallback = ptBySeat.get(mySeat) || { x: originX, y: rect.top + rect.height * 0.87 };
-  // WICHTIG: Fluege UND Aufdecken haengen am SELBEN Zeit-Anker (im rAF unten).
-  // Frueher lief der Aufdeck-Timer ab sofort, die Fluege aber erst ab dem rAF –
-  // verzoegerte sich der rAF (Lastspitze/Bilddekodierung), wurde aufgedeckt,
-  // bevor die letzte Karte geflogen war: sie fehlte im Flug und "ploppte" erst
-  // beim Aufdecken herein.
-  if (dealRevealTimer) clearTimeout(dealRevealTimer);
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    if (dealOverlayNode !== overlay) return;            // schon uebersprungen
-    dealEndsAt = Date.now() + totalMs;                  // Anker praezisieren
+  // EIGENE Karten: kein separater Flieger mehr. Die echten Handkarten starten
+  // (verdeckt) an der Tischmitte und gleiten an ihren Faecherplatz – das
+  // fliegende Element IST die Karte, die sich spaeter umdreht. Landeplatz ==
+  // Umdrehplatz ist damit konstruktionsbedingt garantiert (auch bei Scrollen,
+  // Re-Layout oder spaet ladenden Bildern). Abfluege werden SOFORT verankert.
+  const anchor = Date.now();
+  const myDeparts = [];
+  {
     let myI = 0, idx = 0;
     for (let pass = 0; pass < cardsPer; pass++) {
       for (const seat of order) {
         if (seat === mySeat) {
           const ci = myI++;
-          dealTimers.push(setTimeout(() => flyToHand(overlay, originX, originY, ci, meFallback), idx * stagger));
-        } else {
+          myDeparts[ci] = anchor + idx * stagger;
+          dealTimers.push(setTimeout(() => releaseDealCard(ci), idx * stagger));
+        }
+        idx++;
+      }
+    }
+  }
+  dealFlight = { departs: myDeparts };
+
+  // MITSPIELER-Flieger + Aufdecken haengen am selben rAF-Zeit-Anker (sonst
+  // wuerde bei verzoegertem rAF aufgedeckt, bevor alles geflogen ist).
+  if (dealRevealTimer) clearTimeout(dealRevealTimer);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (dealOverlayNode !== overlay) return;            // schon uebersprungen
+    dealEndsAt = Date.now() + totalMs;                  // Anker praezisieren
+    let idx = 0;
+    for (let pass = 0; pass < cardsPer; pass++) {
+      for (const seat of order) {
+        if (seat !== mySeat) {
           const pt = ptBySeat.get(seat) || { x: originX, y: originY };
           dealTimers.push(setTimeout(() => flyToSeat(overlay, originX, originY, pt), idx * stagger));
         }
@@ -558,7 +616,7 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
       }
     }
     dealRevealTimer = setTimeout(() => {
-      dealEndsAt = 0; dealRevealTimer = null;
+      dealEndsAt = 0; dealRevealTimer = null; dealFlight = null;
       dealCoverActive = true; dealRevealStart = Date.now();
       coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
       revealHand();                             // ... dann die (verdeckte) Hand sichtbar machen
@@ -572,62 +630,6 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   return true;
 }
 
-// Meine Karte: fliegt vom Deck an ihren Platz in der Hand und bleibt dort
-// (verdeckt) liegen – die Hand baut sich so Karte fuer Karte auf. Die exakte
-// Zielposition wird JETZT (beim Abflug) an der aktuellen Hand gemessen.
-function flyToHand(overlay, ox, oy, cardIndex, fallback) {
-  // Ziel (Mitte/Drehung/Groesse) der Handkarte cardIndex JETZT messen.
-  const measure = () => {
-    const el = lastDockEl && lastDockEl.querySelectorAll('.fan-card')[cardIndex];
-    if (!el) return null;
-    const r = el.getBoundingClientRect();     // r-Mitte = geom. Mitte der gedrehten Karte
-    if (r.width <= 4 || r.height <= 4) return null;
-    const h = el.offsetHeight;
-    // Breite-Fallback: solange das Kartenbild nicht geladen ist, waere
-    // offsetWidth 0 -> Flieger unsichtbar/zu schmal.
-    const w = el.offsetWidth > 10 ? el.offsetWidth : Math.round(h * 0.72);
-    return {
-      tx: r.left + r.width / 2, ty: r.top + r.height / 2,
-      rot: parseFloat(el.style.getPropertyValue('--rot')) || 0,
-      h, w,
-    };
-  };
-  const t = measure() || { tx: fallback.x, ty: fallback.y, rot: 0, h: 0, w: 0 };
-
-  const card = document.createElement('div');
-  card.className = 'deal-card';
-  const back = renderCard('Z1', { faceDown: true });
-  // Flieger exakt die Box der Zielkarte annehmen -> landet passgenau, gleich gross.
-  if (t.h) { back.classList.add('deal-fill'); back.style.height = t.h + 'px'; back.style.width = t.w + 'px'; }
-  card.appendChild(back);
-  card.style.left = ox + 'px'; card.style.top = oy + 'px';
-  overlay.appendChild(card);
-  const place = (m) => {
-    card.style.transform = `translate(calc(-50% + ${Math.round(m.tx - ox)}px), calc(-50% + ${Math.round(m.ty - oy)}px)) rotate(${m.rot}deg)`;
-  };
-  requestAnimationFrame(() => requestAnimationFrame(() => place(t)));
-  // Nach der Landung KONTINUIERLICH auf die aktuelle Zielposition einrasten:
-  // Das Overlay ist fixed (Viewport-Koordinaten), die Hand scrollt aber mit
-  // der Seite. Scrollt/verschiebt sich die Seite nach der Landung (z. B.
-  // scrollTo(0,0) beim Fixieren der Tischansicht, Re-Layout nach Bild-Laden),
-  // saesse der Flieger sonst in der Luft statt dort, wo aufgedeckt wird.
-  dealTimers.push(setTimeout(() => {
-    if (!card.isConnected) return;
-    card.style.transition = 'none';
-    const sync = () => {
-      const m = measure();
-      if (m) {
-        place(m);
-        if (m.h) { back.style.height = m.h + 'px'; back.style.width = m.w + 'px'; }
-      }
-    };
-    sync();
-    const iv = setInterval(() => {
-      if (!card.isConnected) { clearInterval(iv); return; }
-      sync();
-    }, 150);
-  }, 640));
-}
 
 // Mitspieler-Karte: fliegt zum Sitzplatz und verschwindet dort.
 function flyToSeat(overlay, ox, oy, pt) {
