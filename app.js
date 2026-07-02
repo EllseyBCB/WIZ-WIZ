@@ -3,7 +3,7 @@
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
 import { render } from './game.js?v=71';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=62';
-import { preloadCards } from './cards.js?v=16';
+import { preloadCards, allCardImageUrls } from './cards.js?v=16';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
@@ -1495,7 +1495,49 @@ function showConsentIfNeeded() {
   if (cp) cp.onclick = () => openModal('privacy-modal');
 }
 
+// Start-Ladebildschirm (statisch in index.html): alle Startseiten-Bilder,
+// Avatare und das komplette Kartendeck vorladen; Balken zeigt den Fortschritt.
+// Erst wenn alles bereit ist (mind. ~1s, max. 10s), wird er ausgeblendet.
+function runBootLoader() {
+  const ov = document.getElementById('boot-loader');
+  if (!ov) return;
+  const fill = ov.querySelector('.rl-fill'), pctEl = ov.querySelector('.rl-pct');
+  const urls = new Set();
+  // Alle bereits im HTML referenzierten Bilder (Startseiten-Kacheln, Icons …)
+  document.querySelectorAll('img[src]').forEach(im => { const s = im.getAttribute('src'); if (s) urls.add(s); });
+  // CSS-Hintergruende der Startseite/des Tisches + Ladebild selbst
+  ['lobby/bg.jpg', 'lobby/stars.jpg', 'lobby/home-hero.jpg', 'lobby/table-bg.jpg?v=2',
+   'lobby/game-banner.jpg?v=1', 'lobby/loading.jpg?v=1'].forEach(u => urls.add(u));
+  // Standard-Avatare (eigenes Profil + Computer-Gegner)
+  for (let i = 1; i <= 18; i++) urls.add('avatars/av' + String(i).padStart(2, '0') + '.png?v=7');
+  // Komplettes Kartendeck (60 Vorderseiten + Rueckseite)
+  allCardImageUrls().forEach(u => urls.add(u));
+  const list = [...urls];
+  const t0 = Date.now(), MIN = 1000, MAX = 10000;
+  const total = Math.max(1, list.length);
+  let loaded = 0, finished = false, iv = null;
+  const setPct = p => { if (fill) fill.style.width = p + '%'; if (pctEl) pctEl.textContent = p + '%'; };
+  const finish = () => {
+    if (finished) return;
+    finished = true; clearInterval(iv);
+    setPct(100);
+    setTimeout(() => { ov.classList.add('out'); setTimeout(() => ov.remove(), 500); }, 200);
+  };
+  const tick = () => {
+    if (finished) return;
+    const real = loaded / total;
+    const timed = Math.min(1, (Date.now() - t0) / MIN);
+    setPct(Math.round(Math.min(real, timed) * 100));
+    if (real >= 1 && timed >= 1) finish();
+  };
+  iv = setInterval(tick, 80);
+  setTimeout(finish, MAX);
+  list.forEach(u => { const im = new Image(); im.onload = im.onerror = () => { loaded++; tick(); }; im.src = u; });
+}
+
 async function init() {
+  // Erst alles laden (Ladebildschirm mit Balken), dann die Startseite zeigen.
+  runBootLoader();
   // Buttons sofort verdrahten – der Solo-Modus braucht keine Anmeldung.
   applyTableTheme();   // gewähltes Tisch-Design auf den Spieltisch anwenden
   wireHome();
