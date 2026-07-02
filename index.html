@@ -594,6 +594,37 @@
   /* Name + Statistik */
   .home-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
   @media (max-width: 470px) { .home-row { grid-template-columns: 1fr; } }
+
+  /* Artwork-Boxen (Name/Statistik): Rahmen, Labels, Stift und Avatar-Ring
+     stecken in der Grafik; nur die dynamischen Teile liegen als Overlays
+     darauf. Groessen in cqw, damit sie mit der Boxbreite skalieren. */
+  .home-box.art-box {
+    position: relative; display: block; padding: 0;
+    background: none; border: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,.35);
+    border-radius: 14px; overflow: hidden;
+    container-type: inline-size;
+  }
+  .art-box .ab-bg { display: block; width: 100%; height: auto; }
+  .name-box.art-box .nb-avatar {
+    position: absolute; left: 6.3%; top: 50%; transform: translateY(-50%);
+    width: 23%; height: auto; aspect-ratio: 1 / 1;
+    border: none; background: none;
+  }
+  .name-box.art-box #name-input {
+    position: absolute; left: 33%; top: 42%; width: 44%; height: 36%;
+    border: none; background: transparent; color: var(--text);
+    font-size: 6.2cqw; font-weight: 600; padding: 0;
+  }
+  .name-box.art-box #name-input:focus { outline: none; }
+  .stat-box.art-box .sb-v {
+    position: absolute; top: 72.5%; transform: translate(-50%, -50%);
+    color: #fff; font-weight: 800; font-variant-numeric: tabular-nums;
+    font-size: 5.6cqw; line-height: 1; margin: 0;
+  }
+  .stat-box.art-box #stat-games { left: 33.3%; }
+  .stat-box.art-box #stat-wins  { left: 47.6%; }
+  .stat-box.art-box #stat-rate  { left: 63.1%; }
   .home-box {
     display: flex; align-items: center; gap: 12px; padding: 12px 14px;
     background: linear-gradient(180deg, #2e1d52, #1c0f3a);
@@ -665,6 +696,18 @@
   .tab.active .tab-ic { transform: translateY(-1px); filter: drop-shadow(0 0 8px rgba(167,139,250,.85)); }
   .tab.active .tab-av { border-color: var(--gold); box-shadow: 0 0 10px rgba(167,139,250,.9); transform: translateY(-1px); }
   .tab:active .tab-ic { transform: scale(1.08); }
+  /* Artwork-Tabs: komplette Grafik (Rahmen + Icon + Beschriftung) je Knopf */
+  .tab-art { position: relative; padding: 0; }
+  .tab-art .tab-img { display: block; width: 100%; height: auto;
+    transition: filter .15s, transform .15s; }
+  .tab-art.active .tab-img { filter: brightness(1.35) drop-shadow(0 0 8px rgba(167,139,250,.85)); }
+  .tab-art:active .tab-img { transform: scale(1.05); }
+  /* Profil-Tab: echtes Profilbild ueber dem eingebackenen Ring */
+  .tab-art .tab-av {
+    position: absolute; left: 50%; top: 8%; transform: translateX(-50%);
+    width: 40%; height: auto; aspect-ratio: 1 / 1;
+    border: none; background: none;
+  }
 
   /* Hilfe-Overlay */
   .modal {
@@ -1366,48 +1409,40 @@
       <div class="home-actions">
         <button class="act-card act-imgcard" id="act-solo" type="button"
                 aria-label="Solo-Spiel fortsetzen">
-          <img class="act-img" src="./lobby/card-solo.jpg?v=1" alt="">
+          <img class="act-img" src="./lobby/card-solo.jpg?v=2" alt="">
         </button>
         <button class="act-card act-imgcard" id="act-comp" type="button"
                 aria-label="Gegen Computer – allein üben gegen Computer-Gegner">
-          <img class="act-img" src="./lobby/card-comp.jpg?v=2" alt="">
+          <img class="act-img" src="./lobby/card-comp.jpg?v=3" alt="">
         </button>
         <button class="act-card act-imgcard" id="act-online" type="button"
                 aria-label="Neues Spiel (Online) – erstelle ein neues Online-Spiel">
-          <img class="act-img" src="./lobby/card-online.jpg?v=1" alt="">
+          <img class="act-img" src="./lobby/card-online.jpg?v=2" alt="">
         </button>
         <button class="act-card act-imgcard" id="act-join" type="button"
                 aria-label="Beitreten – tritt einem Spiel mit Spiel-Code bei">
-          <img class="act-img" src="./lobby/card-join.jpg?v=2" alt="">
+          <img class="act-img" src="./lobby/card-join.jpg?v=3" alt="">
         </button>
         <button class="act-card act-wide act-imgcard" id="act-quick" type="button"
                 aria-label="Schnelle Runde – spiele sofort mit anderen, die gerade Mitspieler suchen">
-          <img class="act-img" src="./lobby/card-quick.jpg?v=2" alt="">
+          <img class="act-img" src="./lobby/card-quick.jpg?v=3" alt="">
         </button>
       </div>
 
       <!-- Name + Statistik -->
       <div class="home-row">
-        <div class="home-box name-box">
+        <!-- Artwork-Boxen: Grafik als Hintergrund (Label/Stift/Ring eingebacken),
+             dynamische Teile (Avatar, Eingabe, Werte) liegen als Overlays darauf. -->
+        <div class="home-box name-box art-box">
+          <img class="ab-bg" src="./lobby/box-name.jpg?v=1" alt="">
           <button class="nb-avatar" id="home-avatar" type="button" aria-label="Profilbild"><img src="avatars/av01.png?v=7" alt=""></button>
-          <div class="nb-main">
-            <span class="nb-label">Dein Name</span>
-            <div class="nb-edit">
-              <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
-              <span class="nb-pencil" aria-hidden="true">✏️</span>
-            </div>
-          </div>
+          <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off" aria-label="Dein Name">
         </div>
-        <div class="home-box stat-box">
-          <img class="sb-ic" src="./lobby/ic-stats.png?v=6" alt="" aria-hidden="true">
-          <div class="sb-main">
-            <span class="nb-label">Deine Statistik</span>
-            <div class="sb-grid">
-              <div><span class="sb-k">Spiele</span><span class="sb-v" id="stat-games">–</span></div>
-              <div><span class="sb-k">Siege</span><span class="sb-v" id="stat-wins">–</span></div>
-              <div><span class="sb-k">Winrate</span><span class="sb-v" id="stat-rate">–</span></div>
-            </div>
-          </div>
+        <div class="home-box stat-box art-box">
+          <img class="ab-bg" src="./lobby/box-stat.jpg?v=1" alt="">
+          <span class="sb-v" id="stat-games">–</span>
+          <span class="sb-v" id="stat-wins">–</span>
+          <span class="sb-v" id="stat-rate">–</span>
         </div>
       </div>
 
@@ -1604,11 +1639,11 @@
 
     <!-- Untere Navigations-Leiste (Embleme wie im Design) -->
     <nav class="tabbar">
-      <button class="tab" type="button" data-nav="shop"><img class="tab-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">Shop</button>
-      <button class="tab" type="button" data-nav="rangliste"><img class="tab-ic" src="./lobby/ic-rang.png?v=1" alt="" aria-hidden="true">Rangliste</button>
-      <button class="tab" type="button" data-nav="start"><img class="tab-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">Neues Spiel</button>
-      <button class="tab" type="button" data-nav="freunde"><img class="tab-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">Freunde</button>
-      <button class="tab" type="button" data-nav="profil"><span class="tab-av" id="nav-avatar" aria-hidden="true"><img class="av-img" src="avatars/av01.png?v=7" alt=""></span>Profil</button>
+      <button class="tab tab-art" type="button" data-nav="shop" aria-label="Shop"><img class="tab-img" src="./lobby/tab-shop.jpg?v=1" alt=""></button>
+      <button class="tab tab-art" type="button" data-nav="rangliste" aria-label="Rangliste"><img class="tab-img" src="./lobby/tab-rang.jpg?v=1" alt=""></button>
+      <button class="tab tab-art" type="button" data-nav="start" aria-label="Neues Spiel"><img class="tab-img" src="./lobby/tab-neu.jpg?v=1" alt=""></button>
+      <button class="tab tab-art" type="button" data-nav="freunde" aria-label="Freunde"><img class="tab-img" src="./lobby/tab-freunde.jpg?v=1" alt=""></button>
+      <button class="tab tab-art" type="button" data-nav="profil" aria-label="Profil"><img class="tab-img" src="./lobby/tab-profil.jpg?v=1" alt=""><span class="tab-av" id="nav-avatar" aria-hidden="true"><img class="av-img" src="avatars/av01.png?v=7" alt=""></span></button>
     </nav>
   </section>
 
