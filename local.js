@@ -2,10 +2,10 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=3';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=3';
-import { render } from './game.js?v=76';
+import { render } from './game.js?v=77';
 import { showScreen, toast, esc } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=4';
-import { showBanner, hideBanner } from './ads.js?v=3';
+import { showBanner, hideBanner } from './ads.js?v=4';
 
 const BOT_DELAY = 750;     // ms zwischen Bot-Aktionen
 const TRICK_DELAY = 2500;  // ms, um den fertigen Stich + Gewinner zu zeigen

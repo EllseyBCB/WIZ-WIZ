@@ -25,3 +25,19 @@ export const IAP_PRODUCT_ID = 'de.alphablueprint.zaubertisch.adfree';
 export const IAP_AVATAR_PREFIX     = 'de.alphablueprint.zaubertisch.avatar.';
 export const IAP_BUNDLE_PRODUCT_ID = 'de.alphablueprint.zaubertisch.bundle.magier';
 export const IAP_BUNDLE_ENTITLEMENT = 'magier';
+
+// --- AdMob (echte Werbung, nur native App) ----------------------------------
+// Solange die Felder LEER sind, laufen automatisch Google-TEST-Anzeigen
+// (kein Verdienst, aber gefahrlos). Nach dem Anlegen des AdMob-Kontos:
+//   1. In der AdMob-Konsole App + zwei Anzeigenbloecke anlegen
+//      (Banner + Interstitial) und die IDs hier eintragen.
+//   2. Die App-ID (ca-app-pub-…~…) zusaetzlich in die Info.plist der
+//      iOS-App eintragen (GADApplicationIdentifier – siehe wizapp/README.md).
+//   3. app-ads.txt im Web-Root ausfuellen (siehe Datei app-ads.txt).
+// Sobald hier echte IDs stehen, schaltet die App den Testmodus selbst ab.
+export const ADMOB = {
+  bannerIos: '',            // z. B. 'ca-app-pub-1234567890123456/1111111111'
+  interstitialIos: '',      // z. B. 'ca-app-pub-1234567890123456/2222222222'
+  bannerAndroid: '',        // leer lassen, solange es keine Android-App gibt
+  interstitialAndroid: '',
+};

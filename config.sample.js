@@ -19,3 +19,20 @@ export const CARD_IMAGE_BASE = './cards';
 export const REVENUECAT_IOS_KEY = '';
 export const IAP_ENTITLEMENT = 'adfree';
 export const IAP_PRODUCT_ID = 'de.alphablueprint.zaubertisch.adfree';
+
+// Weitere Shop-Angebote (Einmalkaeufe): siehe config.js im Repo fuer die
+// vollstaendigen Konstanten (Avatar-Pakete, Magier-Bundle).
+export const IAP_AVATAR_PREFIX     = 'de.alphablueprint.zaubertisch.avatar.';
+export const IAP_BUNDLE_PRODUCT_ID = 'de.alphablueprint.zaubertisch.bundle.magier';
+export const IAP_BUNDLE_ENTITLEMENT = 'magier';
+
+// --- AdMob (echte Werbung, nur native App) ----------------------------------
+// Solange die Felder LEER sind, laufen automatisch Google-TEST-Anzeigen
+// (kein Verdienst, aber gefahrlos). Echte IDs aus der AdMob-Konsole eintragen;
+// die App-ID zusaetzlich in die Info.plist (siehe wizapp/README.md).
+export const ADMOB = {
+  bannerIos: '',
+  interstitialIos: '',
+  bannerAndroid: '',
+  interstitialAndroid: '',
+};
