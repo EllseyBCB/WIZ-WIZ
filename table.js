@@ -225,6 +225,9 @@ function bindLockCleanup() {
       // und blockiert Eingaben – und nach dem Fortsetzen bliebe die Hand
       // versteckt, wenn iOS die wartenden Timer verworfen hat.
       clearDeal();
+      // Merker zuruecksetzen: Ein NEUES Spiel (Solo hat denselben Schluessel
+      // 'solo|1|…') soll wieder mit Ladebildschirm + Austeil-Animation starten.
+      lastDealKey = null; loaderDoneKey = null;
       document.getElementById('gameover-modal')?.remove();   // Endstand-Overlay weg
     }
   });
@@ -526,11 +529,13 @@ function showLoaderUI(game) {
   if (loaderNode) { loaderNode.remove(); loaderNode = null; }
   const ov = document.createElement('div');
   ov.id = 'round-loader';
-  const round = game && game.round_no ? `Runde ${game.round_no}` : 'Spiel';
+  const txt = (game && game.round_no > 1)
+    ? `Runde ${game.round_no} wird vorbereitet …`   // kalter Einstieg mitten im Spiel
+    : 'Das Spiel wird vorbereitet …';
   ov.innerHTML = `
     <img class="rl-art" src="lobby/loading.jpg?v=1" alt="">
     <div class="rl-bottom">
-      <div class="rl-text">${esc(round)} wird vorbereitet …</div>
+      <div class="rl-text">${esc(txt)}</div>
       <div class="rl-bar"><div class="rl-fill" style="width:0%"></div></div>
       <div class="rl-pct">0%</div>
     </div>`;
@@ -636,9 +641,10 @@ function maybeDealAnimation(state, feltEl, dockEl) {
   if (!roundStart) { dealPendingKey = null; if (loaderKey) hideRoundLoader(); return; }
   const key = (game.join_code || 'solo') + '|' + game.round_no + '|' + game.num_players;
   if (key === lastDealKey) { dealPendingKey = null; return; }
-  // ERST LADEN, DANN AUSTEILEN: Ladebildschirm mit Balken zeigen, bis alle
-  // Bilder der Runde bereit sind; solange bleibt die Hand verborgen.
-  if (loaderDoneKey !== key) {
+  // ERST LADEN, DANN SPIELEN – aber nur am ANFANG eines Spiels (Runde 1):
+  // dort alle Bilder komplett vorladen (Ladebildschirm mit Balken). Ab Runde 2
+  // ist alles im Cache und es wird ohne Ladebildschirm direkt ausgeteilt.
+  if (game.round_no === 1 && loaderDoneKey !== key) {
     dealPendingKey = key;
     startRoundLoader(state, key);
     return;
