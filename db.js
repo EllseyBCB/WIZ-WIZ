@@ -103,6 +103,10 @@ async function rpc(fn, args) {
 
 export const createGame  = (name, max = 6)   => rpc('wizard_create_game', { p_name: name, p_max: max });
 export const joinGame    = (code, name)      => rpc('wizard_join_game',   { p_code: code, p_name: name });
+// Schnelle Runde (Matchmaking): offener Lobby beitreten oder neue eroeffnen.
+export const quickMatch  = (name)            => rpc('wizard_quick_match', { p_name: name });
+export const quickStart  = (gameId)          => rpc('wizard_quick_start', { p_game: gameId });
+export const quickPing   = (gameId)          => rpc('wizard_quick_ping',  { p_game: gameId });
 export const leaveGame   = (gameId)          => rpc('wizard_leave_game',  { p_game: gameId });
 export const startGame   = (gameId)          => rpc('wizard_start_game',  { p_game: gameId });
 export const chooseTrump = (gameId, color)   => rpc('wizard_choose_trump',{ p_game: gameId, p_color: color });

@@ -548,6 +548,7 @@
   }
   .act-card:active { filter: brightness(1.12); transform: translateY(1px); }
   .act-card.is-disabled { opacity: .42; pointer-events: none; }
+  .act-wide { grid-column: 1 / -1; }   /* Schnelle Runde: volle Breite */
   /* Lila Scheibe hinter dem Emblem: verdeckt die gerade Karten-Oberkante, damit
      der runde Goldring vollständig (nicht durchgestrichen) zu sehen ist. */
   .act-card::before {
@@ -1356,6 +1357,11 @@
           <span class="act-title">Beitreten</span>
           <span class="act-sub">Tritt einem Spiel mit Spiel-Code bei.</span>
         </button>
+        <button class="act-card act-wide" id="act-quick" type="button">
+          <img class="act-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
+          <span class="act-title">⚡ Schnelle Runde</span>
+          <span class="act-sub">Spiele sofort mit anderen, die gerade Mitspieler suchen.</span>
+        </button>
       </div>
 
       <!-- Name + Statistik -->
@@ -1837,6 +1843,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=100"></script>
+<script type="module" src="./app.js?v=101"></script>
 </body>
 </html>

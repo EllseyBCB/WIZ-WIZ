@@ -32,6 +32,8 @@ export function render(state, actions) {
   const root = $('#game-view');
   clearChildren(root);
 
+  clearQmTimer();   // Countdown der Schnellen Runde stoppen (wird unten ggf. neu gesetzt)
+
   if (game.status === 'lobby') { celebrated = false; renderWaitingRoom(root, state, actions); return; }
 
   renderTable(root, state, actions);            // laufend / beendet: Spieltisch
@@ -108,9 +110,71 @@ function showGameOver(state, actions) {
   document.body.appendChild(ov);
 }
 
+// --- Schnelle Runde: Countdown-Timer (lokal tickend) ------------------------
+let qmTimer = null;
+function clearQmTimer() { if (qmTimer) { clearInterval(qmTimer); qmTimer = null; } }
+
+// Warteraum der Schnellen Runde: kein Host-Start – ab 3 Spielern zaehlt ein
+// Server-Countdown (starts_at) herunter, bei 4/4 startet es sofort. Jeder
+// Client stoesst nach Ablauf den Start an (Server: Doppel-Aufrufe = No-Ops).
+function renderQuickWaitingRoom(root, state, actions) {
+  const { game, players, uid } = state;
+
+  const box = document.createElement('div');
+  box.className = 'panel';
+  box.innerHTML = `
+    <h2>⚡ Schnelle Runde</h2>
+    <p class="muted" id="qm-status"></p>
+    <ul class="roster">${players.map(p => `
+      <li>${esc(p.name)}${p.uid === uid ? ' <span class="you">(du)</span>' : ''}</li>
+    `).join('')}</ul>
+    <p class="muted">Freunde können mit dem Code <b>${esc(game.join_code)}</b> dazukommen.</p>
+  `;
+
+  const btns = document.createElement('div');
+  btns.className = 'row';
+  const share = document.createElement('button');
+  share.className = 'btn sekundaer';
+  share.type = 'button';
+  share.innerHTML = '🔗 Link teilen';
+  share.onclick = () => shareInvite(game.join_code);
+  btns.appendChild(share);
+  const leave = document.createElement('button');
+  leave.className = 'btn sekundaer';
+  leave.textContent = 'Verlassen';
+  leave.onclick = () => actions.onLeave();
+  btns.appendChild(leave);
+  box.appendChild(btns);
+  root.appendChild(box);
+
+  // Statuszeile: Suche / Countdown. Tickt lokal; der Server prueft den
+  // tatsaechlichen Zeitpunkt (fruehe Aufrufe sind stille No-Ops).
+  const status = box.querySelector('#qm-status');
+  const startsAt = game.starts_at ? new Date(game.starts_at).getTime() : null;
+  let lastKick = 0;
+  const tick = () => {
+    const n = players.length, max = game.max_players || 4;
+    if (!startsAt) {
+      status.textContent = `Suche Mitspieler … (${n}/${max}) – ab 3 geht's los.`;
+      return;
+    }
+    const rest = Math.ceil((startsAt - Date.now()) / 1000);
+    if (rest > 0) {
+      status.textContent = `${n}/${max} dabei – Start in ${rest} s … (es können noch Spieler dazukommen)`;
+    } else {
+      status.textContent = 'Das Spiel beginnt …';
+      // Start anstossen, max. alle 2 s erneut (falls der erste Aufruf verpufft).
+      if (Date.now() - lastKick > 2000) { lastKick = Date.now(); actions.onQuickStart?.(); }
+    }
+  };
+  tick();
+  qmTimer = setInterval(tick, 500);
+}
+
 // --- Warteraum / Lobby -----------------------------------------------------
 function renderWaitingRoom(root, state, actions) {
   const { game, players, uid } = state;
+  if (game.is_quick) { renderQuickWaitingRoom(root, state, actions); return; }
   const isHost = game.host_uid === uid;
 
   const box = document.createElement('div');

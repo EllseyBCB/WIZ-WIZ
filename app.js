@@ -1,7 +1,7 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=77';
+import { render } from './game.js?v=78';
 import { gameAssetUrls } from './table.js?v=76';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=68';
 import { preloadCards, allCardImageUrls } from './cards.js?v=16';
@@ -40,11 +40,16 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=3'));
+const db = async () => (DB ||= await import('./db.js?v=4'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 const actions = {
   onStart:  () => guarded(async (m) => m.startGame(state.gameId)),
+  // Schnelle Runde: Countdown abgelaufen -> Start anstossen. Mehrere Clients
+  // rufen gleichzeitig; der Server behandelt Doppel-Aufrufe als stille No-Ops.
+  onQuickStart: async () => {
+    try { await (await db()).quickStart(state.gameId); await reloadAll(); } catch (_) {}
+  },
   onLeave:  () => guarded(async (m) => { await m.leaveGame(state.gameId); goHome(); }),
   onAbort:  () => guarded(async (m) => m.abortGame(state.gameId)),
   onTrump:  (c) => guarded(async (m) => m.chooseTrump(state.gameId, c)),
@@ -92,6 +97,7 @@ function stateSig(game, players, hand, trick, scores) {
     game.status, game.phase, game.current_seat, game.lead_seat, game.led_color,
     game.round_no, game.trick_no, game.trump_color, game.trump_card, game.trump_pending,
     game.num_players, game.total_rounds, game.dealer_seat, game.join_code,
+    game.is_quick, game.starts_at,
     players.map(p => [p.seat, p.name, p.bid, p.tricks_won, p.total_score, p.connected, p.is_host]),
     hand.map(h => [h.card, h.played]),
     trick.map(t => [t.play_order, t.seat, t.card, t.is_winner]),
@@ -199,8 +205,17 @@ async function enterGame(gameId) {
     onPlays: scheduleReload, onScores: scheduleReload
   });
   // Sicherheitsnetz: regelmaessig nachladen, falls ein Realtime-Event ausbleibt.
+  // In der Schnelle-Runde-Lobby zusaetzlich alle ~15 s ein Heartbeat, damit
+  // die Lobby "frisch" bleibt und weiter vermittelt wird (verwaiste Lobbys
+  // ohne Ping werden vom Matchmaking uebersprungen und aufgeraeumt).
   clearInterval(pollTimer);
-  pollTimer = setInterval(() => reloadAll().catch(() => {}), 5000);
+  let pollTick = 0;
+  pollTimer = setInterval(() => {
+    reloadAll().catch(() => {});
+    if (++pollTick % 3 === 0 && state.game?.is_quick && state.game.status === 'lobby') {
+      db().then(m => m.quickPing(state.gameId)).catch(() => {});
+    }
+  }, 5000);
   await reloadAll();
   showScreen('game-view');
 }
@@ -332,6 +347,19 @@ function wireHome() {
   $('#act-comp').onclick = () => openLobbyModal('solo-modal');
   $('#act-online').onclick = () => openLobbyModal('online-modal');
   $('#act-join').onclick = () => openLobbyModal('join-modal');
+  // Schnelle Runde: Matchmaking – offener Lobby beitreten oder neue eroeffnen.
+  $('#act-quick').onclick = async () => {
+    const name = nameInput.value.trim();
+    if (!name) { toast('Bitte Namen eingeben', 'err'); return; }
+    const m = await ensureOnline();
+    if (!m) return;
+    m.upsertProfile(name).catch(() => {});
+    try {
+      const gameId = await m.quickMatch(name);
+      await enterGame(gameId);
+      toast('Suche Mitspieler …', 'ok');
+    } catch (e) { toast(e.message || 'Fehler', 'err'); }
+  };
   $('#act-solo').onclick = () => { if (hasSoloSave()) resumeSoloUI(); else toast('Kein pausiertes Solo-Spiel.', 'info'); };
   $('#resume-big').onclick = () => {
     if (localStorage.getItem(LS_GAME)) resumeOnline();
