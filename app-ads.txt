@@ -1,12 +1,1 @@
-# app-ads.txt fuer Zaubertisch (AdMob)
-#
-# WICHTIG: Nach dem Anlegen des AdMob-Kontos die folgende Zeile durch die
-# eigene ersetzen (AdMob-Konsole -> Einstellungen -> app-ads.txt zeigt sie an;
-# pub-XXXXXXXXXXXXXXXX = deine Publisher-ID):
-#
-# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
-#
-# Diese Datei muss unter https://<deine-domain>/app-ads.txt erreichbar sein
-# (GitHub Pages liefert sie automatisch aus dem Repo-Root aus). In App Store
-# Connect muss als "Marketing-URL"/Entwickler-Website dieselbe Domain stehen,
-# damit AdMob die Datei findet und verifiziert.
+google.com, pub-3811537285456646, DIRECT, f08c47fec0942fa0

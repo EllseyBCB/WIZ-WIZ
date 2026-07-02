@@ -71,9 +71,9 @@ Diese fügt Xcode **nicht** automatisch hinzu – ohne sie gibt es eine
 App-Store-Ablehnung bzw. keine Werbung:
 
 ```xml
-<!-- AdMob App-ID (Test-ID; spaeter durch eigene ersetzen) -->
+<!-- AdMob App-ID (echte App-ID des Zaubertisch-AdMob-Kontos) -->
 <key>GADApplicationIdentifier</key>
-<string>ca-app-pub-3940256099942544~1458002511</string>
+<string>ca-app-pub-3811537285456646~2491168634</string>
 
 <!-- App-Tracking-Transparency: Pflichttext fuer personalisierte Werbung -->
 <key>NSUserTrackingUsageDescription</key>
