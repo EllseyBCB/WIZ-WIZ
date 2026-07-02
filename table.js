@@ -1,7 +1,7 @@
 // Spieltisch-Komponenten: Tisch, Mitspieler, Ablagestapel (Stich) und die
 // gefaecherte Hand inkl. Interaktion (Doppelklick / Drag&Drop / Touch).
 // Alles haengt am bestehenden State + actions.onPlay – keine Parallel-Logik.
-import { renderCard, COLORS } from './cards.js?v=15';
+import { renderCard, COLORS, allCardImageUrls } from './cards.js?v=16';
 import { esc } from './ui.js?v=2';
 
 // Hellere, gut lesbare Variante der Trumpf-Farbe fuer Text auf dunklem Grund.
@@ -62,6 +62,18 @@ let dealPendingKey = null;
 // Handkarte i. Da das fliegende Element die Karte SELBST ist, landet sie
 // konstruktionsbedingt exakt dort, wo sie sich spaeter umdreht.
 let dealFlight = null;
+// Runden-Ladebildschirm: VOR jedem Austeilen (und beim kalten Einstieg mitten
+// in eine Runde) erst alle Bilder laden – mit Fortschrittsbalken –, dann erst
+// das Spiel starten. loaderKey = gerade ladende Runde, loaderDoneKey = fertig.
+let loaderKey = null;
+let loaderDoneKey = null;
+let loaderNode = null;
+let assetsWarm = false;        // Deck in dieser Sitzung schon komplett geladen?
+// Fuers Fortsetzen nach dem Laden: letzten Render-Kontext merken.
+let lastState = null;
+let lastFeltEl = null;
+// Das Ladebildschirm-Artwork selbst frueh in den Cache holen.
+try { const _la = new Image(); _la.src = 'lobby/loading.jpg?v=1'; } catch (_) {}
 function revealHand() { if (lastDockEl && lastDockEl.isConnected) lastDockEl.style.visibility = 'visible'; }
 
 // Noch nicht abgeflogene Handkarten an die Tischmitte versetzen (per-Karte
@@ -303,8 +315,17 @@ export function renderTable(root, state, actions) {
   // Flieger landen an der falschen Stelle (v. a. die frueh ausgeteilten Karten).
   if (activeRelayout) activeRelayout();
 
+  // Render-Kontext fuer den Ladebildschirm merken (Fortsetzen nach dem Laden).
+  lastState = state; lastFeltEl = felt;
+
   // Austeil-Animation bei Rundenbeginn (laeuft als Overlay ueber dem Filz).
   maybeDealAnimation(state, felt, dock);
+
+  // Kalter Einstieg MITTEN in eine laufende Runde (Solo fortsetzen / Spiel
+  // beitreten): auch hier erst alles laden – mit Ladebildschirm –, dann zeigen.
+  if (game.status === 'running' && !assetsWarm && !loaderKey && !dealPendingKey) {
+    startRoundLoader(state, 'cold|' + (game.join_code || 'solo'));
+  }
 
   // IMMER die aktuelle Hand-Leiste merken – sonst zeigen Aufdeck-/Sicherheitsnetz
   // (revealHand/stripCovers/coverAndScheduleFlip) auf eine alte, ersetzte Leiste
@@ -496,6 +517,101 @@ function buildSeats(state) {
   return wrap;
 }
 
+// --- Runden-Ladebildschirm ---------------------------------------------------
+// Vollbild-Artwork mit Fortschrittsbalken unten. Erst wenn alle Bilder der
+// Runde geladen sind (mind. ~1s, max. 12s), wird ausgeteilt bzw. gezeigt.
+function showLoaderUI(game) {
+  if (loaderNode) { loaderNode.remove(); loaderNode = null; }
+  const ov = document.createElement('div');
+  ov.id = 'round-loader';
+  const round = game && game.round_no ? `Runde ${game.round_no}` : 'Spiel';
+  ov.innerHTML = `
+    <img class="rl-art" src="lobby/loading.jpg?v=1" alt="">
+    <div class="rl-bottom">
+      <div class="rl-text">${esc(round)} wird vorbereitet …</div>
+      <div class="rl-bar"><div class="rl-fill" style="width:0%"></div></div>
+      <div class="rl-pct">0%</div>
+    </div>`;
+  document.body.appendChild(ov);
+  loaderNode = ov;
+}
+function setLoaderProgress(p) {
+  if (!loaderNode) return;
+  const f = loaderNode.querySelector('.rl-fill'); if (f) f.style.width = p + '%';
+  const t = loaderNode.querySelector('.rl-pct'); if (t) t.textContent = p + '%';
+}
+function hideRoundLoader() {
+  loaderKey = null;
+  if (!loaderNode) return;
+  const n = loaderNode; loaderNode = null;
+  n.classList.add('out');                       // sanft ausblenden
+  setTimeout(() => n.remove(), 500);
+}
+
+// Bilder mit Fortschritt vorladen. Balken zeigt min(echter Fortschritt,
+// Mindestzeit-Fortschritt) – so ist er auch bei gefuelltem Cache sichtbar und
+// laeuft fluessig durch. Haerte-Timeout, falls ein Bild nie ankommt.
+function preloadWithProgress(urls, key, onDone) {
+  const t0 = Date.now(), MIN = 1000, MAX = 12000;
+  const total = Math.max(1, urls.length);
+  let loaded = 0, finished = false, iv = null, hard = null;
+  const finish = () => {
+    if (finished) return;
+    finished = true; clearInterval(iv); clearTimeout(hard);
+    setLoaderProgress(100);
+    setTimeout(onDone, 200);                    // vollen Balken kurz zeigen
+  };
+  const tick = () => {
+    if (finished) return;
+    if (loaderKey !== key) { finished = true; clearInterval(iv); clearTimeout(hard); return; }
+    const real = loaded / total;
+    const timed = Math.min(1, (Date.now() - t0) / MIN);
+    setLoaderProgress(Math.round(Math.min(real, timed) * 100));
+    if (real >= 1 && timed >= 1) finish();
+  };
+  iv = setInterval(tick, 80);
+  hard = setTimeout(finish, MAX);
+  urls.forEach(u => {
+    const im = new Image();
+    im.onload = im.onerror = () => { loaded++; tick(); };
+    im.src = u;
+  });
+}
+
+// Alles, was die Runde braucht: komplettes Deck + Rueckseite + Avatare.
+function collectRoundAssets(state) {
+  const urls = allCardImageUrls();
+  (state.players || []).forEach(p => {
+    const av = p.avatar || DEFAULT_AV;
+    if (isImg(av)) urls.push(avV(av));
+  });
+  return urls;
+}
+
+// Ladebildschirm fuer eine Runde starten (idempotent je key). Nach dem Laden
+// wird der haengende Austeil-Start ueber den letzten Render-Kontext fortgesetzt.
+function startRoundLoader(state, key) {
+  if (loaderKey === key) return;
+  loaderKey = key;
+  showLoaderUI(state.game);
+  preloadWithProgress(collectRoundAssets(state), key, () => {
+    if (loaderKey !== key) return;              // inzwischen verlassen
+    loaderDoneKey = key; assetsWarm = true;
+    hideRoundLoader();
+    retryPendingDeal();
+  });
+}
+
+// Nach dem Laden: Austeil-Start mit dem letzten Render-Kontext nachholen
+// (gleiche Schritte wie am Ende von renderTable).
+function retryPendingDeal() {
+  if (!lastState || !lastFeltEl || !lastFeltEl.isConnected || !lastDockEl) return;
+  maybeDealAnimation(lastState, lastFeltEl, lastDockEl);
+  applyDealFlight(lastDockEl);
+  lastDockEl.style.visibility =
+    (dealPendingKey || (Date.now() < dealEndsAt && !dealFlight)) ? 'hidden' : 'visible';
+}
+
 // --- Austeil-Animation -----------------------------------------------------
 // Karten fliegen reihum vom Stapel in der Mitte zu jedem Sitzplatz. Overlay
 // haengt an document.body (ueberlebt Re-Renders); Antippen ueberspringt.
@@ -504,6 +620,7 @@ function clearDeal() {
   if (dealOverlayNode) { dealOverlayNode.remove(); dealOverlayNode = null; }
   if (dealRevealTimer) { clearTimeout(dealRevealTimer); dealRevealTimer = null; }
   dealEndsAt = 0; dealCoverActive = false; dealPendingKey = null; dealFlight = null;
+  hideRoundLoader();   // laufender Ladebildschirm (Verlassen/Ueberspringen) weg
   // Eigene Karten sofort an ihren Faecherplatz setzen (ohne Animation).
   if (lastDockEl) lastDockEl.querySelectorAll('.fan-card').forEach(el => el.classList.remove('pre-deal', 'deal-fly'));
   stripCovers(); revealHand();   // beim Ueberspringen Hand sofort zeigen
@@ -511,12 +628,19 @@ function clearDeal() {
 
 function maybeDealAnimation(state, feltEl, dockEl) {
   const { game } = state;
-  if (game.status !== 'running') { lastDealKey = null; dealPendingKey = null; return; }
+  if (game.status !== 'running') { lastDealKey = null; dealPendingKey = null; hideRoundLoader(); return; }
   const roundStart = game.round_no >= 1 && (game.trick_no ?? 0) <= 1 &&
     (state.trick?.length || 0) === 0 && (game.phase === 'bidding' || game.phase === 'trumpselect');
-  if (!roundStart) { dealPendingKey = null; return; }
+  if (!roundStart) { dealPendingKey = null; if (loaderKey) hideRoundLoader(); return; }
   const key = (game.join_code || 'solo') + '|' + game.round_no + '|' + game.num_players;
   if (key === lastDealKey) { dealPendingKey = null; return; }
+  // ERST LADEN, DANN AUSTEILEN: Ladebildschirm mit Balken zeigen, bis alle
+  // Bilder der Runde bereit sind; solange bleibt die Hand verborgen.
+  if (loaderDoneKey !== key) {
+    dealPendingKey = key;
+    startRoundLoader(state, key);
+    return;
+  }
   const me = state.players.find(p => p.uid === state.uid);
   const mySeat = me?.seat ?? 0;
   // Runde NUR dann als "erledigt" merken, wenn die Animation wirklich starten
