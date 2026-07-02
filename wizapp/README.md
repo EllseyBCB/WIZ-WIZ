@@ -146,6 +146,13 @@ Anzeigen** – damit verdient man nichts. So stellst du auf echte Werbung um:
 
 ## 6. „Werbefrei"-Kauf (echter In-App-Purchase via RevenueCat)
 
+> **Hinweis (Stand Juli 2026):** Das RevenueCat-Plugin ist vorerst AUS dem
+> nativen Projekt entfernt (Kompilierfehler `'SubscriptionPeriod' is ambiguous`
+> mit aktuellem Xcode; der Kauf ist ohnehin erst aktiv, wenn der Key in
+> config.js gesetzt ist). Zum Reaktivieren, sobald RevenueCat eingerichtet wird:
+> `npm install @revenuecat/purchases-capacitor@latest && npx cap sync ios`
+> (aktuelle Version ist mit neuem Xcode kompatibel).
+
 Der Werbefrei-Kauf ist als **echter StoreKit-Kauf** über **RevenueCat**
 implementiert (`iap.js`), inkl. **„Käufe wiederherstellen"** (von Apple
 verlangt). Im Browser/PWA wird der Kauf-Bereich automatisch ausgeblendet (dort
