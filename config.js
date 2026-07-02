@@ -35,9 +35,11 @@ export const IAP_BUNDLE_ENTITLEMENT = 'magier';
 //      iOS-App eintragen (GADApplicationIdentifier – siehe wizapp/README.md).
 //   3. app-ads.txt im Web-Root ausfuellen (siehe Datei app-ads.txt).
 // Sobald hier echte IDs stehen, schaltet die App den Testmodus selbst ab.
+// App-ID (fuer die Info.plist, GADApplicationIdentifier):
+//   ca-app-pub-3811537285456646~2491168634
 export const ADMOB = {
-  bannerIos: '',            // z. B. 'ca-app-pub-1234567890123456/1111111111'
-  interstitialIos: '',      // z. B. 'ca-app-pub-1234567890123456/2222222222'
+  bannerIos: 'ca-app-pub-3811537285456646/2063717240',
+  interstitialIos: '',      // Interstitial-Anzeigenblock noch in AdMob anlegen
   bannerAndroid: '',        // leer lassen, solange es keine Android-App gibt
   interstitialAndroid: '',
 };
