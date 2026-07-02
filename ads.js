@@ -134,11 +134,32 @@ function showPreviewInterstitial() {
   btn.onclick = () => ov.remove();
 }
 
+// Bannerhoehe als CSS-Variable --ad-h setzen, damit Inhalt + untere Tab-Leiste
+// genau um die Bannerhoehe nach oben ruecken und nichts verdeckt wird.
+// (Der native Banner liegt sonst als Overlay ueber den Buttons.)
+function setAdVar(px) {
+  try { document.documentElement.style.setProperty('--ad-h', (px > 0 ? px : 0) + 'px'); } catch (_) {}
+}
+let sizeListenerAdded = false;
+function ensureSizeListener(AdMob) {
+  if (sizeListenerAdded || !AdMob?.addListener) return;
+  sizeListenerAdded = true;
+  // Das Plugin meldet die tatsaechliche Bannerhoehe (adaptiv, geraeteabhaengig).
+  try {
+    AdMob.addListener('bannerAdSizeChanged', (size) => {
+      const h = size && typeof size.height === 'number' ? size.height : 0;
+      D('bannerAdSizeChanged: height=', h);
+      setAdVar(bannerOn ? h : 0);
+    });
+  } catch (_) {}
+}
+
 // Einmalig initialisieren (inkl. iOS-Tracking-Abfrage + EU-Einwilligung/UMP).
 export async function initAds() {
   D('initAds: native=', isNative(), 'adFree=', isAdFree(), 'forceTest=', forceTest, 'plugin=', !!admob());
   if (!isNative() || isAdFree()) { D('initAds: uebersprungen (nicht nativ oder werbefrei)'); return; }
   const AdMob = admob(); if (!AdMob) { D('initAds: AdMob-Plugin nicht gefunden!'); return; }
+  ensureSizeListener(AdMob);
   try {
     const testing = adUnit('banner').testing;
     D('initAds: initialize (testing=' + testing + ') …');
@@ -174,6 +195,7 @@ export async function showBanner() {
 // Banner ausblenden (z. B. waehrend einer Partie, damit nichts verdeckt wird).
 export async function hideBanner() {
   removePreviewBanner();                               // Browser-Vorschau
+  setAdVar(0);                                         // Platz unten wieder freigeben
   if (!bannerOn) return;
   const AdMob = admob(); if (!AdMob) return;
   try { await AdMob.hideBanner(); } catch (_) {}

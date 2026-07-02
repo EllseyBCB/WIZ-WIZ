@@ -42,6 +42,7 @@
     --gold: #e9c873;
     --goldline: #c6a24c;
     --goldsoft: rgba(214,176,86,.8);
+    --ad-h: 0px;           /* Hoehe des nativen AdMob-Banners (per JS gesetzt) */
   }
   /* touch-action vererbt nicht -> auf JEDES Element, sonst zoomt iOS beim
      Doppeltipp auf Elemente, die noch 'auto' haben. */
@@ -191,7 +192,7 @@
   .you { color: var(--akzent); font-size: .8rem; }
 
   /* ===== Lobby (Startseite) ===== */
-  #home-view { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  #home-view { padding-bottom: calc(86px + env(safe-area-inset-bottom) + var(--ad-h, 0px)); }
   .pane { display: none; }
   .pane.active { display: block; animation: fade .25s ease; }
   .pane-title { font-size: 1.2rem; font-weight: 700; margin: 14px 2px 6px; display: flex; align-items: center; gap: 9px;
@@ -614,7 +615,7 @@
 
   /* Untere Tab-Leiste */
   .tabbar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    position: fixed; left: 0; right: 0; bottom: var(--ad-h, 0px); z-index: 40;
     display: flex; justify-content: space-between; align-items: stretch; gap: 2px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: rgba(16,10,34,.95); border-top: 1px solid rgba(214,176,86,.45);
