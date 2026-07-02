@@ -2,7 +2,7 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=3';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=3';
-import { render } from './game.js?v=67';
+import { render } from './game.js?v=69';
 import { showScreen, toast, esc } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=4';
 import { showBanner, hideBanner } from './ads.js?v=3';
@@ -70,7 +70,9 @@ const actions = {
   onPlay:  (card) => humanPlay(card)
 };
 
-function paint(overrideTrick) { saveSolo(); render(buildState(overrideTrick), actions); }
+// Null-sicher: Nach quit() (G=null) koennen noch schlafende Ablaeufe
+// (Stich-Banner-Pause, Bot-Schleife) aufwachen und zeichnen wollen.
+function paint(overrideTrick) { if (!G) return; saveSolo(); render(buildState(overrideTrick), actions); }
 
 // Pausieren: Stand ist gesichert, zurueck zur Startseite ("Solo fortsetzen").
 function pauseSolo() {
@@ -127,16 +129,18 @@ async function afterPlay(res) {
     showTrickBanner(name);
     await sleep(TRICK_DELAY);
     hideTrickBanner();
+    if (!G) return;   // waehrend des Banners verlassen -> nichts mehr zeichnen
   }
   paint();
 }
 
 // Bots ziehen lassen, bis der Mensch (Sitz 0) an der Reihe ist.
 async function drive() {
-  while (G.status === 'running') {
+  while (G && G.status === 'running') {
     const actor = G.phase === 'trumpselect' ? G.dealerSeat : G.currentSeat;
     if (actor === 0) break;
     await sleep(BOT_DELAY);
+    if (!G) return;   // waehrend der Bot-Pause verlassen
     if (G.phase === 'trumpselect') {
       chooseTrump(G, botChooseTrump(G, G.dealerSeat)); paint();
     } else if (G.phase === 'bidding') {
@@ -150,12 +154,12 @@ async function drive() {
 }
 
 async function humanTrump(c) {
-  if (G.phase !== 'trumpselect' || G.dealerSeat !== 0) return;
+  if (!G || G.phase !== 'trumpselect' || G.dealerSeat !== 0) return;
   chooseTrump(G, c); paint(); await drive();
 }
 
 async function humanBid(n) {
-  if (G.phase !== 'bidding' || G.currentSeat !== 0) return;
+  if (!G || G.phase !== 'bidding' || G.currentSeat !== 0) return;
   if (n === forbiddenBid(G)) {
     toast('Diese Ansage ist gesperrt – die Summe darf nicht der Stichzahl entsprechen', 'err');
     return;
@@ -164,7 +168,7 @@ async function humanBid(n) {
 }
 
 async function humanPlay(card) {
-  if (G.phase !== 'playing' || G.currentSeat !== 0) return;
+  if (!G || G.phase !== 'playing' || G.currentSeat !== 0) return;
   if (!legalCards(G, 0).includes(card)) { toast('Diese Karte ist nicht erlaubt', 'err'); return; }
   sfxCard(); haptic(15);
   await afterPlay(playCard(G, 0, card));

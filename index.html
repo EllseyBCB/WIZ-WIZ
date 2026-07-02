@@ -1155,6 +1155,51 @@
   .nav-btn.nav-pause { background-image: url('lobby/nav-pause.png?v=1'); }
   .nav-btn:hover { filter: brightness(1.08); }
 
+  /* Endstand-Rangliste (Spielende) */
+  .go-card { max-width: min(420px, 94vw); text-align: center; }
+  .go-title {
+    margin: 2px 0 14px; font-family: var(--font-myth); letter-spacing: 1px;
+    color: var(--gold); font-size: 1.5rem;
+  }
+  .go-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .go-row {
+    display: flex; align-items: center; gap: 10px; text-align: left;
+    padding: 8px 12px; border-radius: 14px;
+    background: rgba(24,16,46,.55); border: 1px solid rgba(214,176,86,.28);
+  }
+  .go-row.me { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent); }
+  .go-rank {
+    flex: none; width: 30px; height: 30px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: .95rem; color: #1c1233;
+    background: #8d86a8;   /* Standard: ab Platz 4 */
+  }
+  .go-row.rank1 .go-rank { background: linear-gradient(180deg, #ffe7a8, #e9b64c); }
+  .go-row.rank2 .go-rank { background: linear-gradient(180deg, #eef2f8, #b9c2d4); }
+  .go-row.rank3 .go-rank { background: linear-gradient(180deg, #e8b98d, #c1875a); }
+  .go-av {
+    flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+    border: 2px solid rgba(214,176,86,.55); background: #0c0a18;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .go-av img { width: 100%; height: 100%; object-fit: cover; }
+  .go-name {
+    flex: 1; min-width: 0; font-weight: 700; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .go-name .you { color: var(--akzent); font-weight: 600; }
+  .go-pts { flex: none; font-weight: 800; font-size: 1.15rem; color: var(--gold); }
+  .go-pts small { font-weight: 600; font-size: .7em; color: #e7dcc0; opacity: .8; }
+  /* Platz 1 deutlich groesser, 2/3 leicht groesser */
+  .go-row.rank1 { padding: 14px 14px; background: rgba(58,38,14,.45); border-color: rgba(233,200,115,.75); }
+  .go-row.rank1 .go-av { width: 56px; height: 56px; border-color: var(--gold); }
+  .go-row.rank1 .go-name { font-size: 1.15rem; }
+  .go-row.rank1 .go-pts { font-size: 1.6rem; }
+  .go-row.rank1 .go-rank { width: 36px; height: 36px; font-size: 1.1rem; }
+  .go-row.rank2 .go-av, .go-row.rank3 .go-av { width: 46px; height: 46px; }
+  .go-row.rank2 .go-pts, .go-row.rank3 .go-pts { font-size: 1.3rem; }
+  .go-btn { width: 100%; }
+
   /* Wertung */
   .score-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .score-scroll .scoreboard { min-width: max-content; }
@@ -1715,6 +1760,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=88"></script>
+<script type="module" src="./app.js?v=91"></script>
 </body>
 </html>

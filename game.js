@@ -1,7 +1,7 @@
 // Client-State + Render der Spiel-Screens.
 // WICHTIG: Hier liegt KEINE Spiel-Autoritaet – Regeln werden serverseitig
 // geprueft. Tisch/Hand/Stich liegen in table.js (eigene Komponenten).
-import { renderTable } from './table.js?v=67';
+import { renderTable } from './table.js?v=68';
 import { $, esc, clearChildren, toast, confetti } from './ui.js?v=2';
 import { sfxWin, haptic } from './audio.js?v=4';
 import { gameOverAd } from './ads.js?v=3';
@@ -37,15 +37,75 @@ export function render(state, actions) {
   renderTable(root, state, actions);            // laufend / beendet: Spieltisch
   renderScoreboard(root, state, game.status === 'finished' || game.status === 'aborted');
 
-  // Spielende: einmalig Konfetti + Fanfare, danach (nur App) Vollbild-Werbung.
+  // Spielende: einmalig Konfetti + Fanfare, Endstand-Rangliste, danach
+  // (nur App) Vollbild-Werbung.
   if (game.status === 'finished') {
     if (!celebrated) {
       celebrated = true; confetti(); sfxWin(); haptic([40, 60, 40, 60, 140]);
+      setTimeout(() => showGameOver(state, actions), 1200);   // Rangliste nach kurzer Feier
       setTimeout(() => gameOverAd(), 3200);   // nach der Feier
     }
   } else {
     celebrated = false;
+    document.getElementById('gameover-modal')?.remove();
   }
+}
+
+// --- Endstand-Rangliste (Spielende) ----------------------------------------
+// Grosses Podium: Platz 1 hervorgehoben, 2/3 etwas kleiner, Rest gelistet.
+// "Zurueck zur Lobby" verlaesst das Spiel; ✕/Hintergrund zeigt den Tisch.
+function showGameOver(state, actions) {
+  const { players, uid } = state;
+  document.getElementById('gameover-modal')?.remove();
+  // Nur zeigen, solange der Spiel-Screen noch aktiv ist.
+  if (!document.getElementById('game-view')?.classList.contains('active')) return;
+  // Letzten Stich-Banner ausblenden, damit er die Rangliste nicht ueberlappt.
+  document.getElementById('trick-banner')?.classList.remove('show');
+
+  const isImg = v => typeof v === 'string' && (/^https?:\/\//.test(v) || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v));
+  const avV = s => (typeof s === 'string' && s.startsWith('avatars/')) ? s + '?v=7' : s;
+  const ranked = [...players].sort((a, b) => (b.total_score ?? 0) - (a.total_score ?? 0));
+
+  const ov = document.createElement('div');
+  ov.className = 'modal gameover-modal';
+  ov.id = 'gameover-modal';
+
+  const card = document.createElement('div');
+  card.className = 'modal-card go-card';
+
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'modal-x'; x.textContent = '✕';
+  x.setAttribute('aria-label', 'Endstand schließen');
+  x.onclick = () => ov.remove();
+  card.appendChild(x);
+
+  card.insertAdjacentHTML('beforeend', '<h2 class="go-title">🏆 Endstand</h2>');
+
+  const list = document.createElement('div');
+  list.className = 'go-list';
+  ranked.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'go-row rank' + Math.min(i + 1, 4) + (p.uid === uid ? ' me' : '');
+    const av = p.avatar || 'avatars/av01.png';
+    const avHtml = isImg(av) ? `<img src="${esc(avV(av))}" alt="">` : esc(av);
+    row.innerHTML = `
+      <span class="go-rank">${i + 1}</span>
+      <span class="go-av">${avHtml}</span>
+      <span class="go-name">${esc(p.name)}${p.uid === uid ? ' <span class="you">(du)</span>' : ''}</span>
+      <span class="go-pts">${p.total_score ?? 0}<small> Pkt</small></span>`;
+    list.appendChild(row);
+  });
+  card.appendChild(list);
+
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'btn go-btn';
+  btn.textContent = 'Zurück zur Lobby';
+  btn.onclick = () => { ov.remove(); actions.onLeave(); };
+  card.appendChild(btn);
+
+  ov.appendChild(card);
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 
 // --- Warteraum / Lobby -----------------------------------------------------
