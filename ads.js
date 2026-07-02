@@ -21,9 +21,29 @@ const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatf
 const plat = () => (cap()?.getPlatform?.() === 'android' ? 'android' : 'ios');
 const admob = () => cap()?.Plugins?.AdMob || null;
 
+// --- Diagnose-Logging -------------------------------------------------------
+// Sichtbar in der Xcode-Konsole und im Safari-Web-Inspector. Hilft zu sehen,
+// ob AdMob initialisiert, welche Ad-Unit genutzt wird und warum ggf. nichts
+// erscheint. Kann spaeter wieder entfernt werden.
+const D = (...a) => { try { console.log('[ads]', ...a); } catch (_) {} };
+
+// Test-Anzeigen erzwingen (sicher, klickbar ohne Konto-Risiko):
+//   ?ads=test in der URL  ODER  localStorage wizard_adtest='1'.
+// Nutzt dann Google-Test-IDs statt der echten -> garantierte Auslieferung.
+let forceTest = false;
+(function detectForceTest() {
+  try {
+    const u = new URLSearchParams(location.search);
+    if (u.get('ads') === 'test') localStorage.setItem('wizard_adtest', '1');
+    if (u.get('ads') === 'real') localStorage.removeItem('wizard_adtest');
+    forceTest = localStorage.getItem('wizard_adtest') === '1';
+  } catch (_) {}
+})();
+
 // Eigene ID aus config.js (falls gesetzt), sonst Test-ID + Testmodus.
 function adUnit(kind) {
   const p = plat();
+  if (forceTest) return { adId: TEST_IDS[kind][p], testing: true };
   const own = p === 'android'
     ? (kind === 'banner' ? ADMOB?.bannerAndroid : ADMOB?.interstitialAndroid)
     : (kind === 'banner' ? ADMOB?.bannerIos : ADMOB?.interstitialIos);
@@ -54,6 +74,21 @@ let preview = false;
     preview = localStorage.getItem('wizard_adpreview') === '1';
   } catch (_) {}
 })();
+// Test-Anzeigen-Schalter (native App): erzwingt Google-Testanzeigen mit
+// garantierter Auslieferung – auf dem echten Geraet sichtbar und gefahrlos
+// klickbar. Zum Pruefen, dass die Werbung ankommt, bevor echte Ads ausgeliefert
+// werden. Im Alltag AUS lassen (dann laufen die echten IDs aus config.js).
+export function isForceTest() { return forceTest; }
+export async function setForceTest(on) {
+  forceTest = !!on;
+  try { localStorage.setItem('wizard_adtest', forceTest ? '1' : '0'); } catch (_) {}
+  D('setForceTest:', forceTest);
+  await hideBanner();                 // laufendes Banner entfernen
+  bannerOn = false;
+  if (!ready) await initAds();        // falls noch nicht initialisiert
+  await showBanner();                 // mit passender (Test-/Echt-)ID neu zeigen
+}
+
 export function isPreview() { return preview; }
 export function setPreview(on) {
   preview = !!on;
@@ -101,32 +136,39 @@ function showPreviewInterstitial() {
 
 // Einmalig initialisieren (inkl. iOS-Tracking-Abfrage + EU-Einwilligung/UMP).
 export async function initAds() {
-  if (!isNative() || isAdFree()) return;
-  const AdMob = admob(); if (!AdMob) return;
+  D('initAds: native=', isNative(), 'adFree=', isAdFree(), 'forceTest=', forceTest, 'plugin=', !!admob());
+  if (!isNative() || isAdFree()) { D('initAds: uebersprungen (nicht nativ oder werbefrei)'); return; }
+  const AdMob = admob(); if (!AdMob) { D('initAds: AdMob-Plugin nicht gefunden!'); return; }
   try {
-    await AdMob.initialize({ requestTrackingAuthorization: true, initializeForTesting: adUnit('banner').testing });
+    const testing = adUnit('banner').testing;
+    D('initAds: initialize (testing=' + testing + ') …');
+    await AdMob.initialize({ requestTrackingAuthorization: true, initializeForTesting: testing });
     try {
       const info = await AdMob.requestConsentInfo();
-      if (info && info.isConsentFormAvailable && info.status === 'REQUIRED') await AdMob.showConsentForm();
-    } catch (_) {}
+      D('initAds: consent status=', info?.status, 'formAvailable=', info?.isConsentFormAvailable);
+      if (info && info.isConsentFormAvailable && info.status === 'REQUIRED') { D('initAds: zeige Consent-Formular'); await AdMob.showConsentForm(); }
+    } catch (e) { D('initAds: consent-Fehler', e?.message || e); }
     ready = true;
-  } catch (_) {}
+    D('initAds: fertig, ready=true');
+  } catch (e) { D('initAds: FEHLER bei initialize', e?.message || e); }
 }
 
 // Banner unten einblenden (z. B. auf der Startseite).
 export async function showBanner() {
-  if (isAdFree()) return;
+  if (isAdFree()) { D('showBanner: werbefrei'); return; }
   if (preview) { showPreviewBanner(); return; }        // Browser-Vorschau
-  if (!ready || bannerOn) return;
+  if (!ready || bannerOn) { D('showBanner: uebersprungen (ready=' + ready + ', bannerOn=' + bannerOn + ')'); return; }
   const AdMob = admob(); if (!AdMob) return;
   try {
     const u = adUnit('banner');
+    D('showBanner: adId=', u.adId, 'testing=', u.testing);
     await AdMob.showBanner({
       adId: u.adId, adSize: 'ADAPTIVE_BANNER',
       position: 'BOTTOM_CENTER', margin: 0, isTesting: u.testing
     });
     bannerOn = true;
-  } catch (_) {}
+    D('showBanner: OK');
+  } catch (e) { D('showBanner: FEHLER', e?.message || e); }
 }
 
 // Banner ausblenden (z. B. waehrend einer Partie, damit nichts verdeckt wird).

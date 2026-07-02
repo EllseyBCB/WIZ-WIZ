@@ -5,7 +5,7 @@ import { render } from './game.js?v=77';
 import { gameAssetUrls } from './table.js?v=76';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=68';
 import { preloadCards, allCardImageUrls } from './cards.js?v=16';
-import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=4';
+import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest } from './ads.js?v=4';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
@@ -1353,6 +1353,20 @@ function wireSettings() {
       prevT.setAttribute('aria-checked', on ? 'true' : 'false');
       if (on) showBanner(); else hideBanner();
       toast(on ? 'Werbe-Vorschau an' : 'Werbe-Vorschau aus', 'ok');
+    };
+  }
+
+  // Test-Anzeigen erzwingen (native App): zeigt echte Google-Testanzeigen,
+  // damit man auf dem Geraet sieht, dass Werbung ankommt (bevor das eigene
+  // AdMob-Konto echte Ads ausliefert). Gefahrlos klickbar.
+  const adtestT = document.getElementById('adtest-toggle');
+  if (adtestT) {
+    adtestT.setAttribute('aria-checked', isForceTest() ? 'true' : 'false');
+    adtestT.onclick = async () => {
+      const on = !isForceTest();
+      adtestT.setAttribute('aria-checked', on ? 'true' : 'false');
+      await setForceTest(on);
+      toast(on ? 'Testanzeigen an' : 'Testanzeigen aus (echte IDs)', 'ok');
     };
   }
 
