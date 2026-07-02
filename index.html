@@ -783,14 +783,20 @@
     height: clamp(124px, 15.5vh, 195px); width: auto; padding: 0; border: none; background: #0c0a18;
     cursor: default; border-radius: 8% / 5%; line-height: 0; overflow: hidden;
   }
-  /* kleine Karten (Stich/Trumpf): feste Hoehe, Breite nach natuerlichem
-     Seitenverhaeltnis -> der komplette goldene Rand bleibt sichtbar (kein
-     Zuschnitt). Zauberer/Narr sind dadurch minimal breiter. */
+  /* kleine Karten (Stich/Trumpf): feste Hoehe; Breite kommt aus dem
+     einheitlichen Karten-Seitenverhaeltnis (s. .wcard-img unten) – der
+     komplette goldene Rand bleibt sichtbar (gestreckt, kein Zuschnitt). */
   .wcard.small { height: clamp(96px, 12vh, 150px); width: auto; }
-  .wcard.small .wcard-img, .wcard.small .wcard-svg { height: 100%; width: auto; object-fit: contain; }
+  .wcard.small .wcard-img, .wcard.small .wcard-svg { height: 100%; width: auto; }
+  .wcard.small .wcard-svg { object-fit: contain; }
   button.wcard:not(.disabled) { cursor: pointer; }
   .wcard.disabled { opacity: .42; }
   .wcard-svg, .wcard-img { height: 100%; width: auto; display: block; border-radius: 8% / 5%; }
+  /* Einheitliche Kartenbreite: die generierten Kartenbilder haben leicht
+     unterschiedliche Seitenverhaeltnisse (z. B. Gruen 13 deutlich schmaler,
+     Narren breiter). Alle Bilder werden auf EIN Verhaeltnis gebracht (sanft
+     gestreckt/gestaucht, kein Zuschnitt) – wie ein echtes Deck, alle gleich. */
+  .wcard-img { aspect-ratio: 33 / 50; object-fit: fill; }
 
   /* ===== Spieltisch ===== */
   /* Durchgehende Szene: das Banner oben geht nahtlos in den Tisch über. Der
