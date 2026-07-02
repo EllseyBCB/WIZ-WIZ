@@ -575,31 +575,57 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
 // (verdeckt) liegen – die Hand baut sich so Karte fuer Karte auf. Die exakte
 // Zielposition wird JETZT (beim Abflug) an der aktuellen Hand gemessen.
 function flyToHand(overlay, ox, oy, cardIndex, fallback) {
-  let tx = fallback.x, ty = fallback.y, rot = 0, targetH = 0, targetW = 0;
-  const dock = lastDockEl;
-  const el = dock && dock.querySelectorAll('.fan-card')[cardIndex];
-  if (el) {
+  // Ziel (Mitte/Drehung/Groesse) der Handkarte cardIndex JETZT messen.
+  const measure = () => {
+    const el = lastDockEl && lastDockEl.querySelectorAll('.fan-card')[cardIndex];
+    if (!el) return null;
     const r = el.getBoundingClientRect();     // r-Mitte = geom. Mitte der gedrehten Karte
-    if (r.width > 4 && r.height > 4) {
-      tx = r.left + r.width / 2; ty = r.top + r.height / 2;
-      rot = parseFloat(el.style.getPropertyValue('--rot')) || 0;
-      // WICHTIG: echte (ungedrehte) Layout-Groesse nehmen, NICHT die Bounding-Box
-      // der gedrehten Karte (die waere je nach Winkel groesser/ungleich).
-      targetH = el.offsetHeight; targetW = el.offsetWidth;
-    }
-  }
+    if (r.width <= 4 || r.height <= 4) return null;
+    const h = el.offsetHeight;
+    // Breite-Fallback: solange das Kartenbild nicht geladen ist, waere
+    // offsetWidth 0 -> Flieger unsichtbar/zu schmal.
+    const w = el.offsetWidth > 10 ? el.offsetWidth : Math.round(h * 0.72);
+    return {
+      tx: r.left + r.width / 2, ty: r.top + r.height / 2,
+      rot: parseFloat(el.style.getPropertyValue('--rot')) || 0,
+      h, w,
+    };
+  };
+  const t = measure() || { tx: fallback.x, ty: fallback.y, rot: 0, h: 0, w: 0 };
+
   const card = document.createElement('div');
   card.className = 'deal-card';
   const back = renderCard('Z1', { faceDown: true });
   // Flieger exakt die Box der Zielkarte annehmen -> landet passgenau, gleich gross.
-  if (targetH) { back.classList.add('deal-fill'); back.style.height = targetH + 'px'; back.style.width = targetW + 'px'; }
+  if (t.h) { back.classList.add('deal-fill'); back.style.height = t.h + 'px'; back.style.width = t.w + 'px'; }
   card.appendChild(back);
   card.style.left = ox + 'px'; card.style.top = oy + 'px';
   overlay.appendChild(card);
-  const dx = Math.round(tx - ox), dy = Math.round(ty - oy);
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg)`;
-  }));
+  const place = (m) => {
+    card.style.transform = `translate(calc(-50% + ${Math.round(m.tx - ox)}px), calc(-50% + ${Math.round(m.ty - oy)}px)) rotate(${m.rot}deg)`;
+  };
+  requestAnimationFrame(() => requestAnimationFrame(() => place(t)));
+  // Nach der Landung KONTINUIERLICH auf die aktuelle Zielposition einrasten:
+  // Das Overlay ist fixed (Viewport-Koordinaten), die Hand scrollt aber mit
+  // der Seite. Scrollt/verschiebt sich die Seite nach der Landung (z. B.
+  // scrollTo(0,0) beim Fixieren der Tischansicht, Re-Layout nach Bild-Laden),
+  // saesse der Flieger sonst in der Luft statt dort, wo aufgedeckt wird.
+  dealTimers.push(setTimeout(() => {
+    if (!card.isConnected) return;
+    card.style.transition = 'none';
+    const sync = () => {
+      const m = measure();
+      if (m) {
+        place(m);
+        if (m.h) { back.style.height = m.h + 'px'; back.style.width = m.w + 'px'; }
+      }
+    };
+    sync();
+    const iv = setInterval(() => {
+      if (!card.isConnected) { clearInterval(iv); return; }
+      sync();
+    }, 150);
+  }, 640));
 }
 
 // Mitspieler-Karte: fliegt zum Sitzplatz und verschwindet dort.
@@ -833,8 +859,12 @@ function layoutFan(fan, items) {
   const n = items.length;
   if (!n) return;
   const W = fan.clientWidth || fan.parentElement?.clientWidth || 360;
-  const cardW = items[0].offsetWidth || 72;
   const cardH = items[0].offsetHeight || 124;
+  // Kartenbreite DETERMINISTISCH aus der (per CSS festen) Hoehe ableiten –
+  // NICHT aus offsetWidth: solange ein Kartenbild noch nicht geladen ist,
+  // waere die 0/kleiner, und fruehe Austeil-Flieger wuerden eine andere
+  // Faecher-Geometrie messen als spaete (verstreute Landung).
+  const cardW = Math.round(cardH * 0.72);
 
   const spreadDeg = Math.min(5.5 * (n - 1), 26);         // Gesamt-Fächerwinkel
   const maxStep = cardW * 0.60;                          // Wunschabstand
