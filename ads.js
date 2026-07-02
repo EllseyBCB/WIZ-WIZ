@@ -3,21 +3,33 @@
 // unveraendert laeuft. Der Zugriff erfolgt ueber die globale Capacitor-Bruecke
 // (window.Capacitor.Plugins.AdMob) – es ist KEIN Bundler noetig.
 //
-// Standard: Google-TEST-Anzeigen. Nach dem Anlegen eines AdMob-Kontos die
-// echten Ad-Unit-IDs unten eintragen und `testing` auf false setzen.
+// ECHTE Werbung (Verdienst): die eigenen Ad-Unit-IDs in config.js -> ADMOB
+// eintragen. Solange dort nichts steht, laufen automatisch Google-TEST-
+// Anzeigen (gefahrlos, aber ohne Einnahmen). Der Testmodus schaltet sich
+// je Plattform selbst ab, sobald eine echte ID vorhanden ist.
+import { ADMOB } from './config.js';
 
-const AD_CONFIG = {
-  // Google-Test-IDs (funktionieren ohne eigenes Konto).
+// Google-Test-IDs (funktionieren ohne eigenes Konto).
+const TEST_IDS = {
   banner:       { ios: 'ca-app-pub-3940256099942544/2934735716', android: 'ca-app-pub-3940256099942544/6300978111' },
   interstitial: { ios: 'ca-app-pub-3940256099942544/4411468910', android: 'ca-app-pub-3940256099942544/1033173712' },
-  testing: true,
-  everyNthGame: 1,   // Vollbild-Werbung nach jedem N-ten Spiel (1 = jedes)
 };
+const EVERY_NTH_GAME = 1;   // Vollbild-Werbung nach jedem N-ten Spiel (1 = jedes)
 
 const cap = () => window.Capacitor;
 const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
 const plat = () => (cap()?.getPlatform?.() === 'android' ? 'android' : 'ios');
 const admob = () => cap()?.Plugins?.AdMob || null;
+
+// Eigene ID aus config.js (falls gesetzt), sonst Test-ID + Testmodus.
+function adUnit(kind) {
+  const p = plat();
+  const own = p === 'android'
+    ? (kind === 'banner' ? ADMOB?.bannerAndroid : ADMOB?.interstitialAndroid)
+    : (kind === 'banner' ? ADMOB?.bannerIos : ADMOB?.interstitialIos);
+  if (own) return { adId: own, testing: false };
+  return { adId: TEST_IDS[kind][p], testing: true };
+}
 
 // "Werbefrei"-Status. Gekauft wird per echtem IAP in iap.js (RevenueCat);
 // setAdFree() spiegelt das aktive Entitlement lokal, damit die Werbung sofort
@@ -92,7 +104,7 @@ export async function initAds() {
   if (!isNative() || isAdFree()) return;
   const AdMob = admob(); if (!AdMob) return;
   try {
-    await AdMob.initialize({ requestTrackingAuthorization: true, initializeForTesting: AD_CONFIG.testing });
+    await AdMob.initialize({ requestTrackingAuthorization: true, initializeForTesting: adUnit('banner').testing });
     try {
       const info = await AdMob.requestConsentInfo();
       if (info && info.isConsentFormAvailable && info.status === 'REQUIRED') await AdMob.showConsentForm();
@@ -108,9 +120,10 @@ export async function showBanner() {
   if (!ready || bannerOn) return;
   const AdMob = admob(); if (!AdMob) return;
   try {
+    const u = adUnit('banner');
     await AdMob.showBanner({
-      adId: AD_CONFIG.banner[plat()], adSize: 'ADAPTIVE_BANNER',
-      position: 'BOTTOM_CENTER', margin: 0, isTesting: AD_CONFIG.testing
+      adId: u.adId, adSize: 'ADAPTIVE_BANNER',
+      position: 'BOTTOM_CENTER', margin: 0, isTesting: u.testing
     });
     bannerOn = true;
   } catch (_) {}
@@ -132,10 +145,11 @@ export async function gameOverAd() {
   if (!ready) return;
   const AdMob = admob(); if (!AdMob) return;
   gamesSinceAd++;
-  if (gamesSinceAd < AD_CONFIG.everyNthGame) return;
+  if (gamesSinceAd < EVERY_NTH_GAME) return;
   gamesSinceAd = 0;
   try {
-    await AdMob.prepareInterstitial({ adId: AD_CONFIG.interstitial[plat()], isTesting: AD_CONFIG.testing });
+    const u = adUnit('interstitial');
+    await AdMob.prepareInterstitial({ adId: u.adId, isTesting: u.testing });
     await AdMob.showInterstitial();
   } catch (_) {}
 }

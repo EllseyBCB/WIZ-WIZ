@@ -88,19 +88,65 @@ AdMob empfiehlt zusätzlich die **SKAdNetworkItems** in der Info.plist
 
 ---
 
-## 5. Echte Werbung aktivieren (optional)
+## 5. Echte Werbung aktivieren = Geld verdienen (AdMob-Checkliste)
 
-1. In **AdMob** eine App + Ad-Units (Banner + Interstitial) anlegen.
-2. In **`ads.js`** (Repo-Wurzel) im Objekt `AD_CONFIG` die echten Ad-Unit-IDs
-   eintragen und **`testing: false`** setzen.
-3. Die **AdMob-App-ID** in die `Info.plist` (`GADApplicationIdentifier`, s. o.).
-4. `npm run ios` erneut ausführen.
-5. EU-Einwilligung (UMP): in der AdMob-Konsole unter *Datenschutz & Mitteilungen*
-   die Einwilligungsnachricht aktivieren – die App ruft beim Start automatisch
-   `requestConsentInfo()`/`showConsentForm()` auf.
+Die App zeigt bereits Werbung an den richtigen Stellen (Banner auf der
+Startseite, Vollbild nach jedem Spielende), aktuell aber **Google-Test-
+Anzeigen** – damit verdient man nichts. So stellst du auf echte Werbung um:
 
-> Im Testbetrieb **niemals** auf echte Anzeigen klicken (Konto-Sperre). Dafür
-> sind die voreingestellten Google-Test-IDs da.
+**A. AdMob-Konto (einmalig, kostenlos)**
+1. Auf https://admob.google.com mit einem Google-Konto anmelden.
+2. Unter *Zahlungen* Bankverbindung + Steuerdaten hinterlegen (Auszahlung ab
+   70 € Guthaben, monatlich).
+3. *Apps → App hinzufügen* → iOS → App ist (noch) nicht im Store? "Nein"
+   wählen und später verknüpfen. Du erhältst die **App-ID**
+   (`ca-app-pub-…~…`, mit Tilde).
+4. Zwei **Anzeigenblöcke** anlegen: einen **Banner** und ein **Interstitial**.
+   Jeder bekommt eine **Ad-Unit-ID** (`ca-app-pub-…/…`, mit Schrägstrich).
+
+**B. IDs eintragen (zwei Stellen)**
+1. **`config.js`** (Repo-Wurzel) → im Objekt `ADMOB` die beiden Ad-Unit-IDs
+   bei `bannerIos` und `interstitialIos` eintragen. Mehr nicht – der
+   Testmodus schaltet sich damit automatisch ab.
+2. **`ios/App/App/Info.plist`** → `GADApplicationIdentifier` von der Test-ID
+   auf deine **App-ID** (die mit `~`) ändern (Abschnitt 4 oben).
+3. `npm run ios` → in Xcode neu bauen.
+
+**C. app-ads.txt (wichtig für volle Vergütung)**
+1. In der AdMob-Konsole zeigt *Einstellungen → app-ads.txt* deine Zeile an
+   (`google.com, pub-…, DIRECT, f08c47fec0942fa0`).
+2. Diese Zeile in die Datei **`app-ads.txt`** in der Repo-Wurzel eintragen
+   (Vorlage liegt bereit) und auf `main` pushen – GitHub Pages liefert sie
+   dann unter `https://<deine-domain>/app-ads.txt` aus.
+3. In App Store Connect als **Marketing-/Support-URL** dieselbe Domain
+   angeben, damit AdMob die Datei deiner App zuordnen kann.
+
+**D. Einwilligung & Datenschutz (Pflicht in der EU)**
+1. AdMob-Konsole → *Datenschutz & Mitteilungen* → **DSGVO-Nachricht**
+   erstellen/veröffentlichen. Die App ruft beim Start automatisch
+   `requestConsentInfo()`/`showConsentForm()` auf – ohne veröffentlichte
+   Nachricht erscheint kein Einwilligungsdialog und es gibt in der EU
+   keine personalisierte Werbung (weniger Umsatz).
+2. App Store Connect → *App-Datenschutz*: angeben, dass die App über
+   Drittanbieter (Google AdMob) Daten für Werbung erhebt (Gerätekennung,
+   Nutzungsdaten). Der ATT-Dialog ist schon eingebaut
+   (`NSUserTrackingUsageDescription`, Abschnitt 4).
+
+**E. Nach dem App-Store-Release**
+1. AdMob → deine App → mit dem App-Store-Eintrag **verknüpfen**.
+2. Erste echte Anzeigen erscheinen oft erst nach einigen Stunden bis
+   ~1 Tag (Konto-/App-Prüfung durch Google).
+
+> **Wichtig:** Im Testbetrieb und in der eigenen fertigen App **niemals
+> selbst auf echte Anzeigen klicken** – das führt schnell zur Sperrung des
+> AdMob-Kontos. Zum Ausprobieren sind die Test-IDs da (Felder in
+> `config.js` einfach leer lassen).
+
+**Wo die Werbung erscheint (bereits eingebaut):**
+- Banner unten auf der Startseite (`showBanner()`), im Spiel ausgeblendet
+- Vollbild-Werbung nach jedem Spielende (`gameOverAd()`, drosselbar über
+  `EVERY_NTH_GAME` in `ads.js`)
+- Käufer von „Werbefrei"/Magier-Bundle sehen automatisch keine Werbung
 
 ---
 

@@ -1,11 +1,11 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=76';
-import { gameAssetUrls } from './table.js?v=75';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=67';
+import { render } from './game.js?v=77';
+import { gameAssetUrls } from './table.js?v=76';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=68';
 import { preloadCards, allCardImageUrls } from './cards.js?v=16';
-import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
+import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=4';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,

@@ -1,10 +1,10 @@
 // Client-State + Render der Spiel-Screens.
 // WICHTIG: Hier liegt KEINE Spiel-Autoritaet – Regeln werden serverseitig
 // geprueft. Tisch/Hand/Stich liegen in table.js (eigene Komponenten).
-import { renderTable } from './table.js?v=75';
+import { renderTable } from './table.js?v=76';
 import { $, esc, clearChildren, toast, confetti } from './ui.js?v=2';
 import { sfxWin, haptic } from './audio.js?v=4';
-import { gameOverAd } from './ads.js?v=3';
+import { gameOverAd } from './ads.js?v=4';
 
 // Spielende-Feier nur einmal pro beendetem Spiel ausloesen.
 let celebrated = false;
