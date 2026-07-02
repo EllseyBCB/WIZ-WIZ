@@ -36,6 +36,17 @@ export function cardLabel(code) {
   return `${colorName(c.color)} ${c.rank}`;
 }
 
+// Alle Kartenbild-URLs (60 Vorderseiten + Rueckseite) – z. B. fuer den
+// Runden-Ladebildschirm, der erst alles laedt und dann das Spiel startet.
+export function allCardImageUrls() {
+  if (!CARD_IMAGE_BASE) return [];
+  const base = CARD_IMAGE_BASE.replace(/\/$/, '');
+  const urls = [`${base}/back.png?v=2`];
+  for (const c of ['R', 'Y', 'G', 'B']) for (let r = 1; r <= 13; r++) urls.push(`${base}/${c}${r}.png?v=10`);
+  for (let i = 1; i <= 4; i++) { urls.push(`${base}/Z${i}.png?v=10`); urls.push(`${base}/N${i}.png?v=10`); }
+  return urls;
+}
+
 // Alle 60 Kartenbilder vorab im Hintergrund in den Browser-Cache laden, damit
 // sie im Spiel sofort erscheinen statt erst beim Aufdecken nachzuladen. Aendert
 // die Bilder NICHT – laedt nur frueher. Idempotent.
