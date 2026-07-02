@@ -336,17 +336,6 @@
   .friend-invite:hover { filter: brightness(1.08); }
   .friend-invite:disabled { opacity: .5; cursor: default; }
 
-  /* Statusleisten-Abdeckung (nur Geraete mit Notch/Dynamic Island):
-     Beim Scrollen schiebt sich der Inhalt sonst sichtbar hinter Uhr/Akku.
-     Liegt ueber dem Seiteninhalt (Tab-Leiste 40), aber unter Modals (60+). */
-  #statusbar-shade {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 55;
-    height: env(safe-area-inset-top, 0px);
-    background: rgba(10,7,22,.9);
-    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-    pointer-events: none;
-  }
-
   /* Einladungs-Banner (eingehende Einladung) */
   .invite-banner {
     position: fixed; left: 50%; transform: translateX(-50%);
@@ -545,13 +534,10 @@
 
   /* Aktions-Karten mit überstehendem Emblem */
   .home-actions {
-    /* Artwork-Kacheln (Querformat, Emblem links = Listen-Design): auf dem
-       Handy volle Breite -> gleiche Rahmenbreite wie Name/Statistik-Boxen.
-       Ab Tablet-Breite zweispaltig (Schnelle Runde bleibt ueber beide). */
-    display: grid; grid-template-columns: 1fr; gap: 12px;
-    margin: 26px 0 16px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 44px 10px;
+    margin: 46px 0 16px;
   }
-  @media (min-width: 640px) { .home-actions { grid-template-columns: repeat(2, 1fr); gap: 12px 10px; } }
+  @media (min-width: 640px) { .home-actions { grid-template-columns: repeat(4, 1fr); } }
   .act-card {
     position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
     background: linear-gradient(180deg, #3a2566, #221043);
@@ -563,16 +549,6 @@
   .act-card:active { filter: brightness(1.12); transform: translateY(1px); }
   .act-card.is-disabled { opacity: .42; pointer-events: none; }
   .act-wide { grid-column: 1 / -1; }   /* Schnelle Runde: volle Breite */
-  /* Bild-Kachel (fertige Grafik statt CSS-Karte): Rahmen/Emblem/Deko stecken
-     im Artwork selbst, daher alle Karten-Styles neutralisieren. */
-  .act-imgcard {
-    background: none; border: none; padding: 0; min-height: 0;
-    border-radius: 18px; overflow: hidden;
-    box-shadow: 0 4px 14px rgba(0,0,0,.4);
-    justify-content: center;   /* Bild in gestreckter Grid-Zelle mittig */
-  }
-  .act-imgcard::before, .act-imgcard::after { display: none; }
-  .act-imgcard .act-img { display: block; width: 100%; height: auto; }
   /* Lila Scheibe hinter dem Emblem: verdeckt die gerade Karten-Oberkante, damit
      der runde Goldring vollständig (nicht durchgestrichen) zu sehen ist. */
   .act-card::before {
@@ -593,40 +569,8 @@
     color: var(--goldsoft); font-size: .62rem; opacity: .85; }
 
   /* Name + Statistik */
-  /* Gleicher Umbruchpunkt wie .home-actions -> einheitliche Breiten. */
-  .home-row { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 14px 0; }
-  @media (min-width: 640px) { .home-row { grid-template-columns: 1fr 1fr; gap: 12px 10px; } }
-
-  /* Artwork-Boxen (Name/Statistik): Rahmen, Labels, Stift und Avatar-Ring
-     stecken in der Grafik; nur die dynamischen Teile liegen als Overlays
-     darauf. Groessen in cqw, damit sie mit der Boxbreite skalieren. */
-  .home-box.art-box {
-    position: relative; display: block; padding: 0;
-    background: none; border: none;
-    box-shadow: 0 3px 10px rgba(0,0,0,.35);
-    border-radius: 14px; overflow: hidden;
-    container-type: inline-size;
-  }
-  .art-box .ab-bg { display: block; width: 100%; height: auto; }
-  .name-box.art-box .nb-avatar {
-    position: absolute; left: 6.6%; top: 50%; transform: translateY(-50%);
-    width: 23%; height: auto; aspect-ratio: 1 / 1;
-    border: none; background: none;
-  }
-  .name-box.art-box #name-input {
-    position: absolute; left: 33.6%; top: 42.2%; width: 43.3%; height: 35%;
-    border: none; background: transparent; color: var(--text);
-    font-size: 6.2cqw; font-weight: 600; padding: 0;
-  }
-  .name-box.art-box #name-input:focus { outline: none; }
-  .stat-box.art-box .sb-v {
-    position: absolute; top: 72.1%; transform: translate(-50%, -50%);
-    color: #fff; font-weight: 800; font-variant-numeric: tabular-nums;
-    font-size: 5.6cqw; line-height: 1; margin: 0;
-  }
-  .stat-box.art-box #stat-games { left: 32.3%; }
-  .stat-box.art-box #stat-wins  { left: 47.5%; }
-  .stat-box.art-box #stat-rate  { left: 64.1%; }
+  .home-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  @media (max-width: 470px) { .home-row { grid-template-columns: 1fr; } }
   .home-box {
     display: flex; align-items: center; gap: 12px; padding: 12px 14px;
     background: linear-gradient(180deg, #2e1d52, #1c0f3a);
@@ -698,18 +642,6 @@
   .tab.active .tab-ic { transform: translateY(-1px); filter: drop-shadow(0 0 8px rgba(167,139,250,.85)); }
   .tab.active .tab-av { border-color: var(--gold); box-shadow: 0 0 10px rgba(167,139,250,.9); transform: translateY(-1px); }
   .tab:active .tab-ic { transform: scale(1.08); }
-  /* Artwork-Tabs: komplette Grafik (Rahmen + Icon + Beschriftung) je Knopf */
-  .tab-art { position: relative; padding: 0; }
-  .tab-art .tab-img { display: block; width: 100%; height: auto;
-    transition: filter .15s, transform .15s; }
-  .tab-art.active .tab-img { filter: brightness(1.35) drop-shadow(0 0 8px rgba(167,139,250,.85)); }
-  .tab-art:active .tab-img { transform: scale(1.05); }
-  /* Profil-Tab: echtes Profilbild ueber dem eingebackenen Ring */
-  .tab-art .tab-av {
-    position: absolute; left: 50%; top: 8%; transform: translateX(-50%);
-    width: 40%; height: auto; aspect-ratio: 1 / 1;
-    border: none; background: none;
-  }
 
   /* Hilfe-Overlay */
   .modal {
@@ -1368,10 +1300,6 @@
 </head>
 <body>
 
-<!-- Abdeckung der iOS-Statusleiste: verhindert, dass gescrollter Inhalt
-     sichtbar hinter Uhr/Akku rutscht (Hoehe = Safe-Area, sonst 0). -->
-<div id="statusbar-shade" aria-hidden="true"></div>
-
 <!-- Start-Ladebildschirm: sofort sichtbar (statisch, kein JS noetig); app.js
      laedt darunter alle Startseiten-Bilder + das Kartendeck und blendet ihn
      erst aus, wenn alles bereit ist (Balken zeigt den Fortschritt). -->
@@ -1409,42 +1337,55 @@
 
       <!-- Aktions-Karten -->
       <div class="home-actions">
-        <button class="act-card act-imgcard" id="act-solo" type="button"
-                aria-label="Solo-Spiel fortsetzen">
-          <img class="act-img" src="./lobby/card-solo.jpg?v=3" alt="">
+        <button class="act-card" id="act-solo" type="button">
+          <img class="act-ic" src="./lobby/ic-solo.png?v=6" alt="" aria-hidden="true">
+          <span class="act-title">Solo-Spiel<br>fortsetzen</span>
+          <span class="act-sub">Dein pausiertes Solo-Spiel wartet.</span>
         </button>
-        <button class="act-card act-imgcard" id="act-comp" type="button"
-                aria-label="Gegen Computer – allein üben gegen Computer-Gegner">
-          <img class="act-img" src="./lobby/card-comp.jpg?v=4" alt="">
+        <button class="act-card" id="act-comp" type="button">
+          <img class="act-ic" src="./lobby/ic-comp.png?v=6" alt="" aria-hidden="true">
+          <span class="act-title">Gegen<br>Computer</span>
+          <span class="act-sub">Allein üben gegen Computer-Gegner.</span>
         </button>
-        <button class="act-card act-imgcard" id="act-online" type="button"
-                aria-label="Neues Spiel (Online) – erstelle ein neues Online-Spiel">
-          <img class="act-img" src="./lobby/card-online.jpg?v=3" alt="">
+        <button class="act-card" id="act-online" type="button">
+          <img class="act-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
+          <span class="act-title">Neues Spiel<br>(Online)</span>
+          <span class="act-sub">Erstelle ein neues Online-Spiel.</span>
         </button>
-        <button class="act-card act-imgcard" id="act-join" type="button"
-                aria-label="Beitreten – tritt einem Spiel mit Spiel-Code bei">
-          <img class="act-img" src="./lobby/card-join.jpg?v=4" alt="">
+        <button class="act-card" id="act-join" type="button">
+          <img class="act-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">
+          <span class="act-title">Beitreten</span>
+          <span class="act-sub">Tritt einem Spiel mit Spiel-Code bei.</span>
         </button>
-        <button class="act-card act-wide act-imgcard" id="act-quick" type="button"
-                aria-label="Schnelle Runde – spiele sofort mit anderen, die gerade Mitspieler suchen">
-          <img class="act-img" src="./lobby/card-quick.jpg?v=4" alt="">
+        <button class="act-card act-wide" id="act-quick" type="button">
+          <img class="act-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
+          <span class="act-title">⚡ Schnelle Runde</span>
+          <span class="act-sub">Spiele sofort mit anderen, die gerade Mitspieler suchen.</span>
         </button>
       </div>
 
       <!-- Name + Statistik -->
       <div class="home-row">
-        <!-- Artwork-Boxen: Grafik als Hintergrund (Label/Stift/Ring eingebacken),
-             dynamische Teile (Avatar, Eingabe, Werte) liegen als Overlays darauf. -->
-        <div class="home-box name-box art-box">
-          <img class="ab-bg" src="./lobby/box-name.jpg?v=2" alt="">
+        <div class="home-box name-box">
           <button class="nb-avatar" id="home-avatar" type="button" aria-label="Profilbild"><img src="avatars/av01.png?v=7" alt=""></button>
-          <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off" aria-label="Dein Name">
+          <div class="nb-main">
+            <span class="nb-label">Dein Name</span>
+            <div class="nb-edit">
+              <input id="name-input" type="text" maxlength="20" placeholder="Dein Name" autocomplete="off">
+              <span class="nb-pencil" aria-hidden="true">✏️</span>
+            </div>
+          </div>
         </div>
-        <div class="home-box stat-box art-box">
-          <img class="ab-bg" src="./lobby/box-stat.jpg?v=2" alt="">
-          <span class="sb-v" id="stat-games">–</span>
-          <span class="sb-v" id="stat-wins">–</span>
-          <span class="sb-v" id="stat-rate">–</span>
+        <div class="home-box stat-box">
+          <img class="sb-ic" src="./lobby/ic-stats.png?v=6" alt="" aria-hidden="true">
+          <div class="sb-main">
+            <span class="nb-label">Deine Statistik</span>
+            <div class="sb-grid">
+              <div><span class="sb-k">Spiele</span><span class="sb-v" id="stat-games">–</span></div>
+              <div><span class="sb-k">Siege</span><span class="sb-v" id="stat-wins">–</span></div>
+              <div><span class="sb-k">Winrate</span><span class="sb-v" id="stat-rate">–</span></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1641,11 +1582,11 @@
 
     <!-- Untere Navigations-Leiste (Embleme wie im Design) -->
     <nav class="tabbar">
-      <button class="tab tab-art" type="button" data-nav="shop" aria-label="Shop"><img class="tab-img" src="./lobby/tab-shop.jpg?v=1" alt=""></button>
-      <button class="tab tab-art" type="button" data-nav="rangliste" aria-label="Rangliste"><img class="tab-img" src="./lobby/tab-rang.jpg?v=1" alt=""></button>
-      <button class="tab tab-art" type="button" data-nav="start" aria-label="Neues Spiel"><img class="tab-img" src="./lobby/tab-neu.jpg?v=1" alt=""></button>
-      <button class="tab tab-art" type="button" data-nav="freunde" aria-label="Freunde"><img class="tab-img" src="./lobby/tab-freunde.jpg?v=1" alt=""></button>
-      <button class="tab tab-art" type="button" data-nav="profil" aria-label="Profil"><img class="tab-img" src="./lobby/tab-profil.jpg?v=1" alt=""><span class="tab-av" id="nav-avatar" aria-hidden="true"><img class="av-img" src="avatars/av01.png?v=7" alt=""></span></button>
+      <button class="tab" type="button" data-nav="shop"><img class="tab-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">Shop</button>
+      <button class="tab" type="button" data-nav="rangliste"><img class="tab-ic" src="./lobby/ic-rang.png?v=1" alt="" aria-hidden="true">Rangliste</button>
+      <button class="tab" type="button" data-nav="start"><img class="tab-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">Neues Spiel</button>
+      <button class="tab" type="button" data-nav="freunde"><img class="tab-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">Freunde</button>
+      <button class="tab" type="button" data-nav="profil"><span class="tab-av" id="nav-avatar" aria-hidden="true"><img class="av-img" src="avatars/av01.png?v=7" alt=""></span>Profil</button>
     </nav>
   </section>
 
