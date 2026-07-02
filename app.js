@@ -6,7 +6,7 @@ import { gameAssetUrls } from './table.js?v=76';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=68';
 import { preloadCards, allCardImageUrls } from './cards.js?v=16';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest } from './ads.js?v=4';
-import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
+import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=3';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
          getTableTheme, setTableTheme, applyTableTheme,
@@ -553,7 +553,7 @@ async function checkOwnerUnlock() {
 // Passende Erklärung, warum gerade nicht gekauft werden kann.
 function iapUnavailableHint() {
   return isNativeApp()
-    ? 'In-App-Käufe sind in dieser Version noch nicht freigeschaltet (RevenueCat-Einrichtung nötig) – hier siehst du die Vorschau.'
+    ? 'Käufe werden gerade vorbereitet (App-Store-Produkte noch nicht freigegeben) – hier siehst du die Vorschau.'
     : 'Käufe sind nur in der App möglich – hier siehst du die Vorschau.';
 }
 
@@ -681,7 +681,9 @@ async function buyShopItem(id) {
     loadShop(); refreshAvatarPicker();
     toast('Freigeschaltet – danke! 🎉', 'ok');
   } else if (!r.cancelled) {
-    toast('Kauf nicht möglich. Bitte später erneut versuchen.', 'err');
+    toast(r.error === 'no-product'
+      ? 'Dieses Angebot ist gerade nicht verfügbar.'
+      : 'Kauf nicht möglich. Bitte später erneut versuchen.', 'err');
   }
 }
 
@@ -1332,7 +1334,7 @@ function wireSettings() {
     sfxVolEl.addEventListener('change', () => { if (sfxEnabled()) sfxCard(); });  // Hörprobe beim Loslassen
   }
 
-  // Werbefrei: echter In-App-Kauf via RevenueCat (nur native App). Im Browser/
+  // Werbefrei: echter In-App-Kauf via StoreKit (nur native App). Im Browser/
   // PWA gibt es keine Werbung -> der Kauf-Bereich wird dort ausgeblendet.
   const adfreeBox = document.getElementById('adfree-box');
   const buyBtn = document.getElementById('buy-adfree');
@@ -1616,7 +1618,7 @@ async function init() {
   if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 3000 });
   else setTimeout(warm, 1500);
 
-  // In-App-Kauf (RevenueCat) initialisieren – erkennt einen frueheren Werbefrei-
+  // In-App-Kauf (StoreKit) initialisieren – erkennt einen frueheren Werbefrei-
   // Kauf, BEVOR Werbung geladen wird. Danach Werbung + Banner (nur native App).
   initIAP().finally(() => initAds().then(showBanner));
 

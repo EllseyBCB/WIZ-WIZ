@@ -1,48 +1,47 @@
-// In-App-Käufe via RevenueCat (@revenuecat/purchases-capacitor).
-// Aktiv NUR in der nativen App; im Browser/PWA No-Op (dort gibt es keine Käufe).
-// Zugriff ueber die globale Capacitor-Bruecke – es ist KEIN Bundler noetig.
+// In-App-Käufe direkt über Apple StoreKit (cordova-plugin-purchase, global
+// window.CdvPurchase). Aktiv NUR in der nativen App; im Browser/PWA No-Op.
+// KEIN RevenueCat, KEIN Server: alle Angebote sind Non-Consumables (Einmalkauf),
+// das StoreKit-Plugin merkt sich den Besitz lokal und stellt ihn per
+// restorePurchases() wieder her.
 //
-// Mehrere Produkte werden unterstuetzt: jedes Shop-Angebot hat eine Produkt-ID
-// (App Store Connect) und ein Entitlement (RevenueCat). Aktive Entitlements
-// werden lokal nach 'wizard_owned' gespiegelt; den Besitz fragt cosmetics.js ab.
-import { REVENUECAT_IOS_KEY, IAP_ENTITLEMENT, IAP_PRODUCT_ID, IAP_BUNDLE_ENTITLEMENT } from './config.js';
+// Produkt-IDs + Entitlements kommen zentral aus cosmetics.js (eine Quelle).
+// Aktive Käufe werden als Entitlement-Schlüssel nach 'wizard_owned' gespiegelt;
+// den Besitz fragt cosmetics.js ab. Das Magier-Bundle schaltet alles frei.
+//
+// App Store Connect: jedes hier registrierte Produkt muss dort mit exakt
+// dieser ID als "Non-Consumable" angelegt und freigegeben sein – sonst liefert
+// StoreKit es nicht aus (kein Kauf möglich).
+import { IAP_ENTITLEMENT, IAP_BUNDLE_ENTITLEMENT } from './config.js';
 import { setAdFree } from './ads.js';
+import { SHOP_ADFREE, SHOP_BUNDLE, AVATAR_ITEMS, TABLE_ITEMS } from './cosmetics.js?v=5';
 
 const cap = () => window.Capacitor;
 const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
-const plat = () => cap()?.getPlatform?.();
-const Purchases = () => cap()?.Plugins?.Purchases || null;
+const CDV = () => window.CdvPurchase || null;
 
 const ENT = IAP_ENTITLEMENT || 'adfree';
 const BUNDLE = IAP_BUNDLE_ENTITLEMENT || 'magier';
 const LS_OWNED = 'wizard_owned';
-let configured = false;
 
-// Steht der echte Kauf zur Verfuegung? (native App + Plugin + Key vorhanden)
+// Alle kaufbaren Angebote (Gratis-Tische ausgenommen) -> {productId, entitlement}.
+const CATALOG = [SHOP_ADFREE, SHOP_BUNDLE, ...AVATAR_ITEMS, ...TABLE_ITEMS.filter(t => !t.free)]
+  .filter(i => i && i.productId && i.entitlement);
+
+let initialized = false;
+
+// Steht der echte Kauf zur Verfuegung? (native App + StoreKit-Plugin geladen)
 export function iapAvailable() {
-  return isNative() && !!Purchases() && (plat() === 'android' || !!REVENUECAT_IOS_KEY);
+  return isNative() && !!CDV()?.store;
 }
 
-export async function initIAP() {
-  if (!iapAvailable() || configured) return;
-  const P = Purchases();
-  const apiKey = plat() === 'android' ? '' : REVENUECAT_IOS_KEY;   // hier nur iOS
-  if (!apiKey) return;
-  try {
-    await P.configure({ apiKey });
-    configured = true;
-    await syncEntitlement();        // frueheren Kauf wiederherstellen
-  } catch (_) {}
+// --- Besitz aus dem Store lesen und als Entitlements abbilden ---------------
+function storeOwned(productId) {
+  try { return !!CDV()?.store?.owned(productId); } catch (_) { return false; }
 }
-
-// Liste aller aktiven Entitlement-Schluessel.
-export async function activeEntitlements() {
-  const P = Purchases(); if (!P) return [];
-  try {
-    const res = await P.getCustomerInfo();
-    const info = res?.customerInfo || res;
-    return Object.keys(info?.entitlements?.active || {});
-  } catch (_) { return []; }
+function ownedEntitlements() {
+  const out = [];
+  for (const it of CATALOG) if (storeOwned(it.productId)) out.push(it.entitlement);
+  return out;
 }
 
 // Aktive Entitlements lokal spiegeln (Besitz fuer cosmetics.js + Werbe-Status).
@@ -51,53 +50,93 @@ function mirror(keys) {
   if (keys.includes(ENT) || keys.includes(BUNDLE)) setAdFree(true);
 }
 
+// --- Initialisierung (einmalig): Produkte registrieren + Store starten ------
+export async function initIAP() {
+  if (!iapAvailable() || initialized) return;
+  const { store, ProductType, Platform, LogLevel } = CDV();
+  try {
+    store.verbosity = LogLevel ? LogLevel.WARNING : 1;
+    store.register(CATALOG.map(it => ({
+      id: it.productId,
+      type: ProductType.NON_CONSUMABLE,
+      platform: Platform.APPLE_APPSTORE,
+    })));
+    // Kein Server-Validator: genehmigte Transaktionen direkt abschliessen.
+    store.when()
+      .approved(t => t.finish())
+      .finished(() => mirror(ownedEntitlements()));
+    await store.initialize([Platform.APPLE_APPSTORE]);
+    initialized = true;
+    mirror(ownedEntitlements());     // frueheren Kauf sofort spiegeln
+  } catch (_) {}
+}
+
+// Liste aller aktiven Entitlement-Schluessel (Kompatibilitaet).
+export async function activeEntitlements() {
+  if (!iapAvailable()) return [];
+  if (!initialized) await initIAP();
+  return ownedEntitlements();
+}
+
 // Bei App-Start: aktive Kaeufe erkennen, Werbung/Besitz entsprechend setzen.
 export async function syncEntitlement() {
   if (!iapAvailable()) return false;
-  const keys = await activeEntitlements();
+  if (!initialized) await initIAP();
+  const keys = ownedEntitlements();
   mirror(keys);
   return keys.includes(ENT) || keys.includes(BUNDLE);
+}
+
+// Kurz warten, bis der Store den Kauf als "owned" verbucht (Event-Kette laeuft
+// asynchron nach order()). Bricht spaetestens nach ~2 s ab.
+function waitOwned(productId, ms = 2000) {
+  return new Promise(resolve => {
+    const t0 = Date.now();
+    const tick = () => {
+      if (storeOwned(productId) || Date.now() - t0 > ms) return resolve(storeOwned(productId));
+      setTimeout(tick, 120);
+    };
+    tick();
+  });
 }
 
 // Beliebiges Produkt kaufen. Liefert { ok, cancelled, error, owned }.
 export async function purchaseProduct(productId) {
   if (!iapAvailable()) return { ok: false, error: 'unavailable' };
-  const P = Purchases();
-  if (!configured) await initIAP();
+  if (!initialized) await initIAP();
+  const { store, Platform, ErrorCode } = CDV();
+  const product = store.get(productId, Platform.APPLE_APPSTORE);
+  const offer = product && product.getOffer ? product.getOffer() : null;
+  if (!offer) return { ok: false, error: 'no-product' };   // ID fehlt in App Store Connect?
   try {
-    const off = await P.getOfferings();
-    const current = off?.current || off?.offerings?.current;
-    const pkgs = current?.availablePackages || [];
-    let pkg = productId ? pkgs.find(p => p?.product?.identifier === productId) : null;
-    pkg = pkg || (productId ? null : pkgs[0]);   // ohne ID: erstes Paket (Rueckwaerts-Kompat.)
-    if (!pkg) return { ok: false, error: 'no-package' };
-    const res = await P.purchasePackage({ aPackage: pkg });
-    const info = res?.customerInfo || res;
-    const keys = Object.keys(info?.entitlements?.active || {});
+    const err = await offer.order();
+    if (err) {
+      const cancelled = ErrorCode && err.code === ErrorCode.PAYMENT_CANCELLED;
+      return { ok: false, cancelled: !!cancelled, error: err.message || String(err.code || err) };
+    }
+    await waitOwned(productId);
+    const keys = ownedEntitlements();
     mirror(keys);
-    return { ok: true, owned: keys };
+    return { ok: storeOwned(productId), owned: keys };
   } catch (e) {
     const msg = String(e?.message || e?.code || e || '');
-    const cancelled = e?.userCancelled === true || e?.code === '1' || /cancel/i.test(msg);
-    return { ok: false, cancelled, error: msg };
+    return { ok: false, cancelled: /cancel/i.test(msg), error: msg };
   }
 }
 
 // Werbefrei – duenner Wrapper auf purchaseProduct (Rueckwaerts-Kompatibilitaet).
 export async function purchaseAdFree() {
-  const r = await purchaseProduct(IAP_PRODUCT_ID);
+  const r = await purchaseProduct(SHOP_ADFREE.productId);
   return { ...r, ok: r.ok && (!r.owned || r.owned.includes(ENT) || r.owned.includes(BUNDLE)) };
 }
 
 // Von Apple verlangter "Kauf wiederherstellen"-Pfad.
 export async function restorePurchases() {
   if (!iapAvailable()) return { ok: false, error: 'unavailable' };
-  const P = Purchases();
-  if (!configured) await initIAP();
+  if (!initialized) await initIAP();
   try {
-    const res = await P.restorePurchases();
-    const info = res?.customerInfo || res;
-    const keys = Object.keys(info?.entitlements?.active || {});
+    await CDV().store.restorePurchases();
+    const keys = ownedEntitlements();
     mirror(keys);
     return { ok: keys.length > 0, owned: keys };
   } catch (e) {
