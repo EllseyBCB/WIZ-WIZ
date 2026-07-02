@@ -555,6 +555,12 @@ function hideRoundLoader() {
   setTimeout(() => n.remove(), 500);
 }
 
+// Vorgeladene Bilder DAUERHAFT referenzieren: sonst raeumt der Garbage
+// Collector die Image-Objekte ab, das Bild faellt aus dem Memory-Cache und
+// wird beim ersten Ausspielen doch wieder nachgeladen (sichtbares Rendern).
+const keptWarm = [];
+const keptWarmUrls = new Set();
+
 // Bilder mit Fortschritt vorladen. Balken zeigt min(echter Fortschritt,
 // Mindestzeit-Fortschritt) – so ist er auch bei gefuelltem Cache sichtbar und
 // laeuft fluessig durch. Haerte-Timeout, falls ein Bild nie ankommt.
@@ -582,12 +588,31 @@ function preloadWithProgress(urls, key, onDone) {
     const im = new Image();
     im.onload = im.onerror = () => { loaded++; tick(); };
     im.src = u;
+    if (!keptWarmUrls.has(u)) { keptWarmUrls.add(u); keptWarm.push(im); }
   });
 }
 
-// Alles, was die Runde braucht: komplettes Deck + Rueckseite + Avatare.
+// Spieltisch-Grafiken (CSS-Hintergruende: Sitz-Rahmen, Buttons, Tisch, Karten-
+// ruecken), die sonst erst beim ERSTEN Anzeigen im Spiel nachladen wuerden –
+// sichtbares Nach-Rendern mitten in der Runde. Die URLs muessen exakt den
+// url(...)-Angaben im CSS entsprechen, sonst trifft das Vorladen den Cache nicht.
+export function gameAssetUrls() {
+  const urls = [
+    'lobby/table-bg.jpg?v=2', 'lobby/stars.jpg?v=2', 'cards/back.png?v=2',
+    'lobby/ui-seat2.png?v=1', 'lobby/ui-allcards.png?v=1', 'lobby/ui-bid.png?v=1',
+    'lobby/ui-leave.png?v=1', 'lobby/ui-pause.png?v=1',
+    'lobby/nav-leave.png?v=1', 'lobby/nav-pause.png?v=1'
+  ];
+  // Aktives Premium-Tischdesign (von cosmetics.js injizierter Stil)
+  const st = document.getElementById('wiz-table-style');
+  const m = st && st.textContent.match(/url\('([^']+)'\)/);
+  if (m) urls.push(m[1]);
+  return urls;
+}
+
+// Alles, was das Spiel braucht: Deck + Rueckseite + Tisch-Grafiken + Avatare.
 function collectRoundAssets(state) {
-  const urls = allCardImageUrls();
+  const urls = allCardImageUrls().concat(gameAssetUrls());
   (state.players || []).forEach(p => {
     const av = p.avatar || DEFAULT_AV;
     if (isImg(av)) urls.push(avV(av));

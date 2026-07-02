@@ -1,8 +1,9 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=73';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=64';
+import { render } from './game.js?v=74';
+import { gameAssetUrls } from './table.js?v=73';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=65';
 import { preloadCards, allCardImageUrls } from './cards.js?v=16';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview } from './ads.js?v=3';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=2';
@@ -1495,6 +1496,10 @@ function showConsentIfNeeded() {
   if (cp) cp.onclick = () => openModal('privacy-modal');
 }
 
+// Vorgeladene Bilder dauerhaft referenzieren (sonst GC -> Memory-Cache-Verlust
+// -> sichtbares Nachladen spaeter im Spiel).
+const bootWarm = [];
+
 // Start-Ladebildschirm (statisch in index.html): alle Startseiten-Bilder,
 // Avatare und das komplette Kartendeck vorladen; Balken zeigt den Fortschritt.
 // Erst wenn alles bereit ist (mind. ~1s, max. 10s), wird er ausgeblendet.
@@ -1505,9 +1510,12 @@ function runBootLoader() {
   const urls = new Set();
   // Alle bereits im HTML referenzierten Bilder (Startseiten-Kacheln, Icons …)
   document.querySelectorAll('img[src]').forEach(im => { const s = im.getAttribute('src'); if (s) urls.add(s); });
-  // CSS-Hintergruende der Startseite/des Tisches + Ladebild selbst
-  ['lobby/bg.jpg', 'lobby/stars.jpg', 'lobby/home-hero.jpg', 'lobby/table-bg.jpg?v=2',
-   'lobby/game-banner.jpg?v=1', 'lobby/loading.jpg?v=1'].forEach(u => urls.add(u));
+  // CSS-Hintergruende der Startseite + Ladebild selbst (URLs exakt wie im CSS)
+  ['lobby/bg.jpg?v=2', 'lobby/home-hero.jpg', 'lobby/game-banner.jpg?v=1',
+   'lobby/loading.jpg?v=1'].forEach(u => urls.add(u));
+  // Spieltisch-Grafiken (Sitz-Rahmen, Buttons, Tisch, Kartenruecken) – damit
+  // im Spiel selbst nichts mehr sichtbar nachlaedt.
+  gameAssetUrls().forEach(u => urls.add(u));
   // Standard-Avatare (eigenes Profil + Computer-Gegner)
   for (let i = 1; i <= 18; i++) urls.add('avatars/av' + String(i).padStart(2, '0') + '.png?v=7');
   // Komplettes Kartendeck (60 Vorderseiten + Rueckseite)
@@ -1532,14 +1540,15 @@ function runBootLoader() {
   };
   iv = setInterval(tick, 80);
   setTimeout(finish, MAX);
-  list.forEach(u => { const im = new Image(); im.onload = im.onerror = () => { loaded++; tick(); }; im.src = u; });
+  list.forEach(u => { const im = new Image(); im.onload = im.onerror = () => { loaded++; tick(); }; im.src = u; bootWarm.push(im); });
 }
 
 async function init() {
-  // Erst alles laden (Ladebildschirm mit Balken), dann die Startseite zeigen.
-  runBootLoader();
   // Buttons sofort verdrahten – der Solo-Modus braucht keine Anmeldung.
   applyTableTheme();   // gewähltes Tisch-Design auf den Spieltisch anwenden
+  // Erst alles laden (Ladebildschirm mit Balken), dann die Startseite zeigen.
+  // (Nach applyTableTheme, damit auch das aktive Tisch-Design vorgeladen wird.)
+  runBootLoader();
   wireHome();
   wireLegal();
   showConsentIfNeeded();
