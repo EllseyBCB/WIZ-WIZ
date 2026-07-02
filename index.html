@@ -549,6 +549,15 @@
   .act-card:active { filter: brightness(1.12); transform: translateY(1px); }
   .act-card.is-disabled { opacity: .42; pointer-events: none; }
   .act-wide { grid-column: 1 / -1; }   /* Schnelle Runde: volle Breite */
+  /* Bild-Kachel (fertige Grafik statt CSS-Karte): Rahmen/Emblem/Deko stecken
+     im Artwork selbst, daher alle Karten-Styles neutralisieren. */
+  .act-imgcard {
+    background: none; border: none; padding: 0; min-height: 0;
+    border-radius: 18px; overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  }
+  .act-imgcard::before, .act-imgcard::after { display: none; }
+  .act-imgcard .act-img { display: block; width: 100%; height: auto; }
   /* Lila Scheibe hinter dem Emblem: verdeckt die gerade Karten-Oberkante, damit
      der runde Goldring vollständig (nicht durchgestrichen) zu sehen ist. */
   .act-card::before {
@@ -1357,10 +1366,9 @@
           <span class="act-title">Beitreten</span>
           <span class="act-sub">Tritt einem Spiel mit Spiel-Code bei.</span>
         </button>
-        <button class="act-card act-wide" id="act-quick" type="button">
-          <img class="act-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
-          <span class="act-title">⚡ Schnelle Runde</span>
-          <span class="act-sub">Spiele sofort mit anderen, die gerade Mitspieler suchen.</span>
+        <button class="act-card act-wide act-imgcard" id="act-quick" type="button"
+                aria-label="Schnelle Runde – spiele sofort mit anderen, die gerade Mitspieler suchen">
+          <img class="act-img" src="./lobby/card-quick.jpg?v=1" alt="">
         </button>
       </div>
 
