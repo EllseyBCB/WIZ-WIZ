@@ -62,6 +62,15 @@ let dealPendingKey = null;
 // Handkarte i. Da das fliegende Element die Karte SELBST ist, landet sie
 // konstruktionsbedingt exakt dort, wo sie sich spaeter umdreht.
 let dealFlight = null;
+// Handfaecher ueber Re-Renders hinweg WIEDERVERWENDEN (gleiche <img>-Elemente),
+// damit die eigene Hand beim Legen anderer nicht sichtbar "neu laedt".
+// Drop-Zone/Actions werden je Render aktualisiert (nicht in Closures eingefroren).
+let lastFanEl = null;
+let lastFanItems = [];
+let lastFanCodes = [];
+let lastFanRound = '';   // Wiederverwendung strikt auf dieselbe Runde begrenzen
+let currentDropZone = null;
+let currentActions = null;
 // Runden-Ladebildschirm: VOR jedem Austeilen (und beim kalten Einstieg mitten
 // in eine Runde) erst alle Bilder laden – mit Fortschrittsbalken –, dann erst
 // das Spiel starten. loaderKey = gerade ladende Runde, loaderDoneKey = fertig.
@@ -228,6 +237,7 @@ function bindLockCleanup() {
       // Merker zuruecksetzen: Ein NEUES Spiel (Solo hat denselben Schluessel
       // 'solo|1|…') soll wieder mit Ladebildschirm + Austeil-Animation starten.
       lastDealKey = null; loaderDoneKey = null;
+      lastFanEl = null; lastFanItems = []; lastFanCodes = [];   // keinen alten Faecher behalten
       document.getElementById('gameover-modal')?.remove();   // Endstand-Overlay weg
     }
   });
@@ -964,6 +974,14 @@ function hint(text) {
 }
 
 // --- Gefaecherte Hand ------------------------------------------------------
+// Spielbarkeits-Zustand einer Handkarte auffrischen (ohne DOM-Neuaufbau).
+function patchFanCard(el, code, hand, lead, canPlay) {
+  const legal = isLegal(code, hand, lead);
+  el.classList.toggle('playable', canPlay && legal);
+  el.classList.toggle('illegal', canPlay && !legal);
+  el.disabled = !(canPlay && legal);
+}
+
 function buildHandFan(state, actions, dropZone) {
   const { game, players, hand, trick, uid } = state;
   const me = players.find(p => p.uid === uid);
@@ -972,27 +990,58 @@ function buildHandFan(state, actions, dropZone) {
   const canPlay = game.status === 'running' && game.phase === 'playing' && myTurn;
   const lead = leadColor(trick);
   const cards = hand.filter(h => !h.played);
+  currentDropZone = dropZone;     // Drag&Drop-Ziel dieses Renders (dynamisch)
+  currentActions = actions;
 
-  const fan = document.createElement('div');
-  fan.className = 'hand-fan';
   if (!cards.length) {
     activeRelayout = null;          // leer lassen (kein "keine Karten"-Text)
+    lastFanEl = null; lastFanItems = []; lastFanCodes = [];
+    const fan = document.createElement('div');
+    fan.className = 'hand-fan';
     return fan;
   }
 
+  const codes = cards.map(h => h.card);
+  const fanRound = (game.join_code || 'solo') + '|' + game.round_no;
+  const dealing = dealPendingKey || dealFlight || dealCoverActive || Date.now() < dealEndsAt;
+
+  // WIEDERVERWENDEN statt neu bauen: Bleibt der Kartensatz gleich (Gegner hat
+  // gelegt) oder wird er nur kleiner (eigene Karte gespielt), den bestehenden
+  // Faecher behalten und nur die Spielbarkeit auffrischen. Sonst wuerden bei
+  // JEDEM Zug frische <img>-Elemente entstehen, die der Browser neu dekodiert –
+  // die eigene Hand "laedt" sichtbar neu. Waehrend des Austeilens immer neu
+  // bauen (verdeckter Aufbau + Flug brauchen frische Struktur).
+  if (!dealing && lastFanEl && lastFanRound === fanRound && lastFanItems.length >= codes.length) {
+    let ci = 0;
+    for (const oc of lastFanCodes) { if (ci < codes.length && oc === codes[ci]) ci++; }
+    if (ci === codes.length) {                       // codes = Teilfolge der alten
+      if (codes.length < lastFanCodes.length) {      // gespielte Karten entfernen
+        const keep = [];
+        let k = 0;
+        lastFanItems.forEach((el, i) => {
+          if (k < codes.length && lastFanCodes[i] === codes[k]) { keep.push(el); k++; }
+          else el.remove();
+        });
+        lastFanItems = keep;
+      }
+      lastFanCodes = codes.slice();
+      lastFanItems.forEach((el, i) => patchFanCard(el, codes[i], hand, lead, canPlay));
+      const fan = lastFanEl, items = lastFanItems;
+      const layout = () => layoutFan(fan, items);
+      activeRelayout = layout;
+      requestAnimationFrame(layout);   // nach Entfernen sanft zusammenruecken
+      return fan;
+    }
+  }
+
+  const fan = document.createElement('div');
+  fan.className = 'hand-fan';
+
   const items = cards.map(h => {
-    const legal = isLegal(h.card, hand, lead);
     const el = renderCard(h.card, { button: true });
     el.classList.add('fan-card');
-    if (canPlay && legal) {
-      el.classList.add('playable');
-      makePlayable(el, h.card, () => actions.onPlay(h.card), dropZone);
-    } else if (canPlay && !legal) {
-      el.classList.add('illegal');
-      el.disabled = true;
-    } else {
-      el.disabled = true;
-    }
+    makePlayable(el, h.card);
+    patchFanCard(el, h.card, hand, lead, canPlay);
     fan.appendChild(el);
     return el;
   });
@@ -1006,6 +1055,8 @@ function buildHandFan(state, actions, dropZone) {
   else if (Date.now() < dealEndsAt || dealPendingKey) {
     items.forEach(el => buildFlip(el));
   }
+
+  lastFanEl = fan; lastFanItems = items; lastFanCodes = codes.slice(); lastFanRound = fanRound;
 
   const layout = () => layoutFan(fan, items);
   activeRelayout = layout;
@@ -1054,14 +1105,20 @@ function layoutFan(fan, items) {
 }
 
 // --- Interaktion: Doppelklick / Drag&Drop / Touch --------------------------
-// Beide Wege rufen denselben play()-Callback (=> actions.onPlay).
-function makePlayable(el, code, play, dropZone) {
+// Beide Wege spielen die Karte ueber currentActions.onPlay. Die Handler haengen
+// an JEDER Handkarte (auch wiederverwendeten); ob sie greifen, entscheidet der
+// AKTUELLE Zustand (.playable), und Drop-Zone/Actions kommen aus den je Render
+// aktualisierten Modul-Variablen – nie aus einer veralteten Closure.
+function makePlayable(el, code) {
   el.style.touchAction = 'none';
   let sx = 0, sy = 0, dragging = false, ghost = null, pid = null, lastTap = 0;
+  const play = () => { if (currentActions) currentActions.onPlay(code); };
+  const usable = () => el.classList.contains('playable') && !el.disabled;
 
-  el.addEventListener('dblclick', e => { e.preventDefault(); play(); });
+  el.addEventListener('dblclick', e => { e.preventDefault(); if (usable()) play(); });
 
   el.addEventListener('pointerdown', e => {
+    if (!usable()) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     pid = e.pointerId; sx = e.clientX; sy = e.clientY; dragging = false;
     try { el.setPointerCapture(pid); } catch (_) {}
@@ -1077,7 +1134,7 @@ function makePlayable(el, code, play, dropZone) {
     }
     if (dragging) {
       positionGhost(ghost, e.clientX, e.clientY);
-      dropZone.classList.toggle('drop-hot', overDrop(e, dropZone));
+      if (currentDropZone) currentDropZone.classList.toggle('drop-hot', overDrop(e, currentDropZone));
     }
   });
 
@@ -1086,10 +1143,10 @@ function makePlayable(el, code, play, dropZone) {
     try { el.releasePointerCapture(pid); } catch (_) {}
     pid = null;
     if (dragging) {
-      const over = !cancelled && overDrop(e, dropZone);
+      const over = !cancelled && currentDropZone && overDrop(e, currentDropZone);
       if (ghost) { ghost.remove(); ghost = null; }
       el.classList.remove('dragging-src');
-      dropZone.classList.remove('drop-hot');
+      if (currentDropZone) currentDropZone.classList.remove('drop-hot');
       dragging = false;
       if (over) play();                          // auf Stapel abgelegt -> ausspielen
     } else if (!cancelled) {
