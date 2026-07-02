@@ -133,7 +133,9 @@ function coverAndScheduleFlip(scopeEl) {
   const elapsed = Date.now() - dealRevealStart;
   cards.forEach((el, i) => {
     const inner = buildFlip(el);
-    const t = 200 + i * 150;               // Aufdeck-Zeitpunkt dieser Karte
+    // Aufdeck-Zeitpunkt dieser Karte: ruhige Pause vor der ersten Karte,
+    // dann gemaechlich gestaffelt (die Dreh-Animation selbst dauert ~.9s).
+    const t = 550 + i * 190;
     if (elapsed >= t) {
       // Bereits aufgedeckt (z. B. Neu-Render durch ein Bot-Gebot): sofort und
       // OHNE Animation auf die Vorderseite setzen -> kein erneutes Umdrehen.
@@ -748,7 +750,7 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
       dealTimers.push(setTimeout(() => {
         dealCoverActive = false;
         stripCovers();   // Sicherheitsnetz: am Ende ALLE Handkarten aufgedeckt zeigen
-      }, 200 + handCards * 150 + 700));
+      }, 550 + handCards * 190 + 1100));
     }, totalMs);
   }));
   return true;
