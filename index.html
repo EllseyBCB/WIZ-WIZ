@@ -835,6 +835,12 @@
      Entwurf) – oben beginnt direkt die Kopfzeile, der Tisch fuellt den Rest. */
   body:has(#game-view.active) header.banner-head { display: none; }
   body:has(#game-view.active) .felt { height: calc(100svh - 158px); min-height: 450px; }
+  /* Tablets/breite Screens: Kopfzeile + Nav-Buttons sind dort hoeher (vw-
+     Skalierung) -> groesseres Abzugs-Budget, sonst ragt die Menue-Leiste
+     unten aus dem Bildschirm. */
+  @media (min-width: 600px) {
+    body:has(#game-view.active) .felt { height: calc(100svh - 230px); min-height: 450px; }
+  }
 
   /* "Statische" Tischansicht: Tisch fixiert, kein Scrollen zum Punktestand.
      Wird per Tipp auf den Tisch aktiviert, per Knopf wieder aufgehoben. */
