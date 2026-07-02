@@ -3,8 +3,11 @@
 // vorhandene Eintraege werden aktualisiert, nichts wird doppelt angelegt.
 // So muss auf dem Mac NICHTS von Hand in Xcode editiert werden.
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { execSync } from 'child_process';
 
 const PLIST = 'ios/App/App/Info.plist';
+const PODFILE = 'ios/App/Podfile';
+const PODLOCK = 'ios/App/Podfile.lock';
 
 // Echte AdMob-App-ID (aus der AdMob-Konsole; muss zur ID in config.js passen).
 const ADMOB_APP_ID = 'ca-app-pub-3811537285456646~2491168634';
@@ -67,4 +70,49 @@ if (s !== before) {
   console.log('patch-ios: Info.plist aktualisiert (AdMob-App-ID, ATT-Text, SKAdNetworkItems).');
 } else {
   console.log('patch-ios: Info.plist ist bereits aktuell.');
+}
+
+// 4) GoogleUserMessagingPlatform (UMP) auf 2.x pinnen.
+//    @capacitor-community/admob 6.2.0 nutzt die alte UMP*-API (UMPConsentStatus
+//    usw.). UMP 3.0 hat diese Symbole umbenannt -> Build-Fehler
+//    "'UMPConsentStatus' has been renamed to 'ConsentStatus'". Der Pin auf ~> 2.0
+//    haelt die kompatible SDK-Version (Google-Mobile-Ads-SDK verlangt nur >= 1.1).
+//    Laeuft nach `cap sync` (also nach dem ersten pod install), deshalb ziehen
+//    wir bei Bedarf einen `pod install`/`pod update` selbst nach. Idempotent.
+if (existsSync(PODFILE)) {
+  const UMP_PIN = "  pod 'GoogleUserMessagingPlatform', '~> 2.0'";
+  let pf = readFileSync(PODFILE, 'utf8');
+  let podfileChanged = false;
+
+  if (!pf.includes("pod 'GoogleUserMessagingPlatform'")) {
+    // In den `target 'App' do`-Block einfuegen (nach `capacitor_pods`).
+    if (/^\s*capacitor_pods\s*$/m.test(pf)) {
+      pf = pf.replace(/^(\s*capacitor_pods\s*)$/m, `$1\n${UMP_PIN}`);
+    } else {
+      pf = pf.replace(/(target 'App' do\s*\n)/, `$1${UMP_PIN}\n`);
+    }
+    writeFileSync(PODFILE, pf);
+    podfileChanged = true;
+    console.log('patch-ios: UMP-Pin (~> 2.0) in Podfile eingetragen.');
+  }
+
+  // Prueft, ob die Lock-Datei noch auf UMP 3.x steht (oder fehlt).
+  const lockOnV3 = !existsSync(PODLOCK) ||
+    /GoogleUserMessagingPlatform \(3\./.test(readFileSync(PODLOCK, 'utf8'));
+
+  if (podfileChanged || lockOnV3) {
+    const env = { ...process.env, LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' };
+    // Homebrew-CocoaPods sicher auf den PATH.
+    env.PATH = `/opt/homebrew/bin:/usr/local/bin:${env.PATH || ''}`;
+    console.log('patch-ios: pod update GoogleUserMessagingPlatform (UMP 2.x wird gezogen)...');
+    try {
+      execSync('pod update GoogleUserMessagingPlatform', {
+        cwd: 'ios/App', env, stdio: 'inherit',
+      });
+    } catch (e) {
+      console.warn('patch-ios: pod update fehlgeschlagen – bitte manuell `pod install` in ios/App ausfuehren.');
+    }
+  } else {
+    console.log('patch-ios: UMP-Pin bereits aktiv, Podfile.lock ok.');
+  }
 }
