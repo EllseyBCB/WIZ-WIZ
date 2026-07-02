@@ -174,6 +174,7 @@ function bindLockCleanup() {
       // und blockiert Eingaben – und nach dem Fortsetzen bliebe die Hand
       // versteckt, wenn iOS die wartenden Timer verworfen hat.
       clearDeal();
+      document.getElementById('gameover-modal')?.remove();   // Endstand-Overlay weg
     }
   });
   obs.observe(gv, { attributes: true, attributeFilter: ['class'] });
