@@ -8,7 +8,7 @@
     "assets": "capacitor-assets generate --ios",
     "add:ios": "npm run sync:web && npx cap add ios",
     "add:android": "npm run sync:web && npx cap add android",
-    "ios": "npm run sync:web && npx cap sync ios && npx cap open ios",
+    "ios": "npm run sync:web && npx cap sync ios && node patch-ios.mjs && npx cap open ios",
     "android": "npm run sync:web && npx cap sync android && npx cap open android"
   },
   "dependencies": {

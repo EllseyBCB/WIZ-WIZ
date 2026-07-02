@@ -65,26 +65,20 @@ ausführen – das kopiert und synct neu.
 
 ---
 
-## 4. Pflicht-Einträge in `ios/App/App/Info.plist`
+## 4. Pflicht-Einträge in `ios/App/App/Info.plist` (AUTOMATISCH)
 
-Diese fügt Xcode **nicht** automatisch hinzu – ohne sie gibt es eine
-App-Store-Ablehnung bzw. keine Werbung:
+Die AdMob-Pflichteinträge werden von **`patch-ios.mjs` automatisch** gesetzt –
+das Skript läuft bei jedem `npm run ios` mit und trägt ein bzw. aktualisiert:
 
-```xml
-<!-- AdMob App-ID (echte App-ID des Zaubertisch-AdMob-Kontos) -->
-<key>GADApplicationIdentifier</key>
-<string>ca-app-pub-3811537285456646~2491168634</string>
+- `GADApplicationIdentifier` = `ca-app-pub-3811537285456646~2491168634`
+  (echte App-ID; ersetzt auch eine evtl. vorhandene Test-ID)
+- `NSUserTrackingUsageDescription` (Pflichttext für den iOS-Tracking-Dialog)
+- `SKAdNetworkItems` (Werbe-Attribution, von AdMob empfohlen)
 
-<!-- App-Tracking-Transparency: Pflichttext fuer personalisierte Werbung -->
-<key>NSUserTrackingUsageDescription</key>
-<string>Wird genutzt, um dir relevantere Werbung anzuzeigen.</string>
-```
+**Es muss also nichts von Hand in der Info.plist editiert werden.**
 
 Für die **„du bist dran"-Benachrichtigung** ist kein Plist-Eintrag nötig – die
 Erlaubnis wird zur Laufzeit abgefragt (Einstellungen → Benachrichtigungen).
-
-AdMob empfiehlt zusätzlich die **SKAdNetworkItems** in der Info.plist
-(Liste der Werbe-Netzwerk-IDs) – siehe AdMob-Doku.
 
 ---
 
@@ -108,8 +102,8 @@ Anzeigen** – damit verdient man nichts. So stellst du auf echte Werbung um:
 1. **`config.js`** (Repo-Wurzel) → im Objekt `ADMOB` die beiden Ad-Unit-IDs
    bei `bannerIos` und `interstitialIos` eintragen. Mehr nicht – der
    Testmodus schaltet sich damit automatisch ab.
-2. **`ios/App/App/Info.plist`** → `GADApplicationIdentifier` von der Test-ID
-   auf deine **App-ID** (die mit `~`) ändern (Abschnitt 4 oben).
+2. Die App-ID in der `Info.plist` setzt `patch-ios.mjs` automatisch
+   (Abschnitt 4) – nichts zu tun.
 3. `npm run ios` → in Xcode neu bauen.
 
 **C. app-ads.txt (wichtig für volle Vergütung)**
