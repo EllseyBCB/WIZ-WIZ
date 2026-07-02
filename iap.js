@@ -34,6 +34,19 @@ export function iapAvailable() {
   return isNative() && !!CDV()?.store;
 }
 
+// Lokalisierter Live-Preis eines Produkts aus StoreKit (z. B. "3,99 €" / "$3.99").
+// null, wenn (noch) nicht geladen oder Produkt in App Store Connect nicht da.
+export function productPrice(productId) {
+  if (!iapAvailable()) return null;
+  try {
+    const { store, Platform } = CDV();
+    const p = store.get(productId, Platform.APPLE_APPSTORE);
+    const offer = p && p.getOffer ? p.getOffer() : null;
+    const ph = offer && offer.pricingPhases ? offer.pricingPhases[0] : null;
+    return ph && ph.price ? ph.price : null;
+  } catch (_) { return null; }
+}
+
 // --- Besitz aus dem Store lesen und als Entitlements abbilden ---------------
 function storeOwned(productId) {
   try { return !!CDV()?.store?.owned(productId); } catch (_) { return false; }
@@ -62,9 +75,14 @@ export async function initIAP() {
       platform: Platform.APPLE_APPSTORE,
     })));
     // Kein Server-Validator: genehmigte Transaktionen direkt abschliessen.
+    // .updated feuert, sobald StoreKit Produktinfos (Preise!) laedt ODER sich
+    // der Besitz aendert -> Besitz spiegeln + Shop zum Neu-Rendern anstossen.
     store.when()
       .approved(t => t.finish())
-      .finished(() => mirror(ownedEntitlements()));
+      .updated(() => {
+        mirror(ownedEntitlements());
+        try { window.dispatchEvent(new Event('iap-updated')); } catch (_) {}
+      });
     await store.initialize([Platform.APPLE_APPSTORE]);
     initialized = true;
     mirror(ownedEntitlements());     // frueheren Kauf sofort spiegeln

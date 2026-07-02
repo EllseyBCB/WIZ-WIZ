@@ -6,7 +6,7 @@ import { gameAssetUrls } from './table.js?v=76';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=68';
 import { preloadCards, allCardImageUrls } from './cards.js?v=16';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest } from './ads.js?v=4';
-import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable } from './iap.js?v=3';
+import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=4';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
          getTableTheme, setTableTheme, applyTableTheme,
@@ -606,11 +606,17 @@ function loadShop() {
   }
 }
 
+// Anzeigepreis: bevorzugt der ECHTE Preis aus App Store Connect (StoreKit),
+// sonst der Platzhalter aus cosmetics.js (Browser/Vorschau, bevor geladen).
+function priceLabel(item) {
+  return (item && productPrice(item.productId)) || item?.price || '';
+}
+
 function shopFeatureCard(item) {
   const owned = isOwned(item);
   const btn = owned
     ? `<button class="btn sekundaer" disabled>✓ Im Besitz</button>`
-    : `<button class="btn" data-buy="${item.id}">${esc(item.price)}</button>`;
+    : `<button class="btn" data-buy="${item.id}">${esc(priceLabel(item))}</button>`;
   const tag = item.type === 'bundle' ? '<span class="shop-tag">Bestpreis</span>' : '';
   const ic = item.type === 'bundle' ? './lobby/ic-crown.png?v=6' : './lobby/ic-stats.png?v=6';
   return `<div class="shop-card feat${owned ? ' owned' : ''}">
@@ -626,7 +632,7 @@ function shopAvatarCard(item, equipped) {
   const owned = isOwned(item);
   let btn;
   if (!owned) {
-    btn = `<button class="btn" data-buy="${item.id}">${esc(item.price)}</button>`;
+    btn = `<button class="btn" data-buy="${item.id}">${esc(priceLabel(item))}</button>`;
   } else if (item.avatar === equipped) {
     btn = `<button class="btn sekundaer" disabled>✓ Aktiv</button>`;
   } else {
@@ -645,7 +651,7 @@ function shopTableCard(item, current) {
   const active = item.id === current;
   let btn;
   if (!owned) {
-    btn = `<button class="btn" data-buy="${item.id}">${esc(item.price)}</button>`;
+    btn = `<button class="btn" data-buy="${item.id}">${esc(priceLabel(item))}</button>`;
   } else if (active) {
     btn = `<button class="btn sekundaer" disabled>✓ Aktiv</button>`;
   } else {
@@ -1621,6 +1627,12 @@ async function init() {
   // In-App-Kauf (StoreKit) initialisieren – erkennt einen frueheren Werbefrei-
   // Kauf, BEVOR Werbung geladen wird. Danach Werbung + Banner (nur native App).
   initIAP().finally(() => initAds().then(showBanner));
+
+  // Sobald StoreKit Produktinfos/Preise nachlaedt oder sich der Besitz aendert,
+  // den Shop neu rendern (falls gerade offen) -> echte Preise erscheinen live.
+  window.addEventListener('iap-updated', () => {
+    if (document.getElementById('pane-shop')?.classList.contains('active')) loadShop();
+  });
 
   // Inhaber-Konto (eingeloggt) ggf. komplett freischalten.
   checkOwnerUnlock();
