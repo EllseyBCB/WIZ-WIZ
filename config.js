@@ -39,7 +39,7 @@ export const IAP_BUNDLE_ENTITLEMENT = 'magier';
 //   ca-app-pub-3811537285456646~2491168634
 export const ADMOB = {
   bannerIos: 'ca-app-pub-3811537285456646/2063717240',
-  interstitialIos: '',      // Interstitial-Anzeigenblock noch in AdMob anlegen
+  interstitialIos: 'ca-app-pub-3811537285456646/1680573868',
   bannerAndroid: '',        // leer lassen, solange es keine Android-App gibt
   interstitialAndroid: '',
 };
