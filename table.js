@@ -534,8 +534,15 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
   // (verborgenen, aber fertig gelayouteten) Hand gemessen -> die Karte landet
   // genau dort, wo sie danach liegt und sich umdreht.
   const meFallback = ptBySeat.get(mySeat) || { x: originX, y: rect.top + rect.height * 0.87 };
+  // WICHTIG: Fluege UND Aufdecken haengen am SELBEN Zeit-Anker (im rAF unten).
+  // Frueher lief der Aufdeck-Timer ab sofort, die Fluege aber erst ab dem rAF –
+  // verzoegerte sich der rAF (Lastspitze/Bilddekodierung), wurde aufgedeckt,
+  // bevor die letzte Karte geflogen war: sie fehlte im Flug und "ploppte" erst
+  // beim Aufdecken herein.
+  if (dealRevealTimer) clearTimeout(dealRevealTimer);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (dealOverlayNode !== overlay) return;            // schon uebersprungen
+    dealEndsAt = Date.now() + totalMs;                  // Anker praezisieren
     let myI = 0, idx = 0;
     for (let pass = 0; pass < cardsPer; pass++) {
       for (const seat of order) {
@@ -549,20 +556,18 @@ function runDealAnimation(feltEl, dockEl, layout, mySeat, game) {
         idx++;
       }
     }
+    dealRevealTimer = setTimeout(() => {
+      dealEndsAt = 0; dealRevealTimer = null;
+      dealCoverActive = true; dealRevealStart = Date.now();
+      coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
+      revealHand();                             // ... dann die (verdeckte) Hand sichtbar machen
+      if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
+      dealTimers.push(setTimeout(() => {
+        dealCoverActive = false;
+        stripCovers();   // Sicherheitsnetz: am Ende ALLE Handkarten aufgedeckt zeigen
+      }, 200 + handCards * 150 + 700));
+    }, totalMs);
   }));
-
-  if (dealRevealTimer) clearTimeout(dealRevealTimer);
-  dealRevealTimer = setTimeout(() => {
-    dealEndsAt = 0; dealRevealTimer = null;
-    dealCoverActive = true; dealRevealStart = Date.now();
-    coverAndScheduleFlip(lastDockEl);         // erst verdeckt ...
-    revealHand();                             // ... dann die (verdeckte) Hand sichtbar machen
-    if (dealOverlayNode === overlay) { overlay.remove(); dealOverlayNode = null; }  // Flieger weg
-    dealTimers.push(setTimeout(() => {
-      dealCoverActive = false;
-      stripCovers();   // Sicherheitsnetz: am Ende ALLE Handkarten aufgedeckt zeigen
-    }, 200 + handCards * 150 + 700));
-  }, totalMs);
   return true;
 }
 
