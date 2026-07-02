@@ -167,7 +167,14 @@ function bindLockCleanup() {
   const gv = document.getElementById('game-view');
   if (!gv) return;
   const obs = new MutationObserver(() => {
-    if (!gv.classList.contains('active')) setTableLock(false);
+    if (!gv.classList.contains('active')) {
+      setTableLock(false);
+      // Spielansicht verlassen (Pause/Beenden): laufende Austeil-Animation
+      // sauber beenden. Sonst haengt das fixierte Overlay ueber der Startseite
+      // und blockiert Eingaben – und nach dem Fortsetzen bliebe die Hand
+      // versteckt, wenn iOS die wartenden Timer verworfen hat.
+      clearDeal();
+    }
   });
   obs.observe(gv, { attributes: true, attributeFilter: ['class'] });
   lockCleanupBound = true;
@@ -265,6 +272,17 @@ export function renderTable(root, state, actions) {
   // (revealHand/stripCovers/coverAndScheduleFlip) auf eine alte, ersetzte Leiste
   // und die sichtbare Hand bleibt verdeckt (Karten als Rueckseite haengen).
   lastDockEl = dock;
+
+  // WATCHDOG gegen verworfene Timer (z. B. iOS friert die App beim Pausieren/
+  // Wechseln ein und verwirft wartende Timeouts): Ist der Aufdeck-Zeitpunkt
+  // laengst verstrichen, aber nie aufgedeckt worden, das Ende erzwingen –
+  // sonst bliebe die Hand nach dem Fortsetzen dauerhaft versteckt/verdeckt.
+  if (dealEndsAt && Date.now() >= dealEndsAt + 1500) clearDeal();
+  // Ebenso eine Aufdeck-Phase, deren Karten-Flips laengst fertig sein muessten.
+  if (dealCoverActive && Date.now() >= dealRevealStart + 6000) {
+    dealCoverActive = false; stripCovers();
+  }
+
   // Eigene Karten erst zeigen, nachdem sie ausgeteilt wurden: waehrend der
   // Austeil-Animation die Hand-Leiste verbergen (Layout bleibt erhalten).
   if (Date.now() < dealEndsAt || dealPendingKey) dock.style.visibility = 'hidden';
