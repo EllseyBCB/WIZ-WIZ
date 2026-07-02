@@ -1009,7 +1009,13 @@ function buildHandFan(state, actions, dropZone) {
 
   const layout = () => layoutFan(fan, items);
   activeRelayout = layout;
-  requestAnimationFrame(layout);
+  // Neu aufgebaute Karten sollen ihre Faecherposition OHNE Uebergang einnehmen
+  // (starr bleiben), erst danach gelten die Hover-/Auswahl-Transitions wieder.
+  fan.classList.add('fan-new');
+  requestAnimationFrame(() => {
+    layout();
+    requestAnimationFrame(() => fan.classList.remove('fan-new'));
+  });
   return fan;
 }
 

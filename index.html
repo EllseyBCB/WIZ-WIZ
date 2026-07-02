@@ -1111,6 +1111,11 @@
     transition: transform .16s ease, filter .16s ease;
     box-shadow: 0 4px 10px rgba(0,0,0,.45); -webkit-user-select: none; user-select: none;
   }
+  /* Frisch aufgebauter Faecher (jedes Re-Render, z. B. wenn ein Gegner eine
+     Karte legt): Positionen SOFORT einnehmen, ohne Uebergang – sonst rutschen
+     die eigenen Karten jedes Mal sichtbar von der Mitte in den Faecher.
+     (.deal-fly ausgenommen: der Austeil-Flug braucht seine Transition.) */
+  .hand-fan.fan-new .fan-card:not(.deal-fly) { transition: none; }
   /* Austeilen: Karte wartet (verdeckt) an der Tischmitte – Delta zur eigenen
      Endposition in --ddx/--ddy. KEINE Transition (sofortige Platzierung). */
   .fan-card.pre-deal {
@@ -1826,6 +1831,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=97"></script>
+<script type="module" src="./app.js?v=98"></script>
 </body>
 </html>
