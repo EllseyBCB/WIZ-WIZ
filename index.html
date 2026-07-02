@@ -336,6 +336,17 @@
   .friend-invite:hover { filter: brightness(1.08); }
   .friend-invite:disabled { opacity: .5; cursor: default; }
 
+  /* Statusleisten-Abdeckung (nur Geraete mit Notch/Dynamic Island):
+     Beim Scrollen schiebt sich der Inhalt sonst sichtbar hinter Uhr/Akku.
+     Liegt ueber dem Seiteninhalt (Tab-Leiste 40), aber unter Modals (60+). */
+  #statusbar-shade {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 55;
+    height: env(safe-area-inset-top, 0px);
+    background: rgba(10,7,22,.9);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    pointer-events: none;
+  }
+
   /* Einladungs-Banner (eingehende Einladung) */
   .invite-banner {
     position: fixed; left: 50%; transform: translateX(-50%);
@@ -1311,6 +1322,10 @@
 </style>
 </head>
 <body>
+
+<!-- Abdeckung der iOS-Statusleiste: verhindert, dass gescrollter Inhalt
+     sichtbar hinter Uhr/Akku rutscht (Hoehe = Safe-Area, sonst 0). -->
+<div id="statusbar-shade" aria-hidden="true"></div>
 
 <!-- Start-Ladebildschirm: sofort sichtbar (statisch, kein JS noetig); app.js
      laedt darunter alle Startseiten-Bilder + das Kartendeck und blendet ihn
