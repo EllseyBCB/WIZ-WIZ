@@ -74,7 +74,7 @@ export const isDevUnlock = () => _dev;
 // --- Inhaber-Freischaltung: bestimmte Konten bekommen alles gratis ----------
 // (z. B. der Entwickler-Account – solange echte IAP noch nicht eingerichtet ist).
 const LS_OWNER = 'wizard_owner_unlock';
-const OWNER_EMAILS = ['nedvidekelia@gmail.com'];
+const OWNER_EMAILS = ['nedvidekelia@gmail.com', 'nancydehnert05@icloud.com'];
 export const isOwnerEmail = (e) => !!e && OWNER_EMAILS.includes(String(e).trim().toLowerCase());
 export const ownerUnlock = () => { try { return localStorage.getItem(LS_OWNER) === '1'; } catch (_) { return false; } };
 export const setOwnerUnlock = (on) => { try { localStorage.setItem(LS_OWNER, on ? '1' : '0'); } catch (_) {} };

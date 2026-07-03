@@ -10,7 +10,7 @@ import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailabl
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
          getTableTheme, setTableTheme, applyTableTheme, setTableBg, getTableBg,
-         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=6';
+         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=7';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
