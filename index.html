@@ -1043,6 +1043,9 @@
   /* "Stiche ansagen": fertige Grafik (Text ist Teil des Bildes). */
   .bid-open-btn {
     background: url('lobby/ui-bid.png?v=7') center/100% 100% no-repeat;
+    /* WICHTIG: .btn bringt border-radius:30px mit und schneidet das Artwork
+       an den Ecken rund ab -> fuer Grafik-Buttons auf 0 (echte Ecken). */
+    border-radius: 0;
     border: none; box-shadow: none; color: transparent; font-size: 0; padding: 0;
     width: clamp(120px, 29vw, 224px); aspect-ratio: 720 / 283;
     display: inline-block; cursor: pointer;
@@ -1265,15 +1268,15 @@
   /* "Alle Karten"-Button + Vollbild-Kartenansicht */
   /* "Alle Karten": gemalte Pille als Hintergrund */
   .hand-view-btn {
-    position: static; z-index: 6;
+    position: static; z-index: 6; border-radius: 0;
     border: none; box-shadow: none; background: url('lobby/ui-allcards.png?v=7') center/100% 100% no-repeat;
     color: transparent; font-size: 0; padding: 0; cursor: pointer;
     width: clamp(120px, 29vw, 224px); aspect-ratio: 720 / 283; display: inline-block;
   }
   .hand-view-btn:hover { filter: brightness(1.1); }
-  /* Steuer-Pillen mit gemalten Rahmen */
+  /* Steuer-Pillen mit gemalten Rahmen (border-radius:0 gegen .btn-Rundung) */
   .table-controls .btn {
-    border: none; box-shadow: none; color: #f6efdb; font-weight: 700;
+    border: none; box-shadow: none; color: #f6efdb; font-weight: 700; border-radius: 0;
     background: url('lobby/ui-pause.png?v=1') center/100% 100% no-repeat;
     width: 170px; aspect-ratio: 406 / 143; display: inline-flex; align-items: center; justify-content: center;
   }
@@ -1305,7 +1308,7 @@
   }
   .nav-btn {
     border: none; padding: 0; cursor: pointer; color: transparent; font-size: 0;
-    background: center/100% 100% no-repeat;
+    background: center/100% 100% no-repeat; border-radius: 0;
     width: clamp(150px, 45vw, 300px); aspect-ratio: 720 / 283;
   }
   .nav-btn.nav-leave { background-image: url('lobby/nav-leave.png?v=6'); }
