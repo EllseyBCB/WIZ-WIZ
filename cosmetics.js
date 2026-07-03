@@ -128,16 +128,41 @@ export function setTableTheme(id) {
   try { localStorage.setItem(LS_TABLE, id); } catch (_) {}
   applyTableTheme();
 }
+
+// Direkter Hintergrund-Override fuer die neuen Katalog-Spielfelder (Hochformat-
+// Bilder in lobby/themes/). bg = Pfad zum Bild, '' = zurueck auf Standard.
+const LS_TABLE_BG = 'wizard_table_bg';
+export function setTableBg(bg) {
+  try {
+    if (bg) localStorage.setItem(LS_TABLE_BG, bg);
+    else localStorage.removeItem(LS_TABLE_BG);
+  } catch (_) {}
+  applyTableTheme();
+}
+export function getTableBg() {
+  try { return localStorage.getItem(LS_TABLE_BG) || ''; } catch (_) { return ''; }
+}
 // Wendet den Tisch-Hintergrund an. WICHTIG: kein var() verwenden – Safari löst
 // einen var()-Fallback mit zwei Werten in background-size nicht auf. Stattdessen
 // wird für Premium-Tische ein <style> mit LITERALEN Werten injiziert; für den
 // Standard wird es entfernt, sodass die literale .wtable-Regel greift.
 export function applyTableTheme() {
   if (typeof document === 'undefined') return;
-  let it = tableItem(getTableTheme());
-  if (it && !it.free && !isOwned(it)) it = TABLE_ITEMS[0];   // nicht (mehr) besessen -> Standard
   const id = 'wiz-table-style';
   let el = document.getElementById(id);
+
+  // Neuer Katalog-Tisch (Hochformat-Bild) hat Vorrang, falls gewaehlt.
+  const override = getTableBg();
+  if (override) {
+    if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
+    el.textContent = `.wtable{` +
+      `background-image:url('${override}?v=1');` +
+      `background-size:cover;background-position:center;background-repeat:no-repeat;}`;
+    return;
+  }
+
+  let it = tableItem(getTableTheme());
+  if (it && !it.free && !isOwned(it)) it = TABLE_ITEMS[0];   // nicht (mehr) besessen -> Standard
   if (!it || !it.bg) { if (el) el.remove(); return; }   // Standard -> Original-CSS
   if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
   el.textContent = `.wtable{` +

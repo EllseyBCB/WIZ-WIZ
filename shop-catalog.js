@@ -19,6 +19,9 @@ const I = (id, kind, name, cost, currency, rarity, icon, img) =>
 
 // Bildpfad-Helfer fuer echte Grafiken (statt Emoji-Platzhalter).
 const AV = (id) => `avatars/${id}.jpg`;
+// Spielfeld-Hintergruende (Hochformat) dienen zugleich als Kachel-Bild UND als
+// echter Tisch-Hintergrund im Spiel (background: cover).
+const TBL = (id) => `lobby/themes/${id}.jpg`;
 
 export const SHOP_SECTIONS = [
   {
@@ -48,14 +51,14 @@ export const SHOP_SECTIONS = [
   },
   {
     key: 'table', title: 'Spielfelder', items: [
-      I('table_zauberwald',    'table', 'Zauberwald',      800,  'crystals', 'rare',      '🌲'),
-      I('table_magierturm',    'table', 'Magierturm',      800,  'crystals', 'rare',      '🗼'),
-      I('table_bibliothek',    'table', 'Bibliothek',      800,  'crystals', 'rare',      '📚'),
-      I('table_kristallhoehle','table', 'Kristallhöhle',   1000, 'crystals', 'epic',      '💠'),
-      I('table_vulkan',        'table', 'Vulkan',          1000, 'crystals', 'epic',      '🌋'),
-      I('table_eispalast',     'table', 'Eispalast',       1000, 'crystals', 'epic',      '🧊'),
-      I('table_himmelsschloss','table', 'Himmelsschloss',  1000, 'crystals', 'legendary', '🏰'),
-      I('table_unterwasser',   'table', 'Unterwasser',     1000, 'crystals', 'legendary', '🌊'),
+      I('table_zauberwald',    'table', 'Zauberwald',      800,  'crystals', 'rare',      '🌲', TBL('table_zauberwald')),
+      I('table_magierturm',    'table', 'Magierturm',      800,  'crystals', 'rare',      '🗼', TBL('table_magierturm')),
+      I('table_bibliothek',    'table', 'Bibliothek',      800,  'crystals', 'rare',      '📚', TBL('table_bibliothek')),
+      I('table_kristallhoehle','table', 'Kristallhöhle',   1000, 'crystals', 'epic',      '💠', TBL('table_kristallhoehle')),
+      I('table_vulkan',        'table', 'Vulkan',          1000, 'crystals', 'epic',      '🌋', TBL('table_vulkan')),
+      I('table_eispalast',     'table', 'Eispalast',       1000, 'crystals', 'epic',      '🧊', TBL('table_eispalast')),
+      I('table_himmelsschloss','table', 'Himmelsschloss',  1000, 'crystals', 'legendary', '🏰', TBL('table_himmelsschloss')),
+      I('table_unterwasser',   'table', 'Unterwasser',     1000, 'crystals', 'legendary', '🌊', TBL('table_unterwasser')),
     ]
   },
   {

@@ -9,12 +9,12 @@ import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPre
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=4';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
-         getTableTheme, setTableTheme, applyTableTheme,
-         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=5';
+         getTableTheme, setTableTheme, applyTableTheme, setTableBg, getTableBg,
+         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=6';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=3';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=4';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -597,6 +597,7 @@ async function loadShop() {
   // Knöpfe verdrahten.
   grid.querySelectorAll('[data-buy]').forEach(b => { b.onclick = () => buyShopItem(b.dataset.buy); });
   grid.querySelectorAll('[data-cbuy]').forEach(b => { b.onclick = () => buyCurrencyItem(b.dataset.cbuy); });
+  grid.querySelectorAll('[data-ctable]').forEach(b => { b.onclick = () => equipCatalogTable(b.dataset.ctable); });
   grid.querySelectorAll('[data-pack]').forEach(b => {
     b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist. 💎', 'info');
   });
@@ -665,13 +666,27 @@ function crystalPacksRow() {
 }
 
 // Einzelne Kosmetik-Kachel mit Seltenheits-Rahmen (Platzhalter-Symbol).
+// Aktuell gewaehltes Katalog-Spielfeld (fuer die „Aktiv"-Markierung).
+function selectedCatalogTable() {
+  return SHOP_SECTIONS.find(s => s.key === 'table')?.items
+    .find(i => i.img && getTableBg() === i.img)?.id || '';
+}
+
 function shopCatalogTile(it, owned) {
   const has = owned.has(it.id) || ownerUnlock() || isDevUnlock();
   const r = RARITY[it.rarity] || RARITY.common;
   const cur = it.currency === 'gold' ? '🪙' : CRY;
-  const btn = has
-    ? `<span class="tile-owned">✓ Im Besitz</span>`
-    : `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">${cur} ${nf(it.cost)}</button>`;
+  let btn;
+  if (!has) {
+    btn = `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">${cur} ${nf(it.cost)}</button>`;
+  } else if (it.kind === 'table' && it.img) {
+    // Besessenes Spielfeld: auswaehlen -> wird echter Tisch-Hintergrund.
+    btn = selectedCatalogTable() === it.id
+      ? `<span class="tile-owned">✓ Aktiv</span>`
+      : `<button class="tile-buy" data-ctable="${esc(it.id)}" type="button">Auswählen</button>`;
+  } else {
+    btn = `<span class="tile-owned">✓ Im Besitz</span>`;
+  }
   const thumb = it.img
     ? `<img class="cat-img" src="${esc(it.img)}?v=1" alt="" loading="lazy">`
     : `<span class="cat-emoji">${it.icon || '✨'}</span>`;
@@ -798,6 +813,18 @@ function equipTable(id) {
   setTableTheme(id);
   loadShop();
   toast('Tisch-Design gewählt', 'ok');
+}
+
+// Neues Katalog-Spielfeld auswählen -> Hochformat-Bild wird echter Tisch-
+// Hintergrund (über setTableBg-Override). Erneutes Antippen des aktiven Feldes
+// schaltet zurück auf den Standard-Tisch.
+function equipCatalogTable(id) {
+  const it = SHOP_SECTIONS.find(s => s.key === 'table')?.items.find(i => i.id === id);
+  if (!it || !it.img) return;
+  const isActive = getTableBg() === it.img;
+  setTableBg(isActive ? '' : it.img);
+  loadShop();
+  toast(isActive ? 'Standard-Tisch wiederhergestellt' : `Spielfeld „${it.name}" gewählt ✨`, 'ok');
 }
 
 function offlineNote(el) {
