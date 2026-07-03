@@ -618,6 +618,10 @@ async function loadShop() {
   }
 }
 
+// Kristall-Währungs-Icon (echtes Artwork statt blauem 💎-Emoji). Inline-Bild,
+// per CSS-Klasse .cry an den jeweiligen Kontext angepasst.
+const CRY = '<img class="cry" src="lobby/ic-crystal.png?v=1" alt="Kristalle">';
+
 // Shop-Kopf „Basar der Erzmagier": Banner-Artwork (Platzhalter-Gradient, bis
 // lobby/shop-hero.jpg vorliegt) + echte dynamische Guthaben-Pillen + „+" +
 // Kategorie-Navigation. Die Pillen zeigen das Server-Guthaben (nicht gefaked).
@@ -627,7 +631,7 @@ function shopHeader() {
     ['deck',     '🎴', 'Kartendecks'],
     ['table',    '🏓', 'Spielfelder'],
     ['title',    '🪄', 'Zubehör'],
-    ['crystals', '💎', 'Kristalle'],
+    ['crystals', CRY,  'Kristalle'],
     ['vorteile', '🎁', 'Angebote'],
   ];
   const catBtns = cats.map(([k, ic, lbl]) =>
@@ -636,7 +640,7 @@ function shopHeader() {
      </button>`).join('');
   return `<div class="basar">
       <div class="basar-pills">
-        <span class="bp"><span class="bp-ic">💎</span><b>${nf(walletCache.crystals)}</b></span>
+        <span class="bp"><span class="bp-ic">${CRY}</span><b>${nf(walletCache.crystals)}</b></span>
         <span class="bp"><span class="bp-ic">🪙</span><b>${nf(walletCache.gold)}</b></span>
         <button class="bp-plus" data-pack="open" type="button" aria-label="Kristalle kaufen">＋</button>
       </div>
@@ -652,7 +656,7 @@ function crystalPacksRow() {
   const packs = CRYSTAL_PACKS.map(p => `
     <button class="pack-card${p.tag ? ' tagged' : ''}" data-pack="${esc(p.id)}" type="button">
       ${p.tag ? `<span class="pack-tag">${esc(p.tag)}</span>` : ''}
-      <div class="pack-amt">💎 ${nf(p.amount)}</div>
+      <div class="pack-amt">${CRY} ${nf(p.amount)}</div>
       ${p.bonus ? `<div class="pack-bonus">+${nf(p.bonus)} extra</div>` : '<div class="pack-bonus">&nbsp;</div>'}
       <div class="pack-price">${esc(p.priceEUR)}</div>
     </button>`).join('');
@@ -663,7 +667,7 @@ function crystalPacksRow() {
 function shopCatalogTile(it, owned) {
   const has = owned.has(it.id) || ownerUnlock() || isDevUnlock();
   const r = RARITY[it.rarity] || RARITY.common;
-  const cur = it.currency === 'gold' ? '🪙' : '💎';
+  const cur = it.currency === 'gold' ? '🪙' : CRY;
   const btn = has
     ? `<span class="tile-owned">✓ Im Besitz</span>`
     : `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">${cur} ${nf(it.cost)}</button>`;
