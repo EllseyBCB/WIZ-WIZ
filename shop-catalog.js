@@ -51,6 +51,8 @@ export const SHOP_SECTIONS = [
   },
   {
     key: 'table', title: 'Spielfelder', items: [
+      // Der Original-Haupttisch als teuerstes, legendäres Flaggschiff.
+      I('table_waldlichtung',  'table', 'Waldlichtung',    2000, 'crystals', 'legendary', '🌌', 'lobby/table-bg.jpg'),
       I('table_zauberwald',    'table', 'Zauberwald',      800,  'crystals', 'rare',      '🌲', TBL('table_zauberwald')),
       I('table_magierturm',    'table', 'Magierturm',      800,  'crystals', 'rare',      '🗼', TBL('table_magierturm')),
       I('table_bibliothek',    'table', 'Bibliothek',      800,  'crystals', 'rare',      '📚', TBL('table_bibliothek')),
