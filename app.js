@@ -14,6 +14,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=1';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -559,38 +560,44 @@ function iapUnavailableHint() {
 
 // Shop: Werbefrei + Magier-Bundle + Premium-Avatare. Echte Käufe per IAP nur in
 // der nativen App; im Browser Vorschau + Hinweis (mit ?shop=dev zum Testen frei).
-function loadShop() {
+// Zuletzt geladenes Guthaben (fuer sofortiges Rendern der Kopfzeile).
+let walletCache = { crystals: 0, gold: 0, inventory: [] };
+const nf = (n) => (n || 0).toLocaleString('de-DE');
+
+async function loadShop() {
   const grid = document.getElementById('shop-grid');
   const hint = document.getElementById('shop-hint');
   if (!grid) return;
   checkOwnerUnlock();   // Inhaber-Konto ggf. freischalten (rendert danach neu)
+
+  // Guthaben + Inventar laden (stellt leise die anonyme Anmeldung sicher).
+  try { const m = await db(); await m.ensureAuth(); walletCache = await m.getWallet(); }
+  catch (_) { walletCache = { crystals: 0, gold: 0, inventory: [] }; }
+  const owned = new Set(walletCache.inventory || []);
+
   const canBuy = iapAvailable() || isDevUnlock() || ownerUnlock();
   if (hint) hint.textContent = canBuy ? '' : iapUnavailableHint();
 
-  const equipped = myAvatar();
-  const curTable = getTableTheme();
   const cardAdfree = shopFeatureCard(SHOP_ADFREE);
   const cardBundle = shopFeatureCard(SHOP_BUNDLE);
-  const avatarCards = AVATAR_ITEMS.map(it => shopAvatarCard(it, equipped)).join('');
-  const tableCards = TABLE_ITEMS.map(it => shopTableCard(it, curTable)).join('');
+
+  const sections = SHOP_SECTIONS.map(sec =>
+    `<div class="shop-sub">✦ ${esc(sec.title)}</div>` +
+    `<div class="shop-cat-grid">${sec.items.map(it => shopCatalogTile(it, owned)).join('')}</div>`
+  ).join('');
 
   grid.innerHTML =
+    walletBar() +
+    crystalPacksRow() +
     `<div class="shop-sub">✦ Vorteile</div>` +
     `<div class="shop-feature">${cardAdfree}${cardBundle}</div>` +
-    `<div class="shop-sub">✦ Tisch-Designs</div>` +
-    `<div class="shop-tables">${tableCards}</div>` +
-    `<div class="shop-sub">✦ Profilbilder</div>` +
-    `<div class="shop-items">${avatarCards}</div>`;
+    sections;
 
   // Knöpfe verdrahten.
-  grid.querySelectorAll('[data-buy]').forEach(b => {
-    b.onclick = () => buyShopItem(b.dataset.buy);
-  });
-  grid.querySelectorAll('[data-equip]').forEach(b => {
-    b.onclick = () => equipAvatar(b.dataset.equip);
-  });
-  grid.querySelectorAll('[data-equip-table]').forEach(b => {
-    b.onclick = () => equipTable(b.dataset.equipTable);
+  grid.querySelectorAll('[data-buy]').forEach(b => { b.onclick = () => buyShopItem(b.dataset.buy); });
+  grid.querySelectorAll('[data-cbuy]').forEach(b => { b.onclick = () => buyCurrencyItem(b.dataset.cbuy); });
+  grid.querySelectorAll('[data-pack]').forEach(b => {
+    b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist. 💎', 'info');
   });
 
   const restore = document.getElementById('shop-restore');
@@ -604,6 +611,57 @@ function loadShop() {
       else toast('Keine früheren Käufe gefunden.', 'err');
     };
   }
+}
+
+// Kopfzeile mit Guthaben (Kristalle + Gold) + „Kristalle kaufen".
+function walletBar() {
+  return `<div class="wallet-bar">
+    <div class="wallet-chip"><span class="wc-ic">💎</span><b>${nf(walletCache.crystals)}</b><span class="wc-k">Kristalle</span></div>
+    <div class="wallet-chip"><span class="wc-ic">🪙</span><b>${nf(walletCache.gold)}</b><span class="wc-k">Gold</span></div>
+    <button class="wallet-plus" data-pack="open" type="button" aria-label="Kristalle kaufen">＋</button>
+  </div>`;
+}
+
+// Kristall-Pakete (Echtgeld – aktuell nur Anzeige, kommt mit der Store-Freigabe).
+function crystalPacksRow() {
+  const packs = CRYSTAL_PACKS.map(p => `
+    <button class="pack-card${p.tag ? ' tagged' : ''}" data-pack="${esc(p.id)}" type="button">
+      ${p.tag ? `<span class="pack-tag">${esc(p.tag)}</span>` : ''}
+      <div class="pack-amt">💎 ${nf(p.amount)}</div>
+      ${p.bonus ? `<div class="pack-bonus">+${nf(p.bonus)} extra</div>` : '<div class="pack-bonus">&nbsp;</div>'}
+      <div class="pack-price">${esc(p.priceEUR)}</div>
+    </button>`).join('');
+  return `<div class="shop-sub">✦ Kristalle</div><div class="pack-row">${packs}</div>`;
+}
+
+// Einzelne Kosmetik-Kachel mit Seltenheits-Rahmen (Platzhalter-Symbol).
+function shopCatalogTile(it, owned) {
+  const has = owned.has(it.id) || ownerUnlock() || isDevUnlock();
+  const r = RARITY[it.rarity] || RARITY.common;
+  const cur = it.currency === 'gold' ? '🪙' : '💎';
+  const btn = has
+    ? `<span class="tile-owned">✓ Im Besitz</span>`
+    : `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">${cur} ${nf(it.cost)}</button>`;
+  return `<div class="cat-tile" style="--r:${r.color}">
+    <div class="cat-thumb"><span class="cat-emoji">${it.icon || '✨'}</span></div>
+    <div class="cat-name">${esc(it.name)}</div>
+    <div class="cat-rarity">${r.label}</div>
+    ${btn}
+  </div>`;
+}
+
+// Kauf mit Kristallen/Gold (serverseitig geprueft).
+async function buyCurrencyItem(itemId) {
+  let m;
+  try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Käufe nur online möglich.', 'err'); return; }
+  try {
+    const r = await m.buyItem(itemId);
+    if (r.ok && r.message === 'Gekauft') toast('Gekauft! 🎉', 'ok');
+    else if (r.message === 'Bereits im Besitz') toast('Schon im Besitz.', 'info');
+    else toast(r.message || 'Kauf nicht möglich', 'err');
+    walletCache = { crystals: r.crystals ?? walletCache.crystals, gold: r.gold ?? walletCache.gold, inventory: walletCache.inventory };
+    loadShop();
+  } catch (e) { toast('Kauf fehlgeschlagen.', 'err'); }
 }
 
 // Anzeigepreis: bevorzugt der ECHTE Preis aus App Store Connect (StoreKit),
