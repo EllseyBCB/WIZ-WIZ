@@ -8,11 +8,17 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
 });
 
-// Deep-Link zurueck in die native App nach E-Mail-Bestaetigung (statt Fehlerseite
-// im Browser). Muss in Supabase unter Authentication -> URL Configuration ->
-// Redirect URLs erlaubt sein und ist als URL-Schema in der iOS-Info.plist
-// registriert (siehe wizapp/patch-ios.mjs).
-export const AUTH_REDIRECT = 'zaubertisch://auth-callback';
+// Ziel des E-Mail-Bestaetigungslinks:
+//  - native App  -> URL-Schema zaubertisch:// (oeffnet die App wieder)
+//  - Browser/Web -> zurueck auf die aktuelle Web-Seite
+// Beide muessen in Supabase unter Authentication -> URL Configuration ->
+// Redirect URLs erlaubt sein. Das Schema ist in der iOS-Info.plist registriert
+// (siehe wizapp/patch-ios.mjs).
+export function authRedirect() {
+  const native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if (native) return 'zaubertisch://auth-callback';
+  try { return location.origin + location.pathname; } catch (_) { return 'zaubertisch://auth-callback'; }
+}
 
 // --- Auth: anonyme Sitzung sicherstellen (stabile uid je Geraet) -----------
 export async function ensureAuth() {
@@ -57,12 +63,12 @@ export async function signUpEmail(email, password) {
   const u = session?.user;
   if (u && u.is_anonymous) {
     const { data, error } = await supabase.auth.updateUser(
-      { email, password }, { emailRedirectTo: AUTH_REDIRECT });
+      { email, password }, { emailRedirectTo: authRedirect() });
     if (error) throw new Error(error.message);
     return { converted: true, user: data?.user ?? null };
   }
   const { data, error } = await supabase.auth.signUp(
-    { email, password, options: { emailRedirectTo: AUTH_REDIRECT } });
+    { email, password, options: { emailRedirectTo: authRedirect() } });
   if (error) throw new Error(error.message);
   return { converted: false, user: data?.user ?? null };
 }
