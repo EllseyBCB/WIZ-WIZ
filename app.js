@@ -1680,7 +1680,7 @@ function runBootLoader() {
   document.querySelectorAll('img[src]').forEach(im => { const s = im.getAttribute('src'); if (s) urls.add(s); });
   // CSS-Hintergruende der Startseite + Ladebild selbst (URLs exakt wie im CSS)
   ['lobby/bg.jpg?v=2', 'lobby/home-hero.jpg', 'lobby/game-banner.jpg?v=1',
-   'lobby/loading.jpg?v=1'].forEach(u => urls.add(u));
+   'lobby/loading.jpg?v=2'].forEach(u => urls.add(u));
   // Spieltisch-Grafiken (Sitz-Rahmen, Buttons, Tisch, Kartenruecken) – damit
   // im Spiel selbst nichts mehr sichtbar nachlaedt.
   gameAssetUrls().forEach(u => urls.add(u));
