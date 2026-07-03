@@ -582,14 +582,15 @@ async function loadShop() {
   const cardBundle = shopFeatureCard(SHOP_BUNDLE);
 
   const sections = SHOP_SECTIONS.map(sec =>
-    `<div class="shop-sub">✦ ${esc(sec.title)}</div>` +
+    `<div class="shop-sub" id="sec-${esc(sec.key)}">✦ ${esc(sec.title)}</div>` +
     `<div class="shop-cat-grid">${sec.items.map(it => shopCatalogTile(it, owned)).join('')}</div>`
   ).join('');
 
   grid.innerHTML =
-    walletBar() +
+    shopHeader() +
+    `<div class="shop-sub" id="sec-crystals">✦ Kristalle</div>` +
     crystalPacksRow() +
-    `<div class="shop-sub">✦ Vorteile</div>` +
+    `<div class="shop-sub" id="sec-vorteile">✦ Angebote</div>` +
     `<div class="shop-feature">${cardAdfree}${cardBundle}</div>` +
     sections;
 
@@ -598,6 +599,10 @@ async function loadShop() {
   grid.querySelectorAll('[data-cbuy]').forEach(b => { b.onclick = () => buyCurrencyItem(b.dataset.cbuy); });
   grid.querySelectorAll('[data-pack]').forEach(b => {
     b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist. 💎', 'info');
+  });
+  // Kategorie-Navigation: sanft zur passenden Sektion scrollen.
+  grid.querySelectorAll('[data-scroll]').forEach(b => {
+    b.onclick = () => document.getElementById(b.dataset.scroll)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   const restore = document.getElementById('shop-restore');
@@ -613,13 +618,33 @@ async function loadShop() {
   }
 }
 
-// Kopfzeile mit Guthaben (Kristalle + Gold) + „Kristalle kaufen".
-function walletBar() {
-  return `<div class="wallet-bar">
-    <div class="wallet-chip"><span class="wc-ic">💎</span><b>${nf(walletCache.crystals)}</b><span class="wc-k">Kristalle</span></div>
-    <div class="wallet-chip"><span class="wc-ic">🪙</span><b>${nf(walletCache.gold)}</b><span class="wc-k">Gold</span></div>
-    <button class="wallet-plus" data-pack="open" type="button" aria-label="Kristalle kaufen">＋</button>
-  </div>`;
+// Shop-Kopf „Basar der Erzmagier": Banner-Artwork (Platzhalter-Gradient, bis
+// lobby/shop-hero.jpg vorliegt) + echte dynamische Guthaben-Pillen + „+" +
+// Kategorie-Navigation. Die Pillen zeigen das Server-Guthaben (nicht gefaked).
+function shopHeader() {
+  const cats = [
+    ['avatar',   '🧙', 'Avatare'],
+    ['deck',     '🎴', 'Kartendecks'],
+    ['table',    '🏓', 'Spielfelder'],
+    ['title',    '🪄', 'Zubehör'],
+    ['crystals', '💎', 'Kristalle'],
+    ['vorteile', '🎁', 'Angebote'],
+  ];
+  const catBtns = cats.map(([k, ic, lbl]) =>
+    `<button class="shopcat" data-scroll="sec-${k}" type="button">
+       <span class="shopcat-ic">${ic}</span><span class="shopcat-lbl">${esc(lbl)}</span>
+     </button>`).join('');
+  return `<div class="basar">
+      <div class="basar-pills">
+        <span class="bp"><span class="bp-ic">💎</span><b>${nf(walletCache.crystals)}</b></span>
+        <span class="bp"><span class="bp-ic">🪙</span><b>${nf(walletCache.gold)}</b></span>
+        <button class="bp-plus" data-pack="open" type="button" aria-label="Kristalle kaufen">＋</button>
+      </div>
+      <div class="basar-kicker">Willkommen im</div>
+      <div class="basar-title">Basar der Erzmagier</div>
+      <div class="basar-sub">Entdecke exklusive Gegenstände, passe deinen Stil an und werde zur Legende.</div>
+    </div>
+    <div class="shopcat-row">${catBtns}</div>`;
 }
 
 // Kristall-Pakete (Echtgeld – aktuell nur Anzeige, kommt mit der Store-Freigabe).
@@ -631,7 +656,7 @@ function crystalPacksRow() {
       ${p.bonus ? `<div class="pack-bonus">+${nf(p.bonus)} extra</div>` : '<div class="pack-bonus">&nbsp;</div>'}
       <div class="pack-price">${esc(p.priceEUR)}</div>
     </button>`).join('');
-  return `<div class="shop-sub">✦ Kristalle</div><div class="pack-row">${packs}</div>`;
+  return `<div class="pack-row">${packs}</div>`;
 }
 
 // Einzelne Kosmetik-Kachel mit Seltenheits-Rahmen (Platzhalter-Symbol).
