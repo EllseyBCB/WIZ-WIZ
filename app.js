@@ -40,7 +40,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=6'));
+const db = async () => (DB ||= await import('./db.js?v=7'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 const actions = {

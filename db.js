@@ -161,6 +161,19 @@ export const placeBid    = (gameId, bid)     => rpc('wizard_place_bid',   { p_ga
 export const playCard    = (gameId, card)    => rpc('wizard_play_card',   { p_game: gameId, p_card: card });
 export const abortGame   = (gameId)          => rpc('wizard_abort_game',  { p_game: gameId });
 
+// --- Wirtschaft (Kristalle/Gold, serverseitig) -----------------------------
+// Guthaben + Inventar holen. Liefert { crystals, gold, inventory:[item_id,...] }.
+export async function getWallet() {
+  const rows = await rpc('wizard_wallet');
+  return rows?.[0] || { crystals: 0, gold: 0, inventory: [] };
+}
+// Kosmetik mit Waehrung kaufen (Preis kommt serverseitig aus dem Katalog).
+// Liefert { ok, crystals, gold, message }.
+export async function buyItem(itemId) {
+  const rows = await rpc('wizard_buy_item', { p_item_id: itemId });
+  return rows?.[0] || { ok: false, message: 'Fehler' };
+}
+
 // --- Profil / Freunde / Verlauf -------------------------------------------
 export const upsertProfile = (name, avatar) =>
   rpc('wizard_upsert_profile', { p_name: name ?? null, p_avatar: avatar ?? null });
