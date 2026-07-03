@@ -14,7 +14,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=1';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=2';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -671,8 +671,11 @@ function shopCatalogTile(it, owned) {
   const btn = has
     ? `<span class="tile-owned">✓ Im Besitz</span>`
     : `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">${cur} ${nf(it.cost)}</button>`;
+  const thumb = it.img
+    ? `<img class="cat-img" src="${esc(it.img)}?v=1" alt="" loading="lazy">`
+    : `<span class="cat-emoji">${it.icon || '✨'}</span>`;
   return `<div class="cat-tile" style="--r:${r.color}">
-    <div class="cat-thumb"><span class="cat-emoji">${it.icon || '✨'}</span></div>
+    <div class="cat-thumb">${thumb}</div>
     <div class="cat-name">${esc(it.name)}</div>
     <div class="cat-rarity">${r.label}</div>
     ${btn}

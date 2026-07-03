@@ -14,20 +14,23 @@ export const RARITY = {
   mythic:    { label: 'Mythisch',   color: '#ff5470' },
 };
 
-const I = (id, kind, name, cost, currency, rarity, icon) =>
-  ({ id, kind, name, cost, currency, rarity, icon });
+const I = (id, kind, name, cost, currency, rarity, icon, img) =>
+  ({ id, kind, name, cost, currency, rarity, icon, img });
+
+// Bildpfad-Helfer fuer echte Grafiken (statt Emoji-Platzhalter).
+const AV = (id) => `avatars/${id}.jpg`;
 
 export const SHOP_SECTIONS = [
   {
     key: 'avatar', title: 'Avatare', items: [
-      I('av_eule',          'avatar', 'Eule',           500,  'crystals', 'common',    '🦉'),
-      I('av_zauberer',      'avatar', 'Zauberer',       800,  'crystals', 'rare',      '🧙'),
-      I('av_hexe',          'avatar', 'Hexe',           800,  'crystals', 'rare',      '🧙‍♀️'),
-      I('av_kristallgolem', 'avatar', 'Kristallgolem',  1000, 'crystals', 'epic',      '🗿'),
-      I('av_drache',        'avatar', 'Drache',         1200, 'crystals', 'epic',      '🐉'),
-      I('av_einhorn',       'avatar', 'Einhorn',        1200, 'crystals', 'epic',      '🦄'),
-      I('av_phoenix',       'avatar', 'Phönix',         1500, 'crystals', 'legendary', '🦅'),
-      I('av_schattenmagier','avatar', 'Schattenmagier', 1500, 'crystals', 'legendary', '🌑'),
+      I('av_eule',          'avatar', 'Eule',           500,  'crystals', 'common',    '🦉',    AV('av_eule')),
+      I('av_zauberer',      'avatar', 'Zauberer',       800,  'crystals', 'rare',      '🧙',    AV('av_zauberer')),
+      I('av_hexe',          'avatar', 'Hexe',           800,  'crystals', 'rare',      '🧙‍♀️',   AV('av_hexe')),
+      I('av_kristallgolem', 'avatar', 'Kristallgolem',  1000, 'crystals', 'epic',      '🗿',    AV('av_kristallgolem')),
+      I('av_drache',        'avatar', 'Drache',         1200, 'crystals', 'epic',      '🐉',    AV('av_drache')),
+      I('av_einhorn',       'avatar', 'Einhorn',        1200, 'crystals', 'epic',      '🦄',    AV('av_einhorn')),
+      I('av_phoenix',       'avatar', 'Phönix',         1500, 'crystals', 'legendary', '🦅',    AV('av_phoenix')),
+      I('av_schattenmagier','avatar', 'Schattenmagier', 1500, 'crystals', 'legendary', '🌑',    AV('av_schattenmagier')),
     ]
   },
   {
