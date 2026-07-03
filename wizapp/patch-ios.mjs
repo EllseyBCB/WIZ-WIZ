@@ -75,9 +75,19 @@ if (!s.includes('<key>CFBundleURLTypes</key>')) {
     `\t\t</dict>\n\t</array>\n</dict>\n</plist>\n`);
 }
 
+// 3c) Nur Hochformat erlauben (kein Querformat) – iPhone: Portrait; iPad:
+//     Portrait + Portrait-Upside-Down (beides "hochkant"). Idempotent.
+const PORTRAIT_PHONE = `\t<key>UISupportedInterfaceOrientations</key>\n\t<array>\n`
+  + `\t\t<string>UIInterfaceOrientationPortrait</string>\n\t</array>`;
+const PORTRAIT_PAD = `\t<key>UISupportedInterfaceOrientations~ipad</key>\n\t<array>\n`
+  + `\t\t<string>UIInterfaceOrientationPortrait</string>\n`
+  + `\t\t<string>UIInterfaceOrientationPortraitUpsideDown</string>\n\t</array>`;
+s = s.replace(/\t<key>UISupportedInterfaceOrientations<\/key>\s*<array>[\s\S]*?<\/array>/, PORTRAIT_PHONE);
+s = s.replace(/\t<key>UISupportedInterfaceOrientations~ipad<\/key>\s*<array>[\s\S]*?<\/array>/, PORTRAIT_PAD);
+
 if (s !== before) {
   writeFileSync(PLIST, s);
-  console.log('patch-ios: Info.plist aktualisiert (AdMob-App-ID, ATT-Text, SKAdNetworkItems, URL-Schema).');
+  console.log('patch-ios: Info.plist aktualisiert (AdMob-App-ID, ATT-Text, SKAdNetworkItems, URL-Schema, nur Hochformat).');
 } else {
   console.log('patch-ios: Info.plist ist bereits aktuell.');
 }
