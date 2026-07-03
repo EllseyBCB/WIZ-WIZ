@@ -40,7 +40,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=4'));
+const db = async () => (DB ||= await import('./db.js?v=5'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 const actions = {
@@ -1636,6 +1636,29 @@ async function init() {
 
   // Inhaber-Konto (eingeloggt) ggf. komplett freischalten.
   checkOwnerUnlock();
+
+  // E-Mail-Bestaetigung: klickt der Nutzer den Link, kehrt er per Deep-Link
+  // (zaubertisch://auth-callback...) in die App zurueck. Session aus der URL
+  // setzen, UI aktualisieren, auf die Startseite leiten – statt Fehlerseite.
+  const CapApp = window.Capacitor?.Plugins?.App;
+  if (CapApp?.addListener) {
+    const handleAuthUrl = async (url) => {
+      if (!url || !/(access_token|[?&]code=|token_hash|auth-callback)/.test(url)) return;
+      try {
+        const m = await db();
+        if (!(await m.completeAuthFromUrl(url))) return;
+        state.uid = await m.currentUid();
+        try { await m.upsertProfile($('#name-input')?.value.trim() || null); } catch (_) {}
+        resetInviteWatch(); startInviteWatch();
+        try { await loadProfilePane(m); } catch (_) {}
+        switchPane('lobby');
+        toast('E-Mail bestätigt – du bist angemeldet! 🎉', 'ok');
+      } catch (_) {}
+    };
+    CapApp.addListener('appUrlOpen', (data) => handleAuthUrl(data?.url || ''));
+    // Kaltstart per Bestaetigungslink: die Start-URL nachreichen.
+    CapApp.getLaunchUrl?.().then(res => { if (res?.url) handleAuthUrl(res.url); }).catch(() => {});
+  }
 
   // Dezenter Klick-Sound für Lobby-Aktionen (nur auf der Startseite – im Spiel
   // sorgen die eigenen Spiel-Sounds für Rückmeldung).

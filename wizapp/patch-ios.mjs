@@ -65,9 +65,19 @@ if (!s.includes('<key>SKAdNetworkItems</key>')) {
     `\t<key>SKAdNetworkItems</key>\n\t<array>\n${items}\n\t</array>\n</dict>\n</plist>\n`);
 }
 
+// 3b) URL-Schema fuer Deep-Links: nach der E-Mail-Bestaetigung kehrt der Nutzer
+//     ueber zaubertisch://auth-callback zurueck in die App (statt Fehlerseite).
+if (!s.includes('<key>CFBundleURLTypes</key>')) {
+  s = s.replace(/<\/dict>\s*<\/plist>\s*$/,
+    `\t<key>CFBundleURLTypes</key>\n\t<array>\n\t\t<dict>\n` +
+    `\t\t\t<key>CFBundleURLName</key>\n\t\t\t<string>de.alphablueprint.zaubertisch</string>\n` +
+    `\t\t\t<key>CFBundleURLSchemes</key>\n\t\t\t<array>\n\t\t\t\t<string>zaubertisch</string>\n\t\t\t</array>\n` +
+    `\t\t</dict>\n\t</array>\n</dict>\n</plist>\n`);
+}
+
 if (s !== before) {
   writeFileSync(PLIST, s);
-  console.log('patch-ios: Info.plist aktualisiert (AdMob-App-ID, ATT-Text, SKAdNetworkItems).');
+  console.log('patch-ios: Info.plist aktualisiert (AdMob-App-ID, ATT-Text, SKAdNetworkItems, URL-Schema).');
 } else {
   console.log('patch-ios: Info.plist ist bereits aktuell.');
 }

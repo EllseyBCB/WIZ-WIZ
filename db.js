@@ -8,6 +8,12 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
 });
 
+// Deep-Link zurueck in die native App nach E-Mail-Bestaetigung (statt Fehlerseite
+// im Browser). Muss in Supabase unter Authentication -> URL Configuration ->
+// Redirect URLs erlaubt sein und ist als URL-Schema in der iOS-Info.plist
+// registriert (siehe wizapp/patch-ios.mjs).
+export const AUTH_REDIRECT = 'zaubertisch://auth-callback';
+
 // --- Auth: anonyme Sitzung sicherstellen (stabile uid je Geraet) -----------
 export async function ensureAuth() {
   let { data: { session } } = await supabase.auth.getSession();
@@ -50,13 +56,48 @@ export async function signUpEmail(email, password) {
   const { data: { session } } = await supabase.auth.getSession();
   const u = session?.user;
   if (u && u.is_anonymous) {
-    const { data, error } = await supabase.auth.updateUser({ email, password });
+    const { data, error } = await supabase.auth.updateUser(
+      { email, password }, { emailRedirectTo: AUTH_REDIRECT });
     if (error) throw new Error(error.message);
     return { converted: true, user: data?.user ?? null };
   }
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp(
+    { email, password, options: { emailRedirectTo: AUTH_REDIRECT } });
   if (error) throw new Error(error.message);
   return { converted: false, user: data?.user ?? null };
+}
+
+// Nach Klick auf den Bestaetigungslink kehrt der Nutzer per Deep-Link
+// (zaubertisch://auth-callback...) in die App zurueck. Diese Funktion setzt aus
+// der URL die Session (Tokens im #Hash, PKCE-?code oder ?token_hash). Liefert
+// true, wenn danach eine gueltige Session besteht.
+export async function completeAuthFromUrl(url) {
+  try {
+    const u = new URL(url);
+    const hash = new URLSearchParams((u.hash || '').replace(/^#/, ''));
+    const at = hash.get('access_token');
+    const rt = hash.get('refresh_token');
+    if (at && rt) {
+      const { error } = await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+      if (error) throw error;
+    } else if (u.searchParams.get('code')) {
+      const { error } = await supabase.auth.exchangeCodeForSession(u.searchParams.get('code'));
+      if (error) throw error;
+    } else if (u.searchParams.get('token_hash') && u.searchParams.get('type')) {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: u.searchParams.get('token_hash'),
+        type: u.searchParams.get('type')
+      });
+      if (error) throw error;
+    } else {
+      return false;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      try { await supabase.realtime.setAuth(session.access_token); } catch (_) {}
+    }
+    return !!session;
+  } catch (_) { return false; }
 }
 
 // In bestehendes E-Mail-Konto anmelden (z. B. auf einem neuen Geraet).
