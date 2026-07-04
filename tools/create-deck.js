@@ -26,11 +26,14 @@ const SUITS = {
 // Bildkanten liegen – so ist kein Nachschneiden noetig und alle Karten sind
 // automatisch buendig und einheitlich.
 function baseStyle(thema) {
-  return `Hochformat-Spielkarte für ein magisches Fantasy-Kartenspiel, Thema „${thema}“. `
+  return `Hochformat-Spielkarte für ein magisches Fantasy-Kartenspiel. Stil-Thema: ${thema} `
+    + `(nur als Bildstil – das Wort NIEMALS auf die Karte schreiben). `
     + `Ein durchgehender, verzierter goldener Zierrahmen verläuft DIREKT entlang aller vier Bildkanten `
     + `(vollständig sichtbar, nichts abgeschnitten, kein Rand oder Hintergrund außerhalb des Rahmens). `
     + `Dunkler, edler Hintergrund mit feinen magischen Ornamenten und Sternenfunkeln. `
-    + `Hochwertiges Mobile-Game-Asset, sauber, klar lesbar, einheitlicher Illustrationsstil.`;
+    + `Hochwertiges Mobile-Game-Asset, sauber, klar lesbar, einheitlicher Illustrationsstil. `
+    + `WICHTIG: Es steht KEIN Wort, KEIN Name und KEIN Schriftzug auf der Karte – `
+    + `keinerlei Text außer den ausdrücklich genannten Zeichen.`;
 }
 
 function cardPrompt(thema, code) {
