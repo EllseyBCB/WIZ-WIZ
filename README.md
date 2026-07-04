@@ -18,15 +18,16 @@ eigenen Gerät, server-autoritativ über Postgres-Funktionen + Realtime).
   Publishable-Key eintragen (CARD_IMAGE_BASE = './cards').
 - **supabase/** – komplettes SQL: wizard_schema.sql (Tabellen, RLS, RPCs) plus
   Migrationen (Profile/Avatare, Freunde, Gruppen, Einladungen, Avatar-Storage,
-  Account-Löschung).
+  Account-Löschung) und **wizard_catalog_seed.sql** (Shop-Preise).
 - **wizapp/** – Capacitor-Gerüst für die native App-Store-Version
   (de.alphablueprint.zaubertisch).
 
 ## Setup
 
 1. Supabase: wizard_schema.sql im SQL-Editor ausführen, danach die
-   Migrationsdateien. Anonyme Anmeldung aktivieren (Authentication → Providers →
-   Anonymous). Storage-Bucket "avatars" anlegen (siehe wizard_avatars_storage.sql).
+   Migrationsdateien und **wizard_catalog_seed.sql** (Shop-Preise). Anonyme
+   Anmeldung aktivieren (Authentication → Providers → Anonymous). Storage-Bucket
+   "avatars" anlegen (siehe wizard_avatars_storage.sql).
 2. Config: config.sample.js → config.js, SUPABASE_URL + SUPABASE_KEY
    (Publishable Key) eintragen.
 3. Deployen: als statische Seite hosten (z. B. GitHub Pages auf main). Bei
@@ -44,3 +45,8 @@ eigenen Gerät, server-autoritativ über Postgres-Funktionen + Realtime).
 
 Hinweis: config.js enthält nur den Publishable/anon-Key (für den Client
 gedacht, durch RLS geschützt) – kein Geheimnis.
+
+## Inhalte hinzufügen
+
+Neue Kartendecks, Avatare, Spielfelder oder Titel: siehe **INTEGRATION.md** –
+Schritt-für-Schritt-Anleitung (Assets ablegen → Katalog-Zeile → Server-Preis).
