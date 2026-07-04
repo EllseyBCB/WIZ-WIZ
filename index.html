@@ -428,7 +428,9 @@
   .shopcat-ic { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
   .shopcat-lbl { font-family: var(--font-myth); font-size: .72rem; line-height: 1; text-align: center; }
 
-  .pack-row { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x mandatory; }
+  /* padding-top schafft Platz fuer die -9px hochstehenden Tags (sonst schneidet
+     der overflow der Scroll-Reihe "Beliebt"/"Bester Preis" oben ab). */
+  .pack-row { display: flex; gap: 10px; overflow-x: auto; padding: 16px 2px 8px; scroll-snap-type: x mandatory; }
   .pack-card {
     position: relative; flex: 0 0 108px; scroll-snap-align: start; text-align: center;
     padding: 14px 8px 12px; border-radius: 14px; cursor: pointer; color: var(--text);

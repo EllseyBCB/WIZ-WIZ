@@ -665,7 +665,7 @@ function crystalPacksRow() {
   const packs = CRYSTAL_PACKS.map(p => `
     <button class="pack-card${p.tag ? ' tagged' : ''}" data-pack="${esc(p.id)}" type="button">
       ${p.tag ? `<span class="pack-tag">${esc(p.tag)}</span>` : ''}
-      ${p.img ? `<img class="pack-img" src="${esc(p.img)}?v=1" alt="" loading="lazy">` : ''}
+      ${p.img ? `<img class="pack-img" src="${esc(p.img)}?v=2" alt="" loading="lazy">` : ''}
       <div class="pack-amt">${CRY} ${nf(p.amount)}</div>
       ${p.bonus ? `<div class="pack-bonus">+${nf(p.bonus)} extra</div>` : '<div class="pack-bonus">&nbsp;</div>'}
       <div class="pack-price">${esc(p.priceEUR)}</div>
