@@ -84,6 +84,7 @@ async function createDeck(description) {
         folderKey,
         filename: code + '.png',
         size: '1024x1536',
+        quality: 'medium',
       });
       done++;
     } catch (err) {
@@ -102,4 +103,4 @@ async function createDeck(description) {
   }
 }
 
-module.exports = { createDeck };
+module.exports = { createDeck, cardPrompt, allCodes };

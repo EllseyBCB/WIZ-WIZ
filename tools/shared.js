@@ -64,7 +64,9 @@ function getClient() {
 // Ein Bild erzeugen + speichern + Info-Zeilen ausgeben.
 // Im --dry-Modus wird nichts erzeugt/gespeichert, nur die Vorschau gezeigt.
 // size: '1024x1024' (Standard) oder '1024x1536' (Hochformat, z. B. Spielkarten).
-async function generate({ label, prompt, folderKey, filename, size }) {
+// quality: 'low'|'medium'|'high' – Decks nutzen 'medium' (guenstig, fuer die
+// Anzeigegroesse im Spiel voellig ausreichend).
+async function generate({ label, prompt, folderKey, filename, size, quality }) {
   const dir = path.join(ROOT, FOLDERS[folderKey] || folderKey);
   const file = path.join(dir, filename);
 
@@ -77,12 +79,9 @@ async function generate({ label, prompt, folderKey, filename, size }) {
   }
 
   const openai = getClient();
-  const result = await openai.images.generate({
-    model: 'gpt-image-1',
-    prompt,
-    size: size || '1024x1024',
-    n: 1,
-  });
+  const req = { model: 'gpt-image-1', prompt, size: size || '1024x1024', n: 1 };
+  if (quality) req.quality = quality;
+  const result = await openai.images.generate(req);
   const b64 = result && result.data && result.data[0] && result.data[0].b64_json;
   if (!b64) throw new Error('Keine Bilddaten von der API erhalten.');
 
