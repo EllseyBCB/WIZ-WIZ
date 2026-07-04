@@ -144,7 +144,7 @@ export function getTableBg() {
 }
 
 // --- Kartendeck (Vorderseiten) ---------------------------------------------
-// folder = Ordner mit den Kartenbildern des Decks (z. B. 'cards/decks/kristall'),
+// folder = Ordner mit den Kartenbildern des Decks (z. B. 'cards/decks/feuer'),
 // '' = Standard-Deck. cards.js liest denselben Schluessel beim Rendern.
 const LS_DECK = 'wizard_deck_base';
 export function getCardDeck() {

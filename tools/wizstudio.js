@@ -17,6 +17,7 @@ const { createCard } = require('./create-card');
 const { createCardPack } = require('./create-card-pack');
 const { createAvatar } = require('./create-avatar');
 const { createShopItem } = require('./create-shop-item');
+const { createDeck } = require('./create-deck');
 const { isDryRun } = require('./shared');
 
 const COMMANDS = {
@@ -24,6 +25,7 @@ const COMMANDS = {
   'card-pack': createCardPack,
   'avatar':    createAvatar,
   'shop-item': createShopItem,
+  'deck':      createDeck,
 };
 
 function help() {
@@ -38,12 +40,14 @@ Befehle:
   card-pack  "<anzahl motiv>" mehrere Karten (Std. 5)   -> cards/
   avatar     "<motiv>"        Avatar-Portrait           -> avatars/
   shop-item  "<motiv>"        Shop-Item / Store-Asset   -> store-assets/
+  deck       "<thema>"        KOMPLETTES Deck (60)      -> cards/decks/<slug>/
 
 Beispiele:
   node tools/wizstudio.js card      "Feuerdrache"
   node tools/wizstudio.js card-pack "5 Feuerkarten"
   node tools/wizstudio.js avatar    "Dunkler Magier"
   node tools/wizstudio.js shop-item "Legendärer Kristall"
+  node tools/wizstudio.js deck      "Feuer"
 
 Test ohne Kosten:
   node tools/wizstudio.js card-pack "3 Eiskarten" --dry

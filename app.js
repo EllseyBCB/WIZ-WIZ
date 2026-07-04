@@ -15,7 +15,17 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=10';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=11';
+
+// Aufraeumen: zeigt die gespeicherte Deck-Auswahl auf ein Deck, das es nicht
+// mehr im Katalog gibt (z. B. entferntes Deck), zurueck auf das Standard-Deck –
+// sonst laufen die Kartenbilder ins Leere (404 -> SVG-Fallback).
+{
+  const cur = getCardDeck();
+  const known = new Set((SHOP_SECTIONS.find(s => s.key === 'deck')?.items || [])
+    .map(i => i.folder).filter(Boolean));
+  if (cur && !known.has(cur)) setCardDeck('');
+}
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';

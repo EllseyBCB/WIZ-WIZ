@@ -23,19 +23,11 @@ insert into public.wizard_catalog (item_id, kind, cost, currency, rarity) values
   ('av_phoenix',         'avatar', 1500,  'crystals', 'legendary'),
   ('av_schattenmagier',  'avatar', 1500,  'crystals', 'legendary'),
 
-  -- Kartendecks (Kristalle).  ACHTUNG: nur Decks mit fertigem Bild-Ordner
-  -- (folder in shop-catalog.js) sind auch auswaehlbar. Aktuell nur deck_kristall
-  -- ("Arkanum"). Die uebrigen sind Platzhalter – Kauf moeglich, Auswahl (noch)
-  -- nicht. Zeile erst freigeben, wenn der Ordner cards/decks/<name>/ existiert.
-  ('deck_kristall',      'deck', 800,  'crystals', 'rare'),
-  ('deck_feuer',         'deck', 800,  'crystals', 'rare'),
-  ('deck_eis',           'deck', 800,  'crystals', 'rare'),
-  ('deck_wald',          'deck', 800,  'crystals', 'rare'),
-  ('deck_schatten',      'deck', 800,  'crystals', 'epic'),
-  ('deck_himmel',        'deck', 800,  'crystals', 'epic'),
-  ('deck_runen',         'deck', 800,  'crystals', 'epic'),
-  ('deck_steampunk',     'deck', 800,  'crystals', 'epic'),
-  ('deck_galaxie',       'deck', 800,  'crystals', 'legendary'),
+  -- Kartendecks (Kristalle): aktuell KEINE aktiv. deck_kristall ("Arkanum")
+  -- wurde wieder entfernt; die uebrigen sind Platzhalter ohne Bild-Ordner.
+  -- Zeile erst eintragen/freigeben, wenn der Ordner cards/decks/<name>/
+  -- existiert UND in shop-catalog.js das folder-Feld gesetzt ist, z. B.:
+  --   ('deck_feuer',    'deck', 800,  'crystals', 'rare'),
 
   -- Spielfelder (Kristalle)
   ('table_waldlichtung',  'table', 2000, 'crystals', 'legendary'),
@@ -60,3 +52,7 @@ on conflict (item_id) do update
       currency = excluded.currency,
       rarity   = excluded.rarity,
       active   = true;
+
+-- Entfernte/nie fertiggestellte Decks deaktivieren, falls sie durch eine
+-- fruehere Version dieses Seeds bereits angelegt wurden (idempotent).
+update public.wizard_catalog set active = false where kind = 'deck';

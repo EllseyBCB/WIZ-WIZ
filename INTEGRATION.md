@@ -49,7 +49,7 @@ Proportionen). Bilder generieren geht mit dem Studio-Tool (siehe unten).
 ### 2. Deck-Vorschaubild ablegen
 
 Ein Kachel-Bild für den Shop nach `lobby/deck-<name>.png` (Vorbild:
-`lobby/deck-kristall.png`, `lobby/deck-standard.png`).
+`lobby/deck-standard.png`).
 
 ### 3. Katalog-Zeile im Client ergänzen
 
@@ -63,9 +63,9 @@ I('deck_feuer', 'deck', 'Feuer', 800, 'crystals', 'rare',
 ```
 
 Ohne `folder` erscheint das Deck im Shop, lässt sich aber **nicht auswählen**
-(`equipCatalogDeck` bricht ab). Das ist der Grund, warum aktuell nur „Arkanum"
-(`deck_kristall`) wirklich funktioniert – die anderen 8 sind Platzhalter ohne
-Ordner. Erst Ordner + `folder`-Feld = spielbar.
+(`equipCatalogDeck` bricht ab). Die aktuell gelisteten Decks (Feuer, Eis, …)
+sind genau solche Platzhalter ohne Ordner. Erst Ordner + `folder`-Feld =
+spielbar.
 
 ### 4. Server-Katalog-Zeile ergänzen
 
@@ -147,17 +147,20 @@ Passende Artworks im einheitlichen Stil erzeugen (OpenAI `gpt-image-1`):
 npm install openai
 export OPENAI_API_KEY="sk-..."
 
+node tools/wizstudio.js deck      "Feuer"              # -> cards/decks/feuer/ (KOMPLETTES Deck)
 node tools/wizstudio.js card      "Feuerdrache"        # -> cards/
-node tools/wizstudio.js card-pack "60 Feuerkarten"     # -> cards/
+node tools/wizstudio.js card-pack "5 Feuerkarten"      # -> cards/
 node tools/wizstudio.js avatar    "Dunkler Magier"     # -> avatars/
 node tools/wizstudio.js shop-item "Legendärer Kristall" # -> store-assets/
 
-node tools/wizstudio.js card-pack "3 Eiskarten" --dry  # Test ohne Kosten/API
+node tools/wizstudio.js deck "Eis" --dry               # Test ohne Kosten/API
 ```
 
-Hinweis: `card-pack` erzeugt Dateien mit dem Motiv-Namen (`feuerkarten-01.png`),
-**nicht** direkt die 60 Deck-Dateinamen (`R1.png` …). Bilder danach passend
-umbenennen/einsortieren in `cards/decks/<name>/`.
+`deck` erzeugt alle 60 Karten **direkt spielfertig benannt** (`R1.png` …
+`N4.png`) im Hochformat, mit Rahmen bis an die Bildkante (kein Nachschneiden
+nötig). Bereits vorhandene Dateien werden übersprungen – ein abgebrochener
+Lauf lässt sich einfach erneut starten. Am Ende druckt das Tool die nötige
+Katalog-Zeile zum Kopieren.
 
 ---
 
