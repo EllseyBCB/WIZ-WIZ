@@ -15,7 +15,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=8';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=9';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -681,14 +681,18 @@ function selectedCatalogTable() {
   return SHOP_SECTIONS.find(s => s.key === 'table')?.items
     .find(i => i.img && getTableBg() === i.img)?.id || '';
 }
-// Aktuell gewaehltes Katalog-Kartendeck.
+// Aktuell gewaehltes Katalog-Kartendeck (Standard = leerer Deck-Ordner).
 function selectedCatalogDeck() {
-  return SHOP_SECTIONS.find(s => s.key === 'deck')?.items
-    .find(i => i.folder && getCardDeck() === i.folder)?.id || '';
+  const cur = getCardDeck();
+  const decks = SHOP_SECTIONS.find(s => s.key === 'deck')?.items || [];
+  const hit = decks.find(i => i.folder && i.folder === cur);
+  if (hit) return hit.id;
+  const std = decks.find(i => i.isDefault);   // nichts gewaehlt -> Standard aktiv
+  return std && !cur ? std.id : '';
 }
 
 function shopCatalogTile(it, owned) {
-  const has = owned.has(it.id) || ownerUnlock() || isDevUnlock();
+  const has = it.free || it.isDefault || owned.has(it.id) || ownerUnlock() || isDevUnlock();
   const r = RARITY[it.rarity] || RARITY.common;
   const cur = it.currency === 'gold' ? '🪙' : CRY;
   let btn;
@@ -699,8 +703,8 @@ function shopCatalogTile(it, owned) {
     btn = selectedCatalogTable() === it.id
       ? `<span class="tile-owned">✓ Aktiv</span>`
       : `<button class="tile-buy" data-ctable="${esc(it.id)}" type="button">Auswählen</button>`;
-  } else if (it.kind === 'deck' && it.folder) {
-    // Besessenes Kartendeck: auswaehlen -> tauscht die Spielkarten aus.
+  } else if (it.kind === 'deck' && (it.folder || it.isDefault)) {
+    // Kartendeck (inkl. Standard): auswaehlen -> tauscht die Spielkarten aus.
     btn = selectedCatalogDeck() === it.id
       ? `<span class="tile-owned">✓ Aktiv</span>`
       : `<button class="tile-buy" data-cdeck="${esc(it.id)}" type="button">Auswählen</button>`;
@@ -847,15 +851,14 @@ function equipCatalogTable(id) {
   toast(isActive ? 'Standard-Tisch wiederhergestellt' : `Spielfeld „${it.name}" gewählt ✨`, 'ok');
 }
 
-// Kartendeck auswählen -> tauscht die Spielkarten-Vorderseiten aus. Erneutes
-// Antippen des aktiven Decks schaltet zurueck auf das Standard-Deck.
+// Kartendeck auswählen -> tauscht die Spielkarten-Vorderseiten aus.
+// Standard-Deck (isDefault) setzt den Deck-Ordner zurueck auf leer = Original.
 function equipCatalogDeck(id) {
   const it = SHOP_SECTIONS.find(s => s.key === 'deck')?.items.find(i => i.id === id);
-  if (!it || !it.folder) return;
-  const isActive = getCardDeck() === it.folder;
-  setCardDeck(isActive ? '' : it.folder);
+  if (!it || (!it.folder && !it.isDefault)) return;
+  setCardDeck(it.isDefault ? '' : it.folder);
   loadShop();
-  toast(isActive ? 'Standard-Deck wiederhergestellt' : `Kartendeck „${it.name}" gewählt 🃏`, 'ok');
+  toast(`Kartendeck „${it.name}" gewählt 🃏`, 'ok');
 }
 
 function offlineNote(el) {
