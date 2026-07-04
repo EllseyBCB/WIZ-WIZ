@@ -66,7 +66,7 @@ export const SHOP_SECTIONS = [
     ]
   },
   {
-    key: 'title', title: 'Titel', items: [
+    key: 'title', title: 'Zubehör', items: [
       I('title_erzmagier',    'title', 'Erzmagier',    5000,  'gold', 'rare',      '👑'),
       I('title_kartenkoenig', 'title', 'Kartenkönig',  5000,  'gold', 'rare',      '🃏'),
       I('title_unbesiegbar',  'title', 'Unbesiegbar',  10000, 'gold', 'epic',      '🛡️'),

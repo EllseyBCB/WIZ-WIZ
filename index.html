@@ -368,8 +368,12 @@
   /* --- Shop: Karten wie im Design (Icon + Name + Preis/Status) ------------- */
   #shop-grid { display: block; }
   .shop-sub { font-family: var(--font-myth); color: var(--gold); font-size: 1.04rem;
-    text-align: center; margin: 22px 0 12px; letter-spacing: .5px; }
+    text-align: center; margin: 22px 0 12px; letter-spacing: .5px; scroll-margin-top: 12px; }
   #shop-grid > .shop-sub:first-child { margin-top: 6px; }
+  /* Kurzes Aufleuchten der Sektion beim Anspringen ueber die Kategorie-Chips. */
+  @keyframes secFlash { 0%,100% { color: var(--gold); text-shadow: none; }
+    45% { color: #fff; text-shadow: 0 0 14px var(--akzent); } }
+  .sec-flash { animation: secFlash .9s ease; }
   .shop-feature { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
 
   /* ===== Neuer Shop: Basar-Kopf, Kategorien, Pakete, Seltenheits-Kacheln ===== */
@@ -421,7 +425,7 @@
     background: linear-gradient(180deg,#2a1b4e,#1b1038); border: 1.5px solid var(--goldline);
   }
   .shopcat:active { filter: brightness(1.12); transform: translateY(1px); }
-  .shopcat-ic { font-size: 1.7rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+  .shopcat-ic { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
   .shopcat-lbl { font-family: var(--font-myth); font-size: .72rem; line-height: 1; text-align: center; }
 
   .pack-row { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x mandatory; }

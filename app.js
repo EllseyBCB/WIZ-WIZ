@@ -14,7 +14,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=6';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=7';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -601,9 +601,16 @@ async function loadShop() {
   grid.querySelectorAll('[data-pack]').forEach(b => {
     b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist. 💎', 'info');
   });
-  // Kategorie-Navigation: sanft zur passenden Sektion scrollen.
+  // Kategorie-Navigation: zur passenden Sektion springen. WICHTIG: 'smooth'
+  // wird durch das Scroll-/Touch-Handling der App blockiert -> instant scrollen
+  // (funktioniert zuverlaessig) + kurzes Aufleuchten der Sektion.
   grid.querySelectorAll('[data-scroll]').forEach(b => {
-    b.onclick = () => document.getElementById(b.dataset.scroll)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    b.onclick = () => {
+      const sec = document.getElementById(b.dataset.scroll);
+      if (!sec) return;
+      sec.scrollIntoView({ block: 'start' });
+      sec.classList.remove('sec-flash'); void sec.offsetWidth; sec.classList.add('sec-flash');
+    };
   });
 
   const restore = document.getElementById('shop-restore');
@@ -628,16 +635,17 @@ const CRY = '<img class="cry" src="lobby/ic-crystal.png?v=1" alt="Kristalle">';
 // Kategorie-Navigation. Die Pillen zeigen das Server-Guthaben (nicht gefaked).
 function shopHeader() {
   const cats = [
-    ['avatar',   '🧙', 'Avatare'],
-    ['deck',     '🎴', 'Kartendecks'],
-    ['table',    '🏓', 'Spielfelder'],
-    ['title',    '🪄', 'Zubehör'],
-    ['crystals', CRY,  'Kristalle'],
-    ['vorteile', '🎁', 'Angebote'],
+    ['avatar',   'Avatare'],
+    ['deck',     'Kartendecks'],
+    ['table',    'Spielfelder'],
+    ['title',    'Zubehör'],
+    ['crystals', 'Kristalle'],
+    ['vorteile', 'Angebote'],
   ];
-  const catBtns = cats.map(([k, ic, lbl]) =>
+  const catBtns = cats.map(([k, lbl]) =>
     `<button class="shopcat" data-scroll="sec-${k}" type="button">
-       <span class="shopcat-ic">${ic}</span><span class="shopcat-lbl">${esc(lbl)}</span>
+       <img class="shopcat-ic" src="lobby/cat-${k}.png?v=1" alt="" loading="lazy">
+       <span class="shopcat-lbl">${esc(lbl)}</span>
      </button>`).join('');
   return `<div class="basar">
       <div class="basar-pills">
