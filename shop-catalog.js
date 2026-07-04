@@ -14,8 +14,8 @@ export const RARITY = {
   mythic:    { label: 'Mythisch',   color: '#ff5470' },
 };
 
-const I = (id, kind, name, cost, currency, rarity, icon, img) =>
-  ({ id, kind, name, cost, currency, rarity, icon, img });
+const I = (id, kind, name, cost, currency, rarity, icon, img, folder) =>
+  ({ id, kind, name, cost, currency, rarity, icon, img, folder });
 
 // Bildpfad-Helfer fuer echte Grafiken (statt Emoji-Platzhalter).
 const AV = (id) => `avatars/${id}.jpg`;
@@ -38,7 +38,7 @@ export const SHOP_SECTIONS = [
   },
   {
     key: 'deck', title: 'Kartendecks', items: [
-      I('deck_kristall',  'deck', 'Kristall',  800, 'crystals', 'rare',      '💎'),
+      I('deck_kristall',  'deck', 'Kristall',  800, 'crystals', 'rare',      '💎', 'lobby/deck-kristall.png', 'cards/decks/kristall'),
       I('deck_feuer',     'deck', 'Feuer',     800, 'crystals', 'rare',      '🔥'),
       I('deck_eis',       'deck', 'Eis',       800, 'crystals', 'rare',      '❄️'),
       I('deck_wald',      'deck', 'Wald',      800, 'crystals', 'rare',      '🌿'),

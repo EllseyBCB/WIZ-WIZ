@@ -4,6 +4,15 @@
 // Eckzahlen mit Farbsymbol, zentrales Emblem-Fenster, eigene Zauberer/Narr.
 import { CARD_IMAGE_BASE } from './config.js';
 
+// Aktiver Karten-Ordner: gewaehltes Deck (vom Shop via localStorage gesetzt)
+// oder das Standard-Deck (CARD_IMAGE_BASE). Nur die Vorderseiten wechseln;
+// die Rueckseite bleibt der Standard (Decks liefern keine eigene back.png).
+export function deckBase() {
+  let sel = '';
+  try { sel = localStorage.getItem('wizard_deck_base') || ''; } catch (_) {}
+  return (sel || CARD_IMAGE_BASE || '').replace(/\/$/, '');
+}
+
 export const COLORS = {
   R: { name: 'Rot',   hex: '#e5484d' },
   Y: { name: 'Gelb',  hex: '#f0b429' },
@@ -40,8 +49,8 @@ export function cardLabel(code) {
 // Runden-Ladebildschirm, der erst alles laedt und dann das Spiel startet.
 export function allCardImageUrls() {
   if (!CARD_IMAGE_BASE) return [];
-  const base = CARD_IMAGE_BASE.replace(/\/$/, '');
-  const urls = [`${base}/back.png?v=2`];
+  const base = deckBase();
+  const urls = [`${CARD_IMAGE_BASE.replace(/\/$/, '')}/back.png?v=2`];
   for (const c of ['R', 'Y', 'G', 'B']) for (let r = 1; r <= 13; r++) urls.push(`${base}/${c}${r}.png?v=10`);
   for (let i = 1; i <= 4; i++) { urls.push(`${base}/Z${i}.png?v=10`); urls.push(`${base}/N${i}.png?v=10`); }
   return urls;
@@ -50,11 +59,12 @@ export function allCardImageUrls() {
 // Alle 60 Kartenbilder vorab im Hintergrund in den Browser-Cache laden, damit
 // sie im Spiel sofort erscheinen statt erst beim Aufdecken nachzuladen. Aendert
 // die Bilder NICHT – laedt nur frueher. Idempotent.
-let preloaded = false;
+let preloadedBase = null;
 export function preloadCards() {
-  if (preloaded || !CARD_IMAGE_BASE) return;
-  preloaded = true;
-  const base = CARD_IMAGE_BASE.replace(/\/$/, '');
+  if (!CARD_IMAGE_BASE) return;
+  const base = deckBase();
+  if (preloadedBase === base) return;   // dieses Deck schon vorgeladen
+  preloadedBase = base;
   const codes = [];
   for (const c of ['R', 'Y', 'G', 'B']) for (let r = 1; r <= 13; r++) codes.push(c + r);
   for (let i = 1; i <= 4; i++) { codes.push('Z' + i); codes.push('N' + i); }
@@ -96,7 +106,7 @@ export function renderCard(code, opts = {}) {
     img.alt = cardLabel(code);
     img.loading = 'eager';        // sichtbare Karten sofort laden (meist schon im Cache)
     img.decoding = 'async';
-    img.src = `${CARD_IMAGE_BASE.replace(/\/$/, '')}/${code}.png?v=10`;
+    img.src = `${deckBase()}/${code}.png?v=10`;
     img.onerror = () => { el.innerHTML = faceSvg(code); };   // Fallback auf SVG
     el.appendChild(img);
   } else {

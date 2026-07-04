@@ -142,6 +142,20 @@ export function setTableBg(bg) {
 export function getTableBg() {
   try { return localStorage.getItem(LS_TABLE_BG) || ''; } catch (_) { return ''; }
 }
+
+// --- Kartendeck (Vorderseiten) ---------------------------------------------
+// folder = Ordner mit den Kartenbildern des Decks (z. B. 'cards/decks/kristall'),
+// '' = Standard-Deck. cards.js liest denselben Schluessel beim Rendern.
+const LS_DECK = 'wizard_deck_base';
+export function getCardDeck() {
+  try { return localStorage.getItem(LS_DECK) || ''; } catch (_) { return ''; }
+}
+export function setCardDeck(folder) {
+  try {
+    if (folder) localStorage.setItem(LS_DECK, folder);
+    else localStorage.removeItem(LS_DECK);
+  } catch (_) {}
+}
 // Wendet den Tisch-Hintergrund an. WICHTIG: kein var() verwenden – Safari löst
 // einen var()-Fallback mit zwei Werten in background-size nicht auf. Stattdessen
 // wird für Premium-Tische ein <style> mit LITERALEN Werten injiziert; für den

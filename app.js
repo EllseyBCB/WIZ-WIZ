@@ -1,20 +1,21 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=78';
-import { gameAssetUrls } from './table.js?v=76';
+import { render } from './game.js?v=80';
+import { gameAssetUrls } from './table.js?v=78';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=68';
-import { preloadCards, allCardImageUrls } from './cards.js?v=16';
+import { preloadCards, allCardImageUrls } from './cards.js?v=18';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest } from './ads.js?v=4';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=4';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
          getTableTheme, setTableTheme, applyTableTheme, setTableBg, getTableBg,
-         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=7';
+         setCardDeck, getCardDeck,
+         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=8';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=7';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=8';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -598,6 +599,7 @@ async function loadShop() {
   grid.querySelectorAll('[data-buy]').forEach(b => { b.onclick = () => buyShopItem(b.dataset.buy); });
   grid.querySelectorAll('[data-cbuy]').forEach(b => { b.onclick = () => buyCurrencyItem(b.dataset.cbuy); });
   grid.querySelectorAll('[data-ctable]').forEach(b => { b.onclick = () => equipCatalogTable(b.dataset.ctable); });
+  grid.querySelectorAll('[data-cdeck]').forEach(b => { b.onclick = () => equipCatalogDeck(b.dataset.cdeck); });
   grid.querySelectorAll('[data-pack]').forEach(b => {
     b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist. 💎', 'info');
   });
@@ -679,6 +681,11 @@ function selectedCatalogTable() {
   return SHOP_SECTIONS.find(s => s.key === 'table')?.items
     .find(i => i.img && getTableBg() === i.img)?.id || '';
 }
+// Aktuell gewaehltes Katalog-Kartendeck.
+function selectedCatalogDeck() {
+  return SHOP_SECTIONS.find(s => s.key === 'deck')?.items
+    .find(i => i.folder && getCardDeck() === i.folder)?.id || '';
+}
 
 function shopCatalogTile(it, owned) {
   const has = owned.has(it.id) || ownerUnlock() || isDevUnlock();
@@ -692,6 +699,11 @@ function shopCatalogTile(it, owned) {
     btn = selectedCatalogTable() === it.id
       ? `<span class="tile-owned">✓ Aktiv</span>`
       : `<button class="tile-buy" data-ctable="${esc(it.id)}" type="button">Auswählen</button>`;
+  } else if (it.kind === 'deck' && it.folder) {
+    // Besessenes Kartendeck: auswaehlen -> tauscht die Spielkarten aus.
+    btn = selectedCatalogDeck() === it.id
+      ? `<span class="tile-owned">✓ Aktiv</span>`
+      : `<button class="tile-buy" data-cdeck="${esc(it.id)}" type="button">Auswählen</button>`;
   } else {
     btn = `<span class="tile-owned">✓ Im Besitz</span>`;
   }
@@ -833,6 +845,17 @@ function equipCatalogTable(id) {
   setTableBg(isActive ? '' : it.img);
   loadShop();
   toast(isActive ? 'Standard-Tisch wiederhergestellt' : `Spielfeld „${it.name}" gewählt ✨`, 'ok');
+}
+
+// Kartendeck auswählen -> tauscht die Spielkarten-Vorderseiten aus. Erneutes
+// Antippen des aktiven Decks schaltet zurueck auf das Standard-Deck.
+function equipCatalogDeck(id) {
+  const it = SHOP_SECTIONS.find(s => s.key === 'deck')?.items.find(i => i.id === id);
+  if (!it || !it.folder) return;
+  const isActive = getCardDeck() === it.folder;
+  setCardDeck(isActive ? '' : it.folder);
+  loadShop();
+  toast(isActive ? 'Standard-Deck wiederhergestellt' : `Kartendeck „${it.name}" gewählt 🃏`, 'ok');
 }
 
 function offlineNote(el) {
