@@ -82,7 +82,7 @@ let assetsWarm = false;        // Deck in dieser Sitzung schon komplett geladen?
 let lastState = null;
 let lastFeltEl = null;
 // Das Ladebildschirm-Artwork selbst frueh in den Cache holen.
-try { const _la = new Image(); _la.src = 'lobby/loading.jpg?v=2'; } catch (_) {}
+try { const _la = new Image(); _la.src = 'lobby/loading.jpg?v=3'; } catch (_) {}
 function revealHand() { if (lastDockEl && lastDockEl.isConnected) lastDockEl.style.visibility = 'visible'; }
 
 // Noch nicht abgeflogene Handkarten an die Tischmitte versetzen (per-Karte
@@ -543,7 +543,7 @@ function showLoaderUI(game) {
     ? `Runde ${game.round_no} wird vorbereitet …`   // kalter Einstieg mitten im Spiel
     : 'Das Spiel wird vorbereitet …';
   ov.innerHTML = `
-    <img class="rl-art" src="lobby/loading.jpg?v=2" alt="">
+    <img class="rl-art" src="lobby/loading.jpg?v=3" alt="">
     <div class="rl-bottom">
       <div class="rl-text">${esc(txt)}</div>
       <div class="rl-bar"><div class="rl-fill" style="width:0%"></div></div>
