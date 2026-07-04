@@ -51,8 +51,8 @@ export function allCardImageUrls() {
   if (!CARD_IMAGE_BASE) return [];
   const base = deckBase();
   const urls = [`${CARD_IMAGE_BASE.replace(/\/$/, '')}/back.png?v=2`];
-  for (const c of ['R', 'Y', 'G', 'B']) for (let r = 1; r <= 13; r++) urls.push(`${base}/${c}${r}.png?v=17`);
-  for (let i = 1; i <= 4; i++) { urls.push(`${base}/Z${i}.png?v=17`); urls.push(`${base}/N${i}.png?v=17`); }
+  for (const c of ['R', 'Y', 'G', 'B']) for (let r = 1; r <= 13; r++) urls.push(`${base}/${c}${r}.png?v=18`);
+  for (let i = 1; i <= 4; i++) { urls.push(`${base}/Z${i}.png?v=18`); urls.push(`${base}/N${i}.png?v=18`); }
   return urls;
 }
 
@@ -70,7 +70,7 @@ export function preloadCards() {
   for (let i = 1; i <= 4; i++) { codes.push('Z' + i); codes.push('N' + i); }
   // gestaffelt laden, damit der Start nicht ausgebremst wird
   codes.forEach((code, i) => {
-    setTimeout(() => { const im = new Image(); im.decoding = 'async'; im.src = `${base}/${code}.png?v=17`; }, i * 40);
+    setTimeout(() => { const im = new Image(); im.decoding = 'async'; im.src = `${base}/${code}.png?v=18`; }, i * 40);
   });
 }
 
@@ -106,7 +106,7 @@ export function renderCard(code, opts = {}) {
     img.alt = cardLabel(code);
     img.loading = 'eager';        // sichtbare Karten sofort laden (meist schon im Cache)
     img.decoding = 'async';
-    img.src = `${deckBase()}/${code}.png?v=17`;
+    img.src = `${deckBase()}/${code}.png?v=18`;
     img.onerror = () => { el.innerHTML = faceSvg(code); };   // Fallback auf SVG
     el.appendChild(img);
   } else {
