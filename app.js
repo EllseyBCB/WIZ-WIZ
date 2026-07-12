@@ -16,7 +16,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=13';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=14';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -1813,6 +1813,11 @@ function runBootLoader() {
 }
 
 async function init() {
+  // Aktives Kartendeck, das nicht mehr im Katalog steht (z. B. entferntes
+  // Arkanum), auf das Standard-Deck zuruecksetzen -> keine fehlenden Bilder.
+  const deckFolders = new Set((SHOP_SECTIONS.find(s => s.key === 'deck')?.items || [])
+    .map(i => i.folder).filter(Boolean));
+  if (getCardDeck() && !deckFolders.has(getCardDeck())) setCardDeck('');
   // Buttons sofort verdrahten – der Solo-Modus braucht keine Anmeldung.
   applyTableTheme();   // gewähltes Tisch-Design auf den Spieltisch anwenden
   applyCardBack();     // gewählte Kartenrückseite (CSS-Ruecken) anwenden
