@@ -564,39 +564,52 @@ function iapUnavailableHint() {
 // der nativen App; im Browser Vorschau + Hinweis (mit ?shop=dev zum Testen frei).
 // Zuletzt geladenes Guthaben (fuer sofortiges Rendern der Kopfzeile).
 let walletCache = { crystals: 0, gold: 0, inventory: [] };
+// Aktuell gewaehlte Shop-Kategorie (Tab-Filter statt aller Sektionen untereinander).
+let shopCat = 'avatar';
 const nf = (n) => (n || 0).toLocaleString('de-DE');
 
 async function loadShop() {
   const grid = document.getElementById('shop-grid');
-  const hint = document.getElementById('shop-hint');
   if (!grid) return;
   checkOwnerUnlock();   // Inhaber-Konto ggf. freischalten (rendert danach neu)
 
-  // Guthaben + Inventar laden (stellt leise die anonyme Anmeldung sicher).
+  // Guthaben + Inventar EINMAL laden (stellt leise die anonyme Anmeldung sicher).
+  // Der Kategoriewechsel danach rendert nur neu, ohne die Wallet erneut zu holen.
   try { const m = await db(); await m.ensureAuth(); walletCache = await m.getWallet(); }
   catch (_) { walletCache = { crystals: 0, gold: 0, inventory: [] }; }
+  renderShop();
+}
+
+// Rendert Kopf + NUR die aktive Kategorie (Tab-Filter). Wird bei jedem Tab-Wechsel
+// erneut aufgerufen; nutzt das bereits geladene walletCache (kein Netz-Reload).
+function renderShop() {
+  const grid = document.getElementById('shop-grid');
+  const hint = document.getElementById('shop-hint');
+  if (!grid) return;
   const owned = new Set(walletCache.inventory || []);
 
   const canBuy = iapAvailable() || isDevUnlock() || ownerUnlock();
   if (hint) hint.textContent = canBuy ? '' : iapUnavailableHint();
 
-  const cardAdfree = shopFeatureCard(SHOP_ADFREE);
-  const cardBundle = shopFeatureCard(SHOP_BUNDLE);
+  // Inhalt der aktiven Kategorie zusammenbauen.
+  let body;
+  if (shopCat === 'crystals') {
+    body = crystalPacksRow();
+  } else if (shopCat === 'vorteile') {
+    body = `<div class="shop-feature">${shopFeatureCard(SHOP_ADFREE)}${shopFeatureCard(SHOP_BUNDLE)}</div>`;
+  } else {
+    const sec = SHOP_SECTIONS.find(s => s.key === shopCat);
+    const items = sortItems(visibleItems(sec ? sec.items : []), owned);
+    body = `<div class="shop-cat-grid">${items.map(it => shopCatalogTile(it, owned)).join('')}</div>`;
+  }
 
-  const sections = SHOP_SECTIONS.map(sec =>
-    `<div class="shop-sub" id="sec-${esc(sec.key)}">✦ ${esc(sec.title)}</div>` +
-    `<div class="shop-cat-grid">${sec.items.map(it => shopCatalogTile(it, owned)).join('')}</div>`
-  ).join('');
+  grid.innerHTML = shopHeader() + `<div class="shop-body">${body}</div>`;
 
-  grid.innerHTML =
-    shopHeader() +
-    `<div class="shop-sub" id="sec-crystals">✦ Kristalle</div>` +
-    crystalPacksRow() +
-    `<div class="shop-sub" id="sec-vorteile">✦ Angebote</div>` +
-    `<div class="shop-feature">${cardAdfree}${cardBundle}</div>` +
-    sections;
-
-  // Knöpfe verdrahten.
+  // Kategorie-Tabs: Filter statt Scroll.
+  grid.querySelectorAll('[data-cat]').forEach(b => {
+    b.onclick = () => { shopCat = b.dataset.cat; renderShop(); };
+  });
+  // Kauf-/Auswahl-Knöpfe verdrahten (unveraenderte Handler).
   grid.querySelectorAll('[data-buy]').forEach(b => { b.onclick = () => buyShopItem(b.dataset.buy); });
   grid.querySelectorAll('[data-cbuy]').forEach(b => { b.onclick = () => buyCurrencyItem(b.dataset.cbuy); });
   grid.querySelectorAll('[data-ctable]').forEach(b => { b.onclick = () => equipCatalogTable(b.dataset.ctable); });
@@ -604,18 +617,7 @@ async function loadShop() {
   grid.querySelectorAll('[data-cback]').forEach(b => { b.onclick = () => equipCatalogBack(b.dataset.cback); });
   grid.querySelectorAll('[data-cavatar]').forEach(b => { b.onclick = () => equipCatalogAvatar(b.dataset.cavatar); });
   grid.querySelectorAll('[data-pack]').forEach(b => {
-    b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist. 💎', 'info');
-  });
-  // Kategorie-Navigation: zur passenden Sektion springen. WICHTIG: 'smooth'
-  // wird durch das Scroll-/Touch-Handling der App blockiert -> instant scrollen
-  // (funktioniert zuverlaessig) + kurzes Aufleuchten der Sektion.
-  grid.querySelectorAll('[data-scroll]').forEach(b => {
-    b.onclick = () => {
-      const sec = document.getElementById(b.dataset.scroll);
-      if (!sec) return;
-      sec.scrollIntoView({ block: 'start' });
-      sec.classList.remove('sec-flash'); void sec.offsetWidth; sec.classList.add('sec-flash');
-    };
+    b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist.', 'info');
   });
 
   const restore = document.getElementById('shop-restore');
@@ -631,6 +633,36 @@ async function loadShop() {
   }
 }
 
+// --- Zentrale Sortierung / Filter / Status --------------------------------
+// Verbindliche Seltenheits-Reihenfolge (deutsche + englische Schluessel).
+const RARITY_ORDER = {
+  common: 0, gewöhnlich: 0, rare: 1, selten: 1, epic: 2, episch: 2,
+  legendary: 3, legendär: 3, mythic: 4, mythisch: 4,
+};
+// Besitzt der Spieler den Artikel? (gratis/Standard/Inventar/Inhaber/Dev)
+function itemHas(it, owned) {
+  return it.free || it.isDefault || owned.has(it.id) || ownerUnlock() || isDevUnlock();
+}
+// Ist der Artikel gerade ausgeruestet/aktiv? (je Typ)
+function itemActive(it) {
+  if (it.kind === 'table')  return selectedCatalogTable() === it.id;
+  if (it.kind === 'deck')   return selectedCatalogDeck() === it.id;
+  if (it.kind === 'back')   return selectedCatalogBack() === it.id;
+  if (it.kind === 'avatar') return myAvatar() === it.img;
+  return false;
+}
+// Status-Rang: aktiv -> im Besitz -> kaufbar.
+function statusRank(it, owned) { return itemActive(it) ? 0 : itemHas(it, owned) ? 1 : 2; }
+// Nur Produkte mit echtem Bild zeigen (bildlose Platzhalter ausblenden).
+function visibleItems(items) { return items.filter(it => it.img || it.isDefault); }
+// Zentrale Sortierung: Seltenheit -> Status -> Preis aufsteigend.
+function sortItems(items, owned) {
+  return [...items].sort((a, b) =>
+    (RARITY_ORDER[a.rarity] ?? 9) - (RARITY_ORDER[b.rarity] ?? 9)
+    || statusRank(a, owned) - statusRank(b, owned)
+    || (a.cost || 0) - (b.cost || 0));
+}
+
 // Kristall-Währungs-Icon (echtes Artwork statt blauem 💎-Emoji). Inline-Bild,
 // per CSS-Klasse .cry an den jeweiligen Kontext angepasst.
 const CRY = '<img class="cry" src="lobby/ic-crystal.png?v=1" alt="Kristalle">';
@@ -639,17 +671,19 @@ const CRY = '<img class="cry" src="lobby/ic-crystal.png?v=1" alt="Kristalle">';
 // lobby/shop-hero.jpg vorliegt) + echte dynamische Guthaben-Pillen + „+" +
 // Kategorie-Navigation. Die Pillen zeigen das Server-Guthaben (nicht gefaked).
 function shopHeader() {
+  // Reihenfolge: Kosmetik zuerst, dann Kristalle + Angebote. "Zubehör" entfaellt
+  // (keine Produkte); Kartenrueckseiten nutzen die vorhandene cat-title-Kachel.
   const cats = [
-    ['avatar',   'Avatare'],
-    ['deck',     'Kartendecks'],
-    ['table',    'Spielfelder'],
-    ['title',    'Zubehör'],
-    ['crystals', 'Kristalle'],
-    ['vorteile', 'Angebote'],
+    ['avatar',   'Avatare',        'avatar'],
+    ['deck',     'Kartendecks',    'deck'],
+    ['table',    'Spielfelder',    'table'],
+    ['back',     'Rückseiten',     'title'],
+    ['crystals', 'Kristalle',      'crystals'],
+    ['vorteile', 'Angebote',       'vorteile'],
   ];
-  const catBtns = cats.map(([k, lbl]) =>
-    `<button class="shopcat" data-scroll="sec-${k}" type="button">
-       <img class="shopcat-ic" src="lobby/cat-${k}.png?v=1" alt="" loading="lazy">
+  const catBtns = cats.map(([k, lbl, ic]) =>
+    `<button class="shopcat${shopCat === k ? ' active' : ''}" data-cat="${k}" type="button">
+       <img class="shopcat-ic" src="lobby/cat-${ic}.png?v=1" alt="" loading="lazy">
        <span class="shopcat-lbl">${esc(lbl)}</span>
      </button>`).join('');
   return `<div class="basar">
@@ -704,44 +738,37 @@ function selectedCatalogBack() {
   return std && !cur ? std.id : '';
 }
 
+// data-Attribut fuer den Auswaehlen-Button je Produkttyp (dieselben Handler wie bisher).
+const EQUIP_ATTR = { table: 'ctable', deck: 'cdeck', back: 'cback', avatar: 'cavatar' };
+
 function shopCatalogTile(it, owned) {
-  const has = it.free || it.isDefault || owned.has(it.id) || ownerUnlock() || isDevUnlock();
+  const has = itemHas(it, owned);
+  const active = itemActive(it);
   const r = RARITY[it.rarity] || RARITY.common;
   const cur = it.currency === 'gold' ? '🪙' : CRY;
-  let btn;
+
+  // Statuszeile + Aktionsbutton klar getrennt:
+  //  - kaufbar: Preis-Button; im Besitz: grüner Hinweis (+ ggf. Auswählen); aktiv: ✓ Aktiv.
+  let state = '', btn = '';
+  const equip = EQUIP_ATTR[it.kind];
   if (!has) {
     btn = `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">${cur} ${nf(it.cost)}</button>`;
-  } else if (it.kind === 'table' && it.img) {
-    // Besessenes Spielfeld: auswaehlen -> wird echter Tisch-Hintergrund.
-    btn = selectedCatalogTable() === it.id
-      ? `<span class="tile-owned">✓ Aktiv</span>`
-      : `<button class="tile-buy" data-ctable="${esc(it.id)}" type="button">Auswählen</button>`;
-  } else if (it.kind === 'deck' && (it.folder || it.isDefault)) {
-    // Kartendeck (inkl. Standard): auswaehlen -> tauscht die Spielkarten aus.
-    btn = selectedCatalogDeck() === it.id
-      ? `<span class="tile-owned">✓ Aktiv</span>`
-      : `<button class="tile-buy" data-cdeck="${esc(it.id)}" type="button">Auswählen</button>`;
-  } else if (it.kind === 'back' && (it.folder || it.isDefault)) {
-    // Kartenrueckseite (inkl. Standard): auswaehlen -> wechselt den Ruecken.
-    btn = selectedCatalogBack() === it.id
-      ? `<span class="tile-owned">✓ Aktiv</span>`
-      : `<button class="tile-buy" data-cback="${esc(it.id)}" type="button">Auswählen</button>`;
-  } else if (it.kind === 'avatar' && it.img) {
-    // Besessener Avatar: auswaehlen -> wird das eigene Profilbild.
-    btn = myAvatar() === it.img
-      ? `<span class="tile-owned">✓ Aktiv</span>`
-      : `<button class="tile-buy" data-cavatar="${esc(it.id)}" type="button">Auswählen</button>`;
+  } else if (active) {
+    state = `<span class="tile-state active">✓ Aktiv</span>`;
+  } else if (equip) {
+    // Im Besitz, aber nicht aktiv: Besitz-Hinweis + Auswählen-Knopf.
+    state = `<span class="tile-state owned">✓ Im Besitz</span>`;
+    btn = `<button class="tile-buy" data-${equip}="${esc(it.id)}" type="button">Auswählen</button>`;
   } else {
-    btn = `<span class="tile-owned">✓ Im Besitz</span>`;
+    state = `<span class="tile-state owned">✓ Im Besitz</span>`;
   }
-  const thumb = it.img
-    ? `<img class="cat-img" src="${esc(it.img)}?v=1" alt="" loading="lazy">`
-    : `<span class="cat-emoji">${it.icon || '✨'}</span>`;
-  return `<div class="cat-tile" style="--r:${r.color}">
+
+  const thumb = `<img class="cat-img" src="${esc(it.img)}?v=1" alt="" loading="lazy">`;
+  return `<div class="cat-tile${active ? ' is-active' : ''}" data-kind="${esc(it.kind)}" data-rar="${esc(it.rarity)}" style="--r:${r.color}">
     <div class="cat-thumb">${thumb}</div>
     <div class="cat-name">${esc(it.name)}</div>
     <div class="cat-rarity">${r.label}</div>
-    ${btn}
+    <div class="tile-foot">${state}${btn}</div>
   </div>`;
 }
 
