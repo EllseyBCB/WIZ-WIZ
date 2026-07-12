@@ -12,7 +12,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
          getTableTheme, setTableTheme, applyTableTheme, setTableBg, getTableBg,
          setCardDeck, getCardDeck,
          setCardBack, getCardBack, applyCardBack,
-         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=9';
+         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=10';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
