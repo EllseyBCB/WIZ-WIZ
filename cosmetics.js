@@ -180,7 +180,9 @@ export function applyCardBack() {
   const img = getCardBack();
   if (!img) { if (el) el.remove(); return; }   // Standard -> Original-CSS greift
   if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
-  el.textContent = `.flip-back,.seat-hand .hb{background-image:url('${img}?v=1');}`;
+  // background-size:100% 100% (fill) statt cover: das Ruecken-Artwork fuellt die
+  // Kartenbox exakt, der komplette Goldrahmen bleibt sichtbar (kein Zuschnitt).
+  el.textContent = `.flip-back,.seat-hand .hb{background-image:url('${img}?v=1');background-size:100% 100%;}`;
 }
 // Wendet den Tisch-Hintergrund an. WICHTIG: kein var() verwenden – Safari löst
 // einen var()-Fallback mit zwei Werten in background-size nicht auf. Stattdessen

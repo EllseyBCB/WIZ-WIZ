@@ -1000,7 +1000,7 @@
     display: flex; justify-content: center; align-items: flex-end; }
   .seat-hand .hb {
     width: calc(var(--sw) * .40); aspect-ratio: 62 / 94; margin: 0 calc(var(--sw) * -.12);
-    background: #221a3d url('cards/back.png?v=2') center/cover no-repeat;
+    background: #221a3d url('cards/back.png?v=2') center/100% 100% no-repeat;
     border-radius: 11% / 7%; transform-origin: center bottom;
     box-shadow: 0 2px 5px rgba(0,0,0,.55); border: 1px solid rgba(8,5,18,.7);
   }
@@ -1259,7 +1259,7 @@
   .flip-back {
     position: absolute; inset: 0; border-radius: 8% / 5%; overflow: hidden;
     transform-origin: 50% 50%; transition: transform .45s cubic-bezier(.45,.05,.55,.95), filter .45s ease; transform: scaleX(1);
-    background: #221a3d url('cards/back.png?v=2') center/cover no-repeat;
+    background: #221a3d url('cards/back.png?v=2') center/100% 100% no-repeat;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.45);
   }
   /* aufgedeckt: Rueckseite klappt zu, dann Vorderseite auf (kurzer Glanz = Tiefe) */
@@ -1948,6 +1948,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=114"></script>
+<script type="module" src="./app.js?v=115"></script>
 </body>
 </html>
