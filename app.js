@@ -16,7 +16,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=12';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=13';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
