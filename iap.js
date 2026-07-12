@@ -13,7 +13,7 @@
 // StoreKit es nicht aus (kein Kauf möglich).
 import { IAP_ENTITLEMENT, IAP_BUNDLE_ENTITLEMENT } from './config.js';
 import { setAdFree } from './ads.js';
-import { SHOP_ADFREE, SHOP_BUNDLE, AVATAR_ITEMS, TABLE_ITEMS } from './cosmetics.js?v=7';
+import { SHOP_ADFREE, SHOP_BUNDLE, AVATAR_ITEMS, TABLE_ITEMS } from './cosmetics.js?v=9';
 
 const cap = () => window.Capacitor;
 const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatform());

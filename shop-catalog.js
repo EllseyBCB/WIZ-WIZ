@@ -70,11 +70,15 @@ export const SHOP_SECTIONS = [
     ]
   },
   {
-    key: 'title', title: 'Zubehör', items: [
-      I('title_erzmagier',    'title', 'Erzmagier',    5000,  'gold', 'rare',      '👑'),
-      I('title_kartenkoenig', 'title', 'Kartenkönig',  5000,  'gold', 'rare',      '🃏'),
-      I('title_unbesiegbar',  'title', 'Unbesiegbar',  10000, 'gold', 'epic',      '🛡️'),
-      I('title_legendaer',    'title', 'Legendär',     20000, 'gold', 'legendary', '⭐'),
+    // Kartenrueckseiten: 'folder' = Bildpfad des Ruecken-Designs; Auswahl
+    // wechselt die Rueckseite im Spiel (wie beim Deck die Vorderseiten).
+    key: 'back', title: 'Kartenrückseiten', items: [
+      { id: 'back_standard', kind: 'back', name: 'Standard', cost: 0, currency: 'crystals',
+        rarity: 'common', icon: '🂠', img: 'cards/back.png', folder: '', isDefault: true, free: true },
+      I('back_rubin',   'back', 'Rubin',   400, 'crystals', 'rare', '🟥', 'cards/backs/rubin.png',   'cards/backs/rubin.png'),
+      I('back_smaragd', 'back', 'Smaragd', 400, 'crystals', 'rare', '🟩', 'cards/backs/smaragd.png', 'cards/backs/smaragd.png'),
+      I('back_saphir',  'back', 'Saphir',  400, 'crystals', 'rare', '🟦', 'cards/backs/saphir.png',  'cards/backs/saphir.png'),
+      I('back_gold',    'back', 'Gold',    600, 'crystals', 'epic', '🟨', 'cards/backs/gold.png',    'cards/backs/gold.png'),
     ]
   },
 ];

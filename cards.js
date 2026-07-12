@@ -13,6 +13,15 @@ export function deckBase() {
   return (sel || CARD_IMAGE_BASE || '').replace(/\/$/, '');
 }
 
+// Aktive Kartenrueckseite: gewaehltes Ruecken-Bild (Shop, voller Pfad) oder
+// die Standard-Rueckseite. cosmetics.js setzt denselben Schluessel und
+// wechselt zusaetzlich die CSS-Ruecken (.flip-back, Gegner-Faecher) mit.
+export function backUrl() {
+  let sel = '';
+  try { sel = localStorage.getItem('wizard_back_img') || ''; } catch (_) {}
+  return sel ? `${sel}?v=1` : `${(CARD_IMAGE_BASE || '').replace(/\/$/, '')}/back.png?v=2`;
+}
+
 export const COLORS = {
   R: { name: 'Rot',   hex: '#e5484d' },
   Y: { name: 'Gelb',  hex: '#f0b429' },
@@ -50,7 +59,9 @@ export function cardLabel(code) {
 export function allCardImageUrls() {
   if (!CARD_IMAGE_BASE) return [];
   const base = deckBase();
+  // Standard-Ruecken (CSS-Fallback) + aktive Rueckseite (falls abweichend)
   const urls = [`${CARD_IMAGE_BASE.replace(/\/$/, '')}/back.png?v=2`];
+  if (backUrl() !== urls[0]) urls.push(backUrl());
   for (const c of ['R', 'Y', 'G', 'B']) for (let r = 1; r <= 13; r++) urls.push(`${base}/${c}${r}.png?v=11`);
   for (let i = 1; i <= 4; i++) { urls.push(`${base}/Z${i}.png?v=11`); urls.push(`${base}/N${i}.png?v=11`); }
   return urls;
@@ -91,7 +102,7 @@ export function renderCard(code, opts = {}) {
       img.alt = 'Rückseite';
       img.loading = 'eager';
       img.decoding = 'async';
-      img.src = `${CARD_IMAGE_BASE.replace(/\/$/, '')}/back.png?v=2`;
+      img.src = backUrl();          // Rueckseite aus dem Shop (oder Standard)
       img.onerror = () => { el.innerHTML = backSvg(); };   // Fallback auf SVG-Rueckseite
       el.appendChild(img);
     } else {
