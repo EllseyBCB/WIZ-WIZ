@@ -75,10 +75,11 @@ export const SHOP_SECTIONS = [
     key: 'back', title: 'Kartenrückseiten', items: [
       { id: 'back_standard', kind: 'back', name: 'Standard', cost: 0, currency: 'crystals',
         rarity: 'common', icon: '🂠', img: 'cards/back.png', folder: '', isDefault: true, free: true },
-      I('back_rubin',   'back', 'Rubin',   400, 'crystals', 'rare', '🟥', 'cards/backs/rubin.png',   'cards/backs/rubin.png'),
-      I('back_smaragd', 'back', 'Smaragd', 400, 'crystals', 'rare', '🟩', 'cards/backs/smaragd.png', 'cards/backs/smaragd.png'),
-      I('back_saphir',  'back', 'Saphir',  400, 'crystals', 'rare', '🟦', 'cards/backs/saphir.png',  'cards/backs/saphir.png'),
-      I('back_gold',    'back', 'Gold',    600, 'crystals', 'epic', '🟨', 'cards/backs/gold.png',    'cards/backs/gold.png'),
+      I('back_phoenix',      'back', 'Phönix',       400, 'crystals', 'rare', '🔥', 'cards/backs/phoenix.png',      'cards/backs/phoenix.png'),
+      I('back_lebensbaum',   'back', 'Lebensbaum',   400, 'crystals', 'rare', '🌳', 'cards/backs/lebensbaum.png',   'cards/backs/lebensbaum.png'),
+      I('back_mondkristall', 'back', 'Mondkristall', 400, 'crystals', 'rare', '🌙', 'cards/backs/mondkristall.png', 'cards/backs/mondkristall.png'),
+      I('back_schild',       'back', 'Azurschild',   600, 'crystals', 'epic', '🛡️', 'cards/backs/schild.png',       'cards/backs/schild.png'),
+      I('back_krone',        'back', 'Königskrone',  600, 'crystals', 'epic', '👑', 'cards/backs/krone.png',        'cards/backs/krone.png'),
     ]
   },
 ];
