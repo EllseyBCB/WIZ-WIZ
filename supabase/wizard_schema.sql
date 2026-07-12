@@ -377,12 +377,16 @@ begin
   if v_dealt >= 60 then                 -- letzte Runde: alle Karten verteilt
     v_trump := null; v_flip := null; v_pending := false;
   else
-    v_flip := v_deck[v_dealt + 1];
-    if v_flip like 'Z%' then            -- Zauberer -> Trumpf = Farbe des Zauberers
-      v_trump := case v_flip when 'Z1' then 'B' when 'Z2' then 'R' when 'Z3' then 'Y' when 'Z4' then 'G' else null end; v_pending := false;
-    elsif v_flip like 'N%' then         -- Narr -> kein Trumpf
+    -- Trumpfkarte = erste Restkarte, die KEIN Zauberer ist. Ein Zauberer kann
+    -- nie Trumpf werden -> nur Farbkarten oder ein Narr. Zauberer werden
+    -- uebersprungen; bleibt nur noch Zauberer uebrig, gibt es keinen Trumpf.
+    v_flip := null;
+    for v_ti in (v_dealt + 1)..60 loop
+      if v_deck[v_ti] not like 'Z%' then v_flip := v_deck[v_ti]; exit; end if;
+    end loop;
+    if v_flip is null or v_flip like 'N%' then   -- nur Zauberer uebrig / Narr
       v_trump := null; v_pending := false;
-    else                                -- Farbkarte
+    else                                          -- Farbkarte
       v_trump := substr(v_flip, 1, 1); v_pending := false;
     end if;
   end if;

@@ -99,12 +99,17 @@ export function dealRound(G) {
   if (dealt >= 60) {                       // letzte Runde: kein Trumpf
     G.trumpColor = null; G.trumpCard = null; G.trumpPending = false;
   } else {
-    const flip = d[dealt];
+    // Trumpfkarte = erste Karte im Reststapel, die KEIN Zauberer ist. Ein
+    // Zauberer kann nie Trumpf werden -> nur Farbkarten oder ein Narr. (Narr
+    // = kein Trumpf.) Zauberer werden uebersprungen; bleibt nur noch Zauberer
+    // uebrig (sehr selten), gibt es keinen Trumpf.
+    let flip = null;
+    for (let i = dealt; i < d.length; i++) {
+      if (!isWizard(d[i])) { flip = d[i]; break; }
+    }
     G.trumpCard = flip;
-    // Zauberer aufgedeckt: Trumpf ist die FARBE des Zauberers (kein Waehlen mehr).
-    if (isWizard(flip))      { G.trumpColor = WIZ_COLOR[flip] || null; G.trumpPending = false; }
-    else if (isJester(flip)) { G.trumpColor = null; G.trumpPending = false; }
-    else                     { G.trumpColor = flip[0]; G.trumpPending = false; }
+    if (flip == null || isJester(flip)) { G.trumpColor = null; G.trumpPending = false; }
+    else                                { G.trumpColor = flip[0]; G.trumpPending = false; }
   }
 
   G.roundNo = n; G.cardsThisRound = c; G.trickNo = 0;
