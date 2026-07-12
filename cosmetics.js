@@ -156,6 +156,32 @@ export function setCardDeck(folder) {
     else localStorage.removeItem(LS_DECK);
   } catch (_) {}
 }
+
+// --- Kartenrueckseite --------------------------------------------------------
+// img = voller Bildpfad (z. B. 'cards/backs/rubin.png'), '' = Standard-Ruecken.
+// cards.js liest denselben Schluessel fuer <img>-Ruecken (backUrl); zusaetzlich
+// wird hier ein <style> injiziert, damit auch die CSS-Ruecken mitwechseln
+// (zugedeckte Handkarten .flip-back + Gegner-Mini-Faecher .seat-hand .hb).
+const LS_BACK = 'wizard_back_img';
+export function getCardBack() {
+  try { return localStorage.getItem(LS_BACK) || ''; } catch (_) { return ''; }
+}
+export function setCardBack(img) {
+  try {
+    if (img) localStorage.setItem(LS_BACK, img);
+    else localStorage.removeItem(LS_BACK);
+  } catch (_) {}
+  applyCardBack();
+}
+export function applyCardBack() {
+  if (typeof document === 'undefined') return;
+  const id = 'wiz-back-style';
+  let el = document.getElementById(id);
+  const img = getCardBack();
+  if (!img) { if (el) el.remove(); return; }   // Standard -> Original-CSS greift
+  if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
+  el.textContent = `.flip-back,.seat-hand .hb{background-image:url('${img}?v=1');}`;
+}
 // Wendet den Tisch-Hintergrund an. WICHTIG: kein var() verwenden – Safari löst
 // einen var()-Fallback mit zwei Werten in background-size nicht auf. Stattdessen
 // wird für Premium-Tische ein <style> mit LITERALEN Werten injiziert; für den

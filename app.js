@@ -1,21 +1,22 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=80';
-import { gameAssetUrls } from './table.js?v=78';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=68';
-import { preloadCards, allCardImageUrls } from './cards.js?v=19';
+import { render } from './game.js?v=81';
+import { gameAssetUrls } from './table.js?v=79';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=69';
+import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest } from './ads.js?v=4';
-import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=4';
+import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=5';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
          getTableTheme, setTableTheme, applyTableTheme, setTableBg, getTableBg,
          setCardDeck, getCardDeck,
-         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=8';
+         setCardBack, getCardBack, applyCardBack,
+         isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=9';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
 import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=11';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=12';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -600,6 +601,8 @@ async function loadShop() {
   grid.querySelectorAll('[data-cbuy]').forEach(b => { b.onclick = () => buyCurrencyItem(b.dataset.cbuy); });
   grid.querySelectorAll('[data-ctable]').forEach(b => { b.onclick = () => equipCatalogTable(b.dataset.ctable); });
   grid.querySelectorAll('[data-cdeck]').forEach(b => { b.onclick = () => equipCatalogDeck(b.dataset.cdeck); });
+  grid.querySelectorAll('[data-cback]').forEach(b => { b.onclick = () => equipCatalogBack(b.dataset.cback); });
+  grid.querySelectorAll('[data-cavatar]').forEach(b => { b.onclick = () => equipCatalogAvatar(b.dataset.cavatar); });
   grid.querySelectorAll('[data-pack]').forEach(b => {
     b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist. 💎', 'info');
   });
@@ -691,6 +694,16 @@ function selectedCatalogDeck() {
   return std && !cur ? std.id : '';
 }
 
+// Aktuell gewaehlte Katalog-Rueckseite (Standard = kein Ruecken-Override).
+function selectedCatalogBack() {
+  const cur = getCardBack();
+  const backs = SHOP_SECTIONS.find(s => s.key === 'back')?.items || [];
+  const hit = backs.find(i => i.folder && i.folder === cur);
+  if (hit) return hit.id;
+  const std = backs.find(i => i.isDefault);
+  return std && !cur ? std.id : '';
+}
+
 function shopCatalogTile(it, owned) {
   const has = it.free || it.isDefault || owned.has(it.id) || ownerUnlock() || isDevUnlock();
   const r = RARITY[it.rarity] || RARITY.common;
@@ -708,6 +721,16 @@ function shopCatalogTile(it, owned) {
     btn = selectedCatalogDeck() === it.id
       ? `<span class="tile-owned">✓ Aktiv</span>`
       : `<button class="tile-buy" data-cdeck="${esc(it.id)}" type="button">Auswählen</button>`;
+  } else if (it.kind === 'back' && (it.folder || it.isDefault)) {
+    // Kartenrueckseite (inkl. Standard): auswaehlen -> wechselt den Ruecken.
+    btn = selectedCatalogBack() === it.id
+      ? `<span class="tile-owned">✓ Aktiv</span>`
+      : `<button class="tile-buy" data-cback="${esc(it.id)}" type="button">Auswählen</button>`;
+  } else if (it.kind === 'avatar' && it.img) {
+    // Besessener Avatar: auswaehlen -> wird das eigene Profilbild.
+    btn = myAvatar() === it.img
+      ? `<span class="tile-owned">✓ Aktiv</span>`
+      : `<button class="tile-buy" data-cavatar="${esc(it.id)}" type="button">Auswählen</button>`;
   } else {
     btn = `<span class="tile-owned">✓ Im Besitz</span>`;
   }
@@ -859,6 +882,23 @@ function equipCatalogDeck(id) {
   setCardDeck(it.isDefault ? '' : it.folder);
   loadShop();
   toast(`Kartendeck „${it.name}" gewählt 🃏`, 'ok');
+}
+
+// Kartenrueckseite auswählen -> wechselt den Ruecken aller verdeckten Karten.
+function equipCatalogBack(id) {
+  const it = SHOP_SECTIONS.find(s => s.key === 'back')?.items.find(i => i.id === id);
+  if (!it || (!it.folder && !it.isDefault)) return;
+  setCardBack(it.isDefault ? '' : it.folder);
+  loadShop();
+  toast(`Kartenrückseite „${it.name}" gewählt 🂠`, 'ok');
+}
+
+// Shop-Avatar als Profilbild setzen (pickAvatar speichert lokal + im Profil).
+async function equipCatalogAvatar(id) {
+  const it = SHOP_SECTIONS.find(s => s.key === 'avatar')?.items.find(i => i.id === id);
+  if (!it || !it.img) return;
+  await pickAvatar(it.img);
+  loadShop();
 }
 
 function offlineNote(el) {
@@ -1748,6 +1788,7 @@ function runBootLoader() {
 async function init() {
   // Buttons sofort verdrahten – der Solo-Modus braucht keine Anmeldung.
   applyTableTheme();   // gewähltes Tisch-Design auf den Spieltisch anwenden
+  applyCardBack();     // gewählte Kartenrückseite (CSS-Ruecken) anwenden
   // Erst alles laden (Ladebildschirm mit Balken), dann die Startseite zeigen.
   // (Nach applyTableTheme, damit auch das aktive Tisch-Design vorgeladen wird.)
   runBootLoader();
