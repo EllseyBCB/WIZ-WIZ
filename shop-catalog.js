@@ -41,8 +41,7 @@ export const SHOP_SECTIONS = [
       // Das Original-Deck – gratis, immer im Besitz, waehlbar (Standard).
       { id: 'deck_standard', kind: 'deck', name: 'Standard', cost: 0, currency: 'crystals',
         rarity: 'common', icon: '🎴', img: 'lobby/deck-standard.png', folder: '', isDefault: true, free: true },
-      I('deck_kristall',  'deck', 'Arkanum',  800, 'crystals', 'rare',      '💎', 'lobby/deck-kristall.png', 'cards/decks/kristall'),
-      I('deck_elemente',  'deck', 'Elemente',  800, 'crystals', 'epic',      '🌟', 'lobby/deck-elemente.jpg', 'cards/decks/elemente'),
+      I('deck_elemente',  'deck', 'Elemente',  800, 'crystals', 'epic',      '🌟', 'lobby/deck-elemente.png', 'cards/decks/elemente'),
       I('deck_feuer',     'deck', 'Feuer',     800, 'crystals', 'rare',      '🔥'),
       I('deck_eis',       'deck', 'Eis',       800, 'crystals', 'rare',      '❄️'),
       I('deck_wald',      'deck', 'Wald',      800, 'crystals', 'rare',      '🌿'),
