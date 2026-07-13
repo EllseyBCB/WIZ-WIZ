@@ -101,6 +101,52 @@ export function sfxWin() {             // Spielende: kurze Fanfare
   [[523, 0], [659, 0.12], [784, 0.24], [1046, 0.40]].forEach(([f, dt]) => tone(f, t + dt, 0.7, { type: 'triangle', vol: 0.22 }));
 }
 
+// Kurzes, gefiltertes Rauschen (fuer Rumpeln/Aufprall/Whoosh).
+function noiseBurst(t, dur, opts = {}) {
+  const len = Math.max(1, Math.ceil(ctx.sampleRate * dur));
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type = opts.type || 'lowpass';
+  f.frequency.value = opts.freq || 300;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(opts.vol ?? 0.3, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g); g.connect(sfx);
+  src.start(t); src.stop(t + dur + 0.02);
+}
+
+// --- Truhen-Sounds -----------------------------------------------------------
+export function sfxChestRumble() {     // Wackeln: tiefes Rumpeln + Holz-Klacken
+  if (!sfxOn || !ready()) return; const t = ctx.currentTime;
+  noiseBurst(t, 0.55, { freq: 170, vol: 0.22 });
+  for (let i = 0; i < 4; i++)
+    tone(85 + Math.random() * 45, t + i * 0.11, 0.09, { type: 'square', vol: 0.09, glide: 55 });
+}
+export function sfxChestImpact() {     // Kraftvolle Landung: dumpfer Schlag
+  if (!sfxOn || !ready()) return; const t = ctx.currentTime;
+  tone(130, t, 0.28, { type: 'sine', vol: 0.5, glide: 38 });
+  noiseBurst(t, 0.32, { freq: 240, vol: 0.38 });
+}
+export function sfxChestOpen() {       // Aufspringen: Whoosh + Glissando + Glitzer-Akkord
+  if (!sfxOn || !ready()) return; const t = ctx.currentTime;
+  noiseBurst(t, 0.5, { type: 'highpass', freq: 900, vol: 0.16 });
+  tone(220, t, 0.6, { type: 'sawtooth', vol: 0.09, glide: 1760 });
+  [[523, .18], [659, .26], [784, .34], [1046, .42], [1318, .50]]
+    .forEach(([f, dt]) => tone(f, t + dt, 0.8, { type: 'sine', vol: 0.15 }));
+}
+export function sfxDropReveal() {      // Belohnung enthuellt: Funkel-Klang
+  if (!sfxOn || !ready()) return; const t = ctx.currentTime;
+  tone(1046, t, 0.35, { type: 'sine', vol: 0.20 });
+  tone(1568, t + 0.07, 0.45, { type: 'sine', vol: 0.15 });
+}
+export function sfxItemReveal() {      // Seltenes Item: kleine helle Fanfare
+  if (!sfxOn || !ready()) return; const t = ctx.currentTime;
+  [[659, 0], [784, .10], [1046, .20], [1318, .34], [1568, .50]]
+    .forEach(([f, dt]) => tone(f, t + dt, 0.6, { type: 'triangle', vol: 0.19 }));
+}
+
 // Vibration (nur Mobil, an den Effekt-Schalter gekoppelt).
 // Im nativen iOS/Android-WebView gibt es navigator.vibrate nicht -> Capacitor
 // Haptics. Im Browser/PWA unveraendert ueber navigator.vibrate.

@@ -1,9 +1,9 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=83';
+import { render } from './game.js?v=84';
 import { gameAssetUrls } from './table.js?v=79';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=71';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=72';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -16,7 +16,8 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
          setCardBack, getCardBack, applyCardBack,
          isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=10';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
-         sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
+         sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume,
+         sfxChestRumble, sfxChestImpact, sfxChestOpen, sfxDropReveal, sfxItemReveal } from './audio.js?v=5';
 import { $, showScreen, toast, esc, confetti } from './ui.js?v=2';
 import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY, SLOT_TIERS, TOKEN_PACKS, CHEST_TIERS, CHEST_META } from './shop-catalog.js?v=16';
 
@@ -1177,35 +1178,43 @@ async function openChestModal(chest) {
     const isItem = d.t === 'item';
 
     // Alten Drop nach oben davonfliegen lassen (Clash-Stil).
-    const prev = reveal.querySelector('.drop-float');
-    if (prev && !REDUCED_MOTION) { prev.classList.add('fly-off'); await wait(220); }
+    const prev = stage.querySelector('.drop-float');
+    if (prev) {
+      if (!REDUCED_MOTION) { prev.classList.add('fly-off'); await wait(220); }
+      prev.remove();
+    }
 
     // Vor seltenen Items: Truhe baut noch einmal Spannung auf.
     if (isItem && !REDUCED_MOTION) {
       anim.classList.add('shake2');
+      sfxChestRumble();
       spawnChestParticles(stage, 8);
       await wait(550);
       anim.classList.remove('shake2');
     }
 
-    // Belohnung schwebt als leuchtende Silhouette aus der Truhe.
-    reveal.innerHTML = `<div class="drop-float sil${isItem ? ' item-f' : ''}">${chestDropHtml(d)}</div>`;
-    const fl = reveal.querySelector('.drop-float');
+    // Belohnung ENTSTEHT IN der Truhe: springt als leuchtende Silhouette aus
+    // der Oeffnung heraus und bleibt dann ueber der Truhe schweben.
+    stage.insertAdjacentHTML('beforeend',
+      `<div class="drop-float sil${isItem ? ' item-f' : ''}">${chestDropHtml(d)}</div>`);
+    const fl = stage.querySelector('.drop-float');
     spawnChestParticles(stage, isItem ? 12 : 6);
-    if (!REDUCED_MOTION) await wait(isItem ? 800 : 560);   // Aufstieg + kurzer Halt
+    if (!REDUCED_MOTION) await wait(isItem ? 850 : 620);   // Heraussprung + kurzer Halt
 
-    // Mini-Blitz -> vollstaendige Enthuellung.
+    // Mini-Blitz -> vollstaendige Enthuellung + sanftes Schweben.
     flash.classList.remove('re'); void flash.offsetWidth; flash.classList.add('re');
     fl.classList.remove('sil');
-    if (d.t === 'crystals' || d.t === 'gold') countUpCrystals(fl.querySelector('.drop-n'), d.n | 0);
-    else confetti(1800);
+    fl.classList.add('hover');
+    if (d.t === 'crystals' || d.t === 'gold') { sfxDropReveal(); countUpCrystals(fl.querySelector('.drop-n'), d.n | 0); }
+    else { sfxItemReveal(); confetti(1800); }
     haptic?.(isItem ? [30, 40, 80] : 18);
 
     idx++; updateDots();
     if (idx >= drops.length) {
       hintEl.hidden = true;
       revealPhase = false;
-      if (!REDUCED_MOTION) await wait(900);
+      if (!REDUCED_MOTION) await wait(1100);
+      stage.querySelector('.drop-float')?.remove();
       finishing?.();
     }
     busy = false;
@@ -1232,9 +1241,11 @@ async function openChestModal(chest) {
       await wait(500);
       // 0,5–1,2s: leichtes Wackeln, Glow wird staerker.
       anim.classList.add('shake');
+      sfxChestRumble();
       await wait(700);
       // 1,2–1,8s: heftiges Wackeln, Licht dringt aus den Spalten.
       anim.classList.add('shake2');
+      sfxChestRumble();
       await wait(600);
       // 1,8–2,2s: Sprung + kraftvolle Landung mit Lichtwelle.
       anim.classList.remove('shake', 'shake2', 'charge');
@@ -1244,6 +1255,7 @@ async function openChestModal(chest) {
       shock.classList.add('go');
       card.classList.add('quake');
       spawnChestParticles(stage, 10);
+      sfxChestImpact();
       haptic?.([20, 30, 60]);
       await wait(300);
       card.classList.remove('quake');
@@ -1255,6 +1267,7 @@ async function openChestModal(chest) {
 
     // 2,2–2,6s: Bildschirmblitz + Deckel-Frames + Lichtsaeule + Strahlen.
     whiteflash.classList.add('go');
+    sfxChestOpen();
     haptic?.([30, 40, 30, 40, 120]);
     bigImg.hidden = true; frameImg.hidden = false;
     anim.classList.add('open-frames');
