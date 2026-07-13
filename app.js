@@ -5,7 +5,7 @@ import { render } from './game.js?v=81';
 import { gameAssetUrls } from './table.js?v=79';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=70';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
-import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest } from './ads.js?v=5';
+import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=6';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=5';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
@@ -1660,6 +1660,15 @@ function wireSettings() {
       await setForceTest(on);
       toast(on ? 'Testanzeigen an' : 'Testanzeigen aus (echte IDs)', 'ok');
     };
+  }
+
+  // Live-Werbe-Status unter dem Schalter: zeigt Init-/Consent-/Ladefehler
+  // direkt in der App an (ohne Xcode-Konsole).
+  const adsInfo = document.getElementById('ads-status');
+  if (adsInfo) {
+    const upd = (s) => { adsInfo.textContent = 'Werbe-Status: ' + s; };
+    upd(adsStatus());
+    onAdsStatus(upd);
   }
 
   // "Du bist dran"-Benachrichtigungen
