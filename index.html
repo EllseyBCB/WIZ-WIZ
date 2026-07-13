@@ -1932,6 +1932,10 @@
     </div>
     <p class="muted set-note">Nur in der App: erzwingt echte Google-Testanzeigen (garantiert sichtbar, gefahrlos anklickbar). Zum Prüfen, dass Werbung ankommt, solange dein AdMob-Konto noch keine echten Anzeigen ausliefert. Im Alltag ausschalten.</p>
     <p class="muted set-note" id="ads-status" style="word-break:break-word;color:#e9c873">Werbe-Status: –</p>
+    <div class="set-row" id="tokentest-row" hidden>
+      <span class="set-label">🎟 Spielsteine auf 0 (Test)</span>
+      <button id="tokentest-btn" class="btn sekundaer small-btn" type="button">Leeren</button>
+    </div>
 
     <h3 class="set-subtitle">Rechtliches</h3>
     <div class="legal-links">
@@ -2113,6 +2117,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=130"></script>
+<script type="module" src="./app.js?v=131"></script>
 </body>
 </html>

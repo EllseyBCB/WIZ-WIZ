@@ -6,7 +6,7 @@ import { gameAssetUrls } from './table.js?v=79';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=71';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
-import { requireToken, refundToken, getTokens, tokenGateActive } from './tokens.js?v=1';
+import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest } from './tokens.js?v=2';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=5';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
@@ -1741,15 +1741,22 @@ function wireSettings() {
   // damit man auf dem Geraet sieht, dass Werbung ankommt (bevor das eigene
   // AdMob-Konto echte Ads ausliefert). Gefahrlos klickbar.
   const adtestT = document.getElementById('adtest-toggle');
+  // Test-Knopf "Spielsteine auf 0" nur zeigen, wenn Testanzeigen aktiv sind.
+  const syncTokTest = () => { const r = document.getElementById('tokentest-row'); if (r) r.hidden = !isForceTest(); };
   if (adtestT) {
     adtestT.setAttribute('aria-checked', isForceTest() ? 'true' : 'false');
     adtestT.onclick = async () => {
       const on = !isForceTest();
       adtestT.setAttribute('aria-checked', on ? 'true' : 'false');
       await setForceTest(on);
+      syncTokTest();
+      refreshTokenPill();   // Gate-Wechsel -> Pille ein-/ausblenden
       toast(on ? 'Testanzeigen an' : 'Testanzeigen aus (echte IDs)', 'ok');
     };
   }
+  syncTokTest();
+  const tokTestBtn = document.getElementById('tokentest-btn');
+  if (tokTestBtn) tokTestBtn.onclick = () => { setTokensForTest(0); toast('Spielsteine auf 0 gesetzt', 'ok'); };
 
   // Live-Werbe-Status unter dem Schalter: zeigt Init-/Consent-/Ladefehler
   // direkt in der App an (ohne Xcode-Konsole).

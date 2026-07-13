@@ -59,6 +59,14 @@ export function refundToken() {
   s.n = Math.min(TOKENS_MAX, s.n + 1); save(s); notify();
 }
 
+// Nur zum Testen: Spielstein-Zahl direkt setzen (z. B. auf 0, um den
+// "Keine Spielsteine mehr"-Fall zu pruefen, ohne 3 Spiele zu starten).
+export function setTokensForTest(n) {
+  const s = load();
+  s.n = Math.max(0, Math.min(TOKENS_MAX, n | 0));
+  save(s); notify();
+}
+
 // Zentrales Gate fuer alle "Spiel starten"-Knoepfe: zieht einen Stein ab und
 // ruft onProceed, oder oeffnet das "2 Videos ansehen"-Fenster.
 export function requireToken(onProceed) {
