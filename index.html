@@ -1630,16 +1630,67 @@
     background: radial-gradient(circle, #fff 0%,
       color-mix(in srgb, var(--r) 75%, #fff) 32%, transparent 68%);
   }
+  /* Frame-Sequenz der sich oeffnenden Truhe (chest-open-2..5.png) */
+  .chest-frame-img { display: inline-block; height: 235px; width: auto; object-fit: contain;
+    position: relative; z-index: 2; margin-top: -58px;
+    filter: drop-shadow(0 0 20px color-mix(in srgb, var(--r) 60%, transparent)); }
+  /* hidden-Attribut muss gegen die display-Regeln oben gewinnen */
+  .chest-big-img[hidden], .chest-frame-img[hidden] { display: none; }
+  /* Lichtsaeule aus der geoeffneten Truhe */
+  .chest-beam {
+    position: absolute; bottom: 46%; left: 50%; width: 70px; height: 250px;
+    transform: translateX(-50%) scaleY(0); transform-origin: bottom center;
+    z-index: 1; opacity: 0; filter: blur(2px); border-radius: 40% 40% 0 0;
+    background: linear-gradient(0deg,
+      color-mix(in srgb, var(--r) 80%, #fff) 0%,
+      color-mix(in srgb, var(--r) 55%, transparent) 55%, transparent 100%);
+  }
+  .chest-beam.go { animation: beamGo 1.1s ease-out forwards; }
+  @keyframes beamGo { 0%{opacity:0; transform:translateX(-50%) scaleY(0)}
+    22%{opacity:1; transform:translateX(-50%) scaleY(1.06)}
+    70%{opacity:.55} 100%{opacity:.3; transform:translateX(-50%) scaleY(1)} }
+  /* Aufprall-Lichtwelle am Boden */
+  .chest-shockwave {
+    position: absolute; bottom: 4px; left: 50%; width: 150px; height: 40px;
+    margin-left: -75px; border-radius: 50%; opacity: 0; z-index: 0;
+    border: 3px solid color-mix(in srgb, var(--r) 80%, #fff);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--r) 60%, transparent);
+  }
+  .chest-shockwave.go { animation: shockGo .55s ease-out; }
+  @keyframes shockGo { 0%{opacity:.95; transform:scale(.25)} 100%{opacity:0; transform:scale(2.3)} }
+  /* Kurzer heller Bildschirmblitz beim Aufspringen */
+  .chest-whiteflash { position: fixed; inset: 0; background: #fff; opacity: 0;
+    pointer-events: none; z-index: 10002; }
+  .chest-whiteflash.go { animation: whiteGo .5s ease-out; }
+  @keyframes whiteGo { 0%{opacity:0} 14%{opacity:.85} 100%{opacity:0} }
+  /* Aufsteigende Ambient-Funken (Aufladephase) */
+  .chest-rise { position: absolute; bottom: 20px; z-index: 3; pointer-events: none;
+    font-size: .8rem; color: #e9c873; opacity: 0; animation: riseUp 1.4s ease-out forwards; }
+  @keyframes riseUp { 0%{opacity:0; transform:translate(0,0) scale(.6)}
+    18%{opacity:.9} 100%{opacity:0; transform:translate(var(--rx,0px),-110px) scale(1.1)} }
+  /* Phasen */
+  .chest-anim.charge .chest-big-img { animation: chestBob 1.2s ease-in-out infinite; }
+  .chest-anim.charge .chest-rays { opacity: .14; animation: raysSpin 9s linear infinite; }
   .chest-anim.shake .chest-big-img { animation: chestShake .34s ease-in-out infinite; }
-  .chest-anim.shake2 .chest-big-img { animation: chestShake2 .16s ease-in-out infinite; }
+  .chest-anim.shake2 .chest-big-img,
+  .chest-anim.shake2 .chest-frame-img { animation: chestShake2 .16s ease-in-out infinite; }
   .chest-anim.shake2 .chest-rays { opacity: .35; animation: raysSpin 5s linear infinite; }
-  .chest-anim.burst .chest-big-img { animation: chestPop .55s cubic-bezier(.2,1.6,.4,1); }
+  .chest-anim.jump .chest-big-img { animation: chestJump .28s cubic-bezier(.3,.5,.4,1) forwards; }
+  .chest-anim.land .chest-big-img { animation: chestLand .3s cubic-bezier(.2,1.4,.4,1) forwards; }
   .chest-anim.burst .chest-rays { opacity: 1; animation: raysSpin 7s linear infinite, raysIn .5s ease; }
   .chest-anim.burst .chest-flash { animation: chestFlash .65s ease-out; }
+  .chest-anim.open-frames .chest-frame-img { animation: framePop .5s cubic-bezier(.2,1.4,.4,1); }
+  .chest-card.quake { animation: cardQuake .3s ease; }
+  .chest-flash.re { animation: chestFlash .45s ease-out; }
+  @keyframes chestBob    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
   @keyframes chestShake  { 0%,100%{transform:rotate(-7deg)}  50%{transform:rotate(7deg)} }
   @keyframes chestShake2 { 0%,100%{transform:rotate(-13deg) translateY(-3px) scale(1.05)}
                            50%{transform:rotate(13deg) translateY(2px) scale(1.05)} }
-  @keyframes chestPop   { 0%{transform:scale(.65)} 55%{transform:scale(1.3)} 100%{transform:scale(1)} }
+  @keyframes chestJump  { 0%{transform:translateY(0)} 100%{transform:translateY(-34px)} }
+  @keyframes chestLand  { 0%{transform:translateY(-34px)} 62%{transform:translateY(0) scale(1.08,.88)} 100%{transform:none} }
+  @keyframes framePop   { 0%{transform:scale(.92)} 55%{transform:scale(1.06)} 100%{transform:scale(1)} }
+  @keyframes cardQuake  { 0%,100%{transform:translate(0,0)} 25%{transform:translate(-3px,2px)}
+                          50%{transform:translate(3px,-2px)} 75%{transform:translate(-2px,-1px)} }
   @keyframes chestFlash { 0%{opacity:0} 18%{opacity:1} 100%{opacity:0; transform:scale(1.7)} }
   @keyframes raysSpin   { to { transform: rotate(360deg); } }
   @keyframes raysIn     { from { opacity: 0; transform: scale(.5); } }
@@ -1671,6 +1722,14 @@
     border-radius: 8px; margin-bottom: 6px; }
   .drop-big.item .reveal-item-img { margin: 6px auto 4px; }
   .drop-big.item b { display: block; font-size: 1.1rem; }
+  /* Belohnung schwebt aus der Truhe: erst leuchtende Silhouette, dann Blitz-Reveal */
+  .drop-float { animation: floatUp .6s cubic-bezier(.2,.8,.3,1); transition: filter .3s ease; }
+  .drop-float.item-f { animation-duration: .85s; }
+  .drop-float.sil { filter: brightness(0) drop-shadow(0 0 16px color-mix(in srgb, var(--r) 85%, #fff)); }
+  .drop-float.fly-off { animation: flyOff .25s ease-in forwards; }
+  @keyframes floatUp { 0%{transform:translateY(52px) scale(.55); opacity:0}
+    30%{opacity:1} 100%{transform:none} }
+  @keyframes flyOff { to { transform: translateY(-70px) scale(.8); opacity: 0; } }
   /* Fortschritts-Punkte + Tipp-Hinweis */
   .drop-dots { display: flex; justify-content: center; gap: 8px; margin: 2px 0 6px; }
   .drop-dot { width: 11px; height: 11px; border-radius: 50%;
@@ -1706,9 +1765,15 @@
     .chest-tile, .chest-anim.shake .chest-big-img, .chest-anim.shake2 .chest-big-img,
     .chest-anim.burst .chest-big-img, .chest-anim.burst .chest-rays,
     .chest-anim.shake2 .chest-rays, .chest-anim.burst .chest-flash,
-    .chest-part, .reveal-crystals, .drop-big, .drop-hint, .drop-sum { animation: none; }
+    .chest-part, .reveal-crystals, .drop-big, .drop-hint, .drop-sum,
+    .chest-rise, .drop-float, .chest-beam.go, .chest-shockwave.go,
+    .chest-whiteflash.go, .chest-card.quake, .chest-flash.re,
+    .chest-anim.charge .chest-big-img, .chest-anim.jump .chest-big-img,
+    .chest-anim.land .chest-big-img, .chest-anim.open-frames .chest-frame-img { animation: none; }
     .chest-anim.burst .chest-rays { opacity: .5; }
-    .reveal-item { transition: none; }
+    .chest-beam.go { opacity: .3; transform: translateX(-50%) scaleY(1); }
+    .drop-float.sil { filter: none; }
+    .reveal-item, .drop-float { transition: none; }
   }
 
   #toast {
@@ -2272,6 +2337,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=134"></script>
+<script type="module" src="./app.js?v=135"></script>
 </body>
 </html>

@@ -1101,6 +1101,20 @@ function chestDropHtml(d) {
   return `<div class="drop-big crystals">${CRY} +<b class="drop-n">0</b></div>`;
 }
 
+// Aufsteigende Ambient-Funken waehrend der Aufladephase.
+function spawnRiseParticle(stage) {
+  if (REDUCED_MOTION || !stage) return;
+  const s = document.createElement('span');
+  s.className = 'chest-rise';
+  s.textContent = Math.random() < 0.5 ? '✨' : '·';
+  s.style.left = (18 + Math.random() * 64) + '%';
+  s.style.setProperty('--rx', (Math.random() * 30 - 15) + 'px');
+  stage.appendChild(s);
+  setTimeout(() => s.remove(), 1500);
+}
+
+const wait = (ms) => new Promise(res => setTimeout(res, ms));
+
 async function openChestModal(chest) {
   const meta = CHEST_META[chest.rarity] || {};
   document.getElementById('chest-modal')?.remove();
@@ -1111,8 +1125,11 @@ async function openChestModal(chest) {
       <div class="chest-anim">
         <div class="chest-stage">
           <div class="chest-rays" aria-hidden="true"></div>
+          <div class="chest-beam" aria-hidden="true"></div>
           <div class="chest-flash" aria-hidden="true"></div>
+          <div class="chest-shockwave" aria-hidden="true"></div>
           <img class="chest-big-img" src="lobby/chest-${esc(chest.rarity)}.png?v=2" alt="">
+          <img class="chest-frame-img" src="lobby/chest-open-2.png?v=1" alt="" hidden>
         </div>
       </div>
       <h2>${esc(meta.label || 'Truhe')}</h2>
@@ -1121,6 +1138,7 @@ async function openChestModal(chest) {
       <div id="chest-hint" class="drop-hint" hidden>👆 Tippen zum Aufdecken</div>
       <button class="btn" id="chest-openbtn" type="button">Öffnen</button>
       <button class="btn sekundaer" id="chest-close" type="button" style="margin-top:8px" hidden>Schließen</button>
+      <div class="chest-whiteflash" aria-hidden="true"></div>
     </div>`;
   document.body.appendChild(wrap);
   const card = wrap.querySelector('.chest-card');
@@ -1128,6 +1146,12 @@ async function openChestModal(chest) {
   const openBtn = wrap.querySelector('#chest-openbtn');
   const anim = wrap.querySelector('.chest-anim');
   const stage = wrap.querySelector('.chest-stage');
+  const bigImg = wrap.querySelector('.chest-big-img');
+  const frameImg = wrap.querySelector('.chest-frame-img');
+  const beam = wrap.querySelector('.chest-beam');
+  const shock = wrap.querySelector('.chest-shockwave');
+  const flash = wrap.querySelector('.chest-flash');
+  const whiteflash = wrap.querySelector('.chest-whiteflash');
   const reveal = wrap.querySelector('#chest-reveal');
   const dotsEl = wrap.querySelector('#chest-dots');
   const hintEl = wrap.querySelector('#chest-hint');
@@ -1135,61 +1159,123 @@ async function openChestModal(chest) {
   closeBtn.onclick = done;
   wrap.addEventListener('click', e => { if (e.target === wrap && !closeBtn.hidden) done(); });
 
-  // --- Clash-artiges Aufdecken: Drops einzeln, jeder Tipp zeigt den naechsten -
-  let drops = [], idx = 0, revealPhase = false, finishing = null;
+  // Frames vorladen, damit die Deckel-Sequenz nicht ruckelt.
+  for (let f = 2; f <= 5; f++) { const i = new Image(); i.src = `lobby/chest-open-${f}.png?v=1`; }
 
-  const showNextDrop = () => {
-    if (idx >= drops.length) return;
-    const d = drops[idx];
-    reveal.innerHTML = chestDropHtml(d);
-    if (d.t === 'crystals' || d.t === 'gold') {
-      countUpCrystals(reveal.querySelector('.drop-n'), d.n | 0);
-    }
-    spawnChestParticles(stage, d.t === 'item' ? 12 : 6);
-    haptic?.(d.t === 'item' ? [30, 40, 80] : 18);
-    if (d.t === 'item') confetti(1800);
-    idx++;
+  // --- Drops einzeln aufdecken: Belohnung schwebt als Silhouette heraus ------
+  let drops = [], idx = 0, revealPhase = false, busy = false, finishing = null;
+
+  const updateDots = () => {
     dotsEl.innerHTML = drops.map((_, i) =>
       `<span class="drop-dot${i < idx ? ' done' : ''}"></span>`).join('');
+  };
+
+  const revealDrop = async () => {
+    if (idx >= drops.length || busy) return;
+    busy = true;
+    const d = drops[idx];
+    const isItem = d.t === 'item';
+
+    // Alten Drop nach oben davonfliegen lassen (Clash-Stil).
+    const prev = reveal.querySelector('.drop-float');
+    if (prev && !REDUCED_MOTION) { prev.classList.add('fly-off'); await wait(220); }
+
+    // Vor seltenen Items: Truhe baut noch einmal Spannung auf.
+    if (isItem && !REDUCED_MOTION) {
+      anim.classList.add('shake2');
+      spawnChestParticles(stage, 8);
+      await wait(550);
+      anim.classList.remove('shake2');
+    }
+
+    // Belohnung schwebt als leuchtende Silhouette aus der Truhe.
+    reveal.innerHTML = `<div class="drop-float sil${isItem ? ' item-f' : ''}">${chestDropHtml(d)}</div>`;
+    const fl = reveal.querySelector('.drop-float');
+    spawnChestParticles(stage, isItem ? 12 : 6);
+    if (!REDUCED_MOTION) await wait(isItem ? 800 : 560);   // Aufstieg + kurzer Halt
+
+    // Mini-Blitz -> vollstaendige Enthuellung.
+    flash.classList.remove('re'); void flash.offsetWidth; flash.classList.add('re');
+    fl.classList.remove('sil');
+    if (d.t === 'crystals' || d.t === 'gold') countUpCrystals(fl.querySelector('.drop-n'), d.n | 0);
+    else confetti(1800);
+    haptic?.(isItem ? [30, 40, 80] : 18);
+
+    idx++; updateDots();
     if (idx >= drops.length) {
       hintEl.hidden = true;
       revealPhase = false;
+      if (!REDUCED_MOTION) await wait(900);
       finishing?.();
     }
+    busy = false;
   };
 
   // Tipp irgendwo auf die Karte (ausser Knoepfe) deckt den naechsten Drop auf.
   card.addEventListener('click', (e) => {
-    if (!revealPhase || e.target.closest('button')) return;
-    showNextDrop();
+    if (!revealPhase || busy || e.target.closest('button')) return;
+    revealDrop();
   });
 
   openBtn.onclick = async () => {
-    openBtn.disabled = true;
-    // Phase 1: Wackeln, nach kurzer Zeit staerker (Spannung steigt).
-    anim.classList.add('shake');
-    const esk = setTimeout(() => anim.classList.add('shake2'), 450);
+    openBtn.disabled = true; openBtn.hidden = true;
     let m;
-    try { m = await db(); await m.ensureAuth(); } catch (_) { clearTimeout(esk); toast('Nur online möglich.', 'err'); done(); return; }
-    const [r] = await Promise.all([
-      m.openChest(chest.id).catch(() => ({ ok: false, rewards: [] })),
-      new Promise(res => setTimeout(res, REDUCED_MOTION ? 150 : 1000)),   // Mindest-Spannung
-    ]);
-    clearTimeout(esk);
-    anim.classList.remove('shake', 'shake2');
+    try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Nur online möglich.', 'err'); done(); return; }
+    const rp = m.openChest(chest.id).catch(() => ({ ok: false, rewards: [] }));
+
+    // --- Choreografie (laeuft parallel zum Server-Wurf) ----------------------
+    let chargeTimer = null;
+    if (!REDUCED_MOTION) {
+      // 0,0–0,5s: Ruhe, magische Energie laedt sich auf (Funken steigen).
+      anim.classList.add('charge');
+      chargeTimer = setInterval(() => spawnRiseParticle(stage), 160);
+      await wait(500);
+      // 0,5–1,2s: leichtes Wackeln, Glow wird staerker.
+      anim.classList.add('shake');
+      await wait(700);
+      // 1,2–1,8s: heftiges Wackeln, Licht dringt aus den Spalten.
+      anim.classList.add('shake2');
+      await wait(600);
+      // 1,8–2,2s: Sprung + kraftvolle Landung mit Lichtwelle.
+      anim.classList.remove('shake', 'shake2', 'charge');
+      anim.classList.add('jump');
+      await wait(280);
+      anim.classList.remove('jump'); anim.classList.add('land');
+      shock.classList.add('go');
+      card.classList.add('quake');
+      spawnChestParticles(stage, 10);
+      haptic?.([20, 30, 60]);
+      await wait(300);
+      card.classList.remove('quake');
+    }
+    clearInterval(chargeTimer);
+
+    const r = await rp;
     if (!r.ok) { toast(r.message || 'Fehler beim Öffnen', 'err'); done(); return; }
 
-    // Phase 2: Blitz + Strahlen + Pop + Funkenflug + Konfetti.
+    // 2,2–2,6s: Bildschirmblitz + Deckel-Frames + Lichtsaeule + Strahlen.
+    whiteflash.classList.add('go');
+    haptic?.([30, 40, 30, 40, 120]);
+    bigImg.hidden = true; frameImg.hidden = false;
+    anim.classList.add('open-frames');
+    if (!REDUCED_MOTION) {
+      for (const f of [2, 3, 4, 5]) {
+        frameImg.src = `lobby/chest-open-${f}.png?v=1`;
+        await wait(95);
+      }
+    } else {
+      frameImg.src = 'lobby/chest-open-5.png?v=1';
+    }
     anim.classList.add('burst');
+    beam.classList.add('go');
     spawnChestParticles(stage, chest.rarity === 'diamant' ? 26 : chest.rarity === 'gold' ? 20 : 14);
     confetti(chest.rarity === 'diamant' ? 3600 : 2200);
-    haptic?.([30, 40, 30, 40, 120]);
     walletCache.crystals = r.new_crystals ?? walletCache.crystals;
     walletCache.gold = r.new_gold ?? walletCache.gold;
     chestCache = chestCache.filter(c => c.id !== chest.id);
     refreshChestBadge();
 
-    // Phase 3: Drops einzeln aufdecken; am Ende Zusammenfassung + Schliessen.
+    // Ab 2,6s: Belohnungen einzeln herausschweben lassen; Tipp = naechste.
     drops = Array.isArray(r.rewards) ? r.rewards : [];
     const gotItem = drops.some(d => d.t === 'item');
     finishing = async () => {
@@ -1208,11 +1294,11 @@ async function openChestModal(chest) {
       if (gotItem) { try { walletCache = await m.getWallet(); } catch (_) {} }
       renderShop();
     };
-    openBtn.hidden = true;
     if (!drops.length) { finishing(); return; }   // Sicherheitsnetz
     dotsEl.hidden = false; hintEl.hidden = false;
     revealPhase = true;
-    showNextDrop();   // ersten Drop sofort zeigen, die weiteren per Tipp
+    if (!REDUCED_MOTION) await wait(350);
+    revealDrop();   // erste Belohnung schwebt sofort heraus, die weiteren per Tipp
   };
 }
 
