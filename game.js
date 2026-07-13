@@ -99,6 +99,15 @@ function showGameOver(state, actions) {
   });
   card.appendChild(list);
 
+  // Online: jede Partie schenkt eine Truhe -> Hinweis + Weg in den Shop.
+  if (state.game?.join_code && actions.onChests) {
+    const chest = document.createElement('button');
+    chest.type = 'button'; chest.className = 'btn go-chest';
+    chest.innerHTML = '🎁 Du hast eine Truhe erhalten! · Öffnen';
+    chest.onclick = () => { ov.remove(); actions.onChests(); };
+    card.appendChild(chest);
+  }
+
   const btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'btn go-btn';
   btn.textContent = 'Zurück zur Lobby';

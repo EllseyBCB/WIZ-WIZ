@@ -1556,6 +1556,85 @@
   .token-card .tok-dot.done { background: #6ee7a8; border-color: #6ee7a8; }
   .token-card .btn { width: 100%; }
 
+  /* ===== Notizblöcke- & Truhen-Shop ===== */
+  .shopcat-emoji { font-size: 1.7rem; line-height: 1; }
+  .tok-shopstatus { text-align: center; color: rgba(255,255,255,.9); font-size: .9rem;
+    background: rgba(20,12,40,.6); border: 1px solid var(--goldline); border-radius: 12px;
+    padding: 9px 12px; margin: 4px 0 12px; }
+  .tok-shopstatus b { color: var(--gold); }
+  .tok-subhead { font-family: var(--font-myth); color: var(--gold); font-size: .92rem;
+    letter-spacing: .5px; margin: 16px 2px 8px; }
+  .slot-badge { font-size: 1.5rem; line-height: 1; margin: 4px 0 2px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+  .pack-emoji { font-size: 2rem; line-height: 1; margin-bottom: 4px; }
+  .pack-card .pack-amt { font-family: var(--font-myth); }
+
+  /* Truhen-Liste */
+  .chest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 6px; }
+  @media (min-width: 560px) { .chest-grid { grid-template-columns: repeat(3, 1fr); } }
+  .chest-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+    padding: 14px 8px 12px; border-radius: 16px; text-align: center;
+    background: linear-gradient(180deg, rgba(42,27,78,.7), rgba(20,12,40,.7));
+    border: 1.5px solid color-mix(in srgb, var(--r) 70%, transparent);
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--r) 16%, transparent),
+                0 0 12px color-mix(in srgb, var(--r) 22%, transparent);
+    animation: chestGlow 2.6s ease-in-out infinite;
+  }
+  @keyframes chestGlow {
+    0%,100% { box-shadow: inset 0 0 18px color-mix(in srgb, var(--r) 16%, transparent), 0 0 10px color-mix(in srgb, var(--r) 18%, transparent); }
+    50%     { box-shadow: inset 0 0 22px color-mix(in srgb, var(--r) 26%, transparent), 0 0 18px color-mix(in srgb, var(--r) 40%, transparent); }
+  }
+  .chest-tile:active { filter: brightness(1.12); transform: translateY(1px); }
+  .chest-emoji { font-size: 2.6rem; line-height: 1; filter: drop-shadow(0 3px 8px rgba(0,0,0,.5)); }
+  .chest-img { width: 78px; height: 78px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.55)); }
+  .chest-img.sm { width: 54px; height: 54px; }
+  .chest-lbl { font-family: var(--font-myth); color: #fff; font-size: .92rem; }
+  .chest-sub { color: rgba(255,255,255,.55); font-size: .72rem; }
+  .chest-open { margin-top: 4px; color: var(--gold); font-weight: 700; font-size: .82rem;
+    font-family: var(--font-myth); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Truhen kaufen */
+  .chest-buyrow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 560px) { .chest-buyrow { grid-template-columns: repeat(4, 1fr); } }
+  .chest-buy {
+    display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
+    padding: 12px 6px; border-radius: 14px; color: #fff;
+    background: linear-gradient(180deg, rgba(42,27,78,.7), rgba(20,12,40,.7));
+    border: 1.5px solid color-mix(in srgb, var(--r) 70%, transparent);
+  }
+  .chest-buy:active { filter: brightness(1.12); transform: translateY(1px); }
+  .chest-buy .chest-emoji { font-size: 1.9rem; }
+  .chest-buy .chest-lbl { font-size: .78rem; }
+  .chest-cost { font-weight: 800; font-variant-numeric: tabular-nums; font-size: .85rem; }
+
+  /* Truhen-Öffnen-Modal */
+  .chest-card { text-align: center; }
+  .chest-anim { margin: 4px 0 6px; }
+  .chest-big-img { display: inline-block; width: 150px; height: 150px; object-fit: contain;
+    filter: drop-shadow(0 0 20px color-mix(in srgb, var(--r) 60%, transparent)); }
+  .chest-anim.shake .chest-big-img { animation: chestShake .35s ease-in-out infinite; }
+  .chest-anim.open .chest-big-img { animation: chestPop .5s ease; }
+  @keyframes chestShake { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+  @keyframes chestPop { 0%{transform:scale(.7)} 60%{transform:scale(1.25)} 100%{transform:scale(1)} }
+  .chest-reveal { min-height: 8px; margin: 6px 0 12px; }
+  .reveal-crystals { font-size: 1.6rem; font-weight: 800; color: var(--gold); }
+  .reveal-item { margin-top: 8px; color: #fff; font-size: .95rem; }
+  .chest-card .btn { width: 100%; }
+
+  /* Truhen-Badge auf dem Shop-Tab */
+  .tab { position: relative; }
+  .chest-badge {
+    position: absolute; top: 2px; right: calc(50% - 22px);
+    min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+    background: #ef4444; color: #fff; font-size: .66rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+    box-shadow: 0 1px 4px rgba(0,0,0,.5);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chest-tile, .chest-anim.shake .chest-big-img, .chest-anim.open .chest-big-img { animation: none; }
+  }
+
   #toast {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
     background: #2a2147; color: #fff; padding: 12px 18px; border-radius: 12px;
@@ -1604,8 +1683,8 @@
         <button class="hero-hot" id="hero-settings" type="button" aria-label="Einstellungen"></button>
       </div>
 
-      <!-- Spielsteine (nur sichtbar, wenn das Token-System aktiv ist) -->
-      <div class="token-pill" id="token-pill" hidden>🎟 <b id="token-n">3</b>/3 Spielsteine <span class="tp-sub">· täglich neu</span></div>
+      <!-- Notizblöcke (nur sichtbar, wenn das Token-System aktiv ist) -->
+      <div class="token-pill" id="token-pill" hidden>📝 <b id="token-n">1</b> Notizblöcke <span class="tp-sub">· täglich neu</span></div>
 
       <!-- Aktions-Karten -->
       <div class="home-actions">
@@ -1933,7 +2012,7 @@
     <p class="muted set-note">Nur in der App: erzwingt echte Google-Testanzeigen (garantiert sichtbar, gefahrlos anklickbar). Zum Prüfen, dass Werbung ankommt, solange dein AdMob-Konto noch keine echten Anzeigen ausliefert. Im Alltag ausschalten.</p>
     <p class="muted set-note" id="ads-status" style="word-break:break-word;color:#e9c873">Werbe-Status: –</p>
     <div class="set-row" id="tokentest-row" hidden>
-      <span class="set-label">🎟 Spielsteine auf 0 (Test)</span>
+      <span class="set-label">📝 Notizblöcke auf 0 (Test)</span>
       <button id="tokentest-btn" class="btn sekundaer small-btn" type="button">Leeren</button>
     </div>
 
@@ -2117,6 +2196,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=131"></script>
+<script type="module" src="./app.js?v=132"></script>
 </body>
 </html>

@@ -173,6 +173,30 @@ export async function buyItem(itemId) {
   const rows = await rpc('wizard_buy_item', { p_item_id: itemId });
   return rows?.[0] || { ok: false, message: 'Fehler' };
 }
+// Verbrauchs-Notizblock-Paket kaufen (wiederholbar). { ok, crystals, gold, granted, message }.
+export async function buyTokens(packId) {
+  const rows = await rpc('wizard_buy_tokens', { p_pack_id: packId });
+  return rows?.[0] || { ok: false, granted: 0, message: 'Fehler' };
+}
+
+// --- Truhen (Loot) ---------------------------------------------------------
+// Ungeoeffnete Truhen: [{ id, rarity, source, ref, created_at }, ...].
+export const listChests = () => rpc('wizard_list_chests');
+// Taegliche Gratis-Truhe holen. { ok, chest_id, rarity, message }.
+export async function claimDailyChest() {
+  const rows = await rpc('wizard_claim_daily_chest');
+  return rows?.[0] || { ok: false, message: 'Fehler' };
+}
+// Truhe oeffnen. { ok, crystals_won, item_id, item_kind, new_crystals, rarity, message }.
+export async function openChest(chestId) {
+  const rows = await rpc('wizard_open_chest', { p_chest_id: chestId });
+  return rows?.[0] || { ok: false, message: 'Fehler' };
+}
+// Truhe mit Kristallen kaufen. { ok, chest_id, crystals, message }.
+export async function buyChest(rarity) {
+  const rows = await rpc('wizard_buy_chest', { p_rarity: rarity });
+  return rows?.[0] || { ok: false, message: 'Fehler' };
+}
 
 // --- Profil / Freunde / Verlauf -------------------------------------------
 export const upsertProfile = (name, avatar) =>

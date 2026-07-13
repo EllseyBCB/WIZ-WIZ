@@ -87,6 +87,8 @@ end; $$;
 create or replace function public.wizard_buy_item(p_item_id text)
 returns table(ok boolean, crystals int, gold int, message text)
 language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column   -- Rueckgabe-Spalte crystals/gold vs. Tabellenspalte
+                                -- (sonst mehrdeutig im UPDATE, sobald Guthaben > 0)
 declare
   v_uid  uuid := auth.uid();
   v_item public.wizard_catalog%rowtype;

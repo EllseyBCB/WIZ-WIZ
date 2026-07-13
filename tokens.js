@@ -1,22 +1,26 @@
-// Spielsteine (Tokens): Jedes Spiel (Solo + Online) kostet 1 Stein.
-// Maximal TOKENS_MAX gratis, TAEGLICH wieder aufgefuellt (Lokalzeit).
-// Ohne Steine: 2 Rewarded-Videos ansehen -> 1 Spiel frei.
+// Notizblöcke (Spiel-Tokens): Jedes Spiel (Solo + Online) kostet 1 Notizblock.
+// Gratis pro Tag = die freigeschalteten Slots (Standard 1, per Slot-Upgrade im
+// Shop auf 2/3/5 erhoehbar), TAEGLICH wieder aufgefuellt (Lokalzeit).
+// Ohne Notizbloecke: 2 Rewarded-Videos ansehen -> 1 Notizblock; oder Pakete
+// mit Kristallen kaufen (im Shop).
 //
 // Gilt NUR in der nativen App (im Browser ist alles frei – die Web-Version ist
 // die Vorschau). Mit ?ads=preview laesst sich der komplette Ablauf auch im
 // Browser durchspielen (Platzhalter-Videos). Werbefrei-Kaeufer, Inhaber-Konto
 // und ?shop=dev spielen unbegrenzt.
 //
-// Hinweis: bewusst nur localStorage (kein Server) – wer seine Geraeteuhr
-// verstellt, kann sich Steine erschummeln. Fuer v1 akzeptiert.
+// Hinweis: die Notizblock-Zahl liegt bewusst nur im localStorage (kein Server) –
+// bekannte v1-Abwaegung. Kristalle/Truhen sind dagegen serverseitig sicher.
 import { isNative, isPreview, isForceTest, isAdFree, showRewardedAd } from './ads.js?v=8';
 import { isDevUnlock, ownerUnlock } from './cosmetics.js?v=10';
 import { toast } from './ui.js?v=2';
 
-export const TOKENS_MAX = 3;
-const ADS_PER_UNLOCK = 2;             // so viele Videos schalten 1 Spiel frei
+const DAILY_DEFAULT = 1;              // Gratis-Notizbloecke pro Tag ohne Upgrade
+const TOKENS_HARD_CAP = 99;           // absoluter Deckel (gekaufte Pakete stapeln)
+const ADS_PER_UNLOCK = 2;             // so viele Videos schalten 1 Notizblock frei
 const LS_TOKENS = 'wizard_tokens';    // JSON {n, day}   day = 'YYYY-MM-DD' Lokalzeit
 const LS_UNLOCK = 'wizard_adunlock';  // JSON {c, day}   Teilfortschritt (1/2) ueberlebt Neustart
+const LS_SLOTS  = 'wizard_dailyslots';// Zahl: freigeschaltete Gratis-Slots pro Tag
 
 function today() {
   const d = new Date();
@@ -32,11 +36,34 @@ export function tokenGateActive() {
   return isNative() || isPreview();   // Browser ohne Vorschau: frei
 }
 
+// --- Taegliche Slots (Gratis-Notizbloecke pro Tag) -------------------------
+export function getDailySlots() {
+  let n = parseInt(localStorage.getItem(LS_SLOTS), 10);
+  if (![1, 2, 3, 5].includes(n)) n = DAILY_DEFAULT;
+  return n;
+}
+export function setDailySlots(n) {
+  const v = [1, 2, 3, 5].includes(n) ? n : DAILY_DEFAULT;
+  try { localStorage.setItem(LS_SLOTS, String(v)); } catch (_) {}
+  notify();
+}
+// Aus dem Server-Inventar die hoechste gekaufte Slot-Stufe ableiten + spiegeln.
+export function deriveDailySlots(inventory) {
+  const map = { slots_5: 5, slots_3: 3, slots_2: 2 };
+  let s = DAILY_DEFAULT;
+  for (const id of (inventory || [])) if (map[id]) s = Math.max(s, map[id]);
+  if (s !== getDailySlots()) setDailySlots(s);
+  return s;
+}
+
 function load() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(LS_TOKENS)); } catch (_) {}
   if (!s || typeof s.n !== 'number' || s.day !== today()) {
-    s = { n: TOKENS_MAX, day: today() };   // taeglicher Refill (lazy, Lokalzeit)
+    // Neuer Tag: mind. auf die Tages-Slots auffuellen, gekaufte Extra-Pakete
+    // aber NICHT wegwerfen (max), und der Gratis-Grant ueberfuellt nicht.
+    const prev = (s && typeof s.n === 'number') ? s.n : 0;
+    s = { n: Math.max(prev, getDailySlots()), day: today() };
     save(s);
   }
   return s;
@@ -56,26 +83,36 @@ export function spendToken() {
 // Erstattung (z. B. Online-Spiel kam nicht zustande / RPC-Fehler).
 export function refundToken() {
   const s = load();
-  s.n = Math.min(TOKENS_MAX, s.n + 1); save(s); notify();
+  s.n = Math.min(TOKENS_HARD_CAP, s.n + 1); save(s); notify();
 }
 
-// Nur zum Testen: Spielstein-Zahl direkt setzen (z. B. auf 0, um den
-// "Keine Spielsteine mehr"-Fall zu pruefen, ohne 3 Spiele zu starten).
+// Notizbloecke gutschreiben (Paket-Kauf, Video-Belohnung).
+export function grantTokens(n) {
+  const s = load();
+  s.n = Math.max(0, Math.min(TOKENS_HARD_CAP, s.n + (n | 0))); save(s); notify();
+}
+
+// Nur zum Testen: Notizblock-Zahl direkt setzen (z. B. auf 0).
 export function setTokensForTest(n) {
   const s = load();
-  s.n = Math.max(0, Math.min(TOKENS_MAX, n | 0));
+  s.n = Math.max(0, Math.min(TOKENS_HARD_CAP, n | 0));
   save(s); notify();
 }
 
-// Zentrales Gate fuer alle "Spiel starten"-Knoepfe: zieht einen Stein ab und
-// ruft onProceed, oder oeffnet das "2 Videos ansehen"-Fenster.
+// Zentrales Gate fuer alle "Spiel starten"-Knoepfe: zieht einen Notizblock ab
+// und ruft onProceed, oder oeffnet das "2 Videos ansehen"-Fenster.
 export function requireToken(onProceed) {
   if (!tokenGateActive()) { onProceed(); return; }
   if (spendToken()) { onProceed(); return; }
   openTokenModal(onProceed);
 }
 
-// --- "Keine Spielsteine mehr"-Fenster ---------------------------------------
+// Shop-Einstieg: 2 Videos ansehen -> 1 Notizblock gutschreiben (ohne Spielstart).
+export function watchAdForToken(onGranted) {
+  openTokenModal(null, { grantOnly: true, onGranted });
+}
+
+// --- "Keine Notizblöcke mehr"-Fenster --------------------------------------
 function unlockProgress() {
   let u = null;
   try { u = JSON.parse(localStorage.getItem(LS_UNLOCK)); } catch (_) {}
@@ -88,19 +125,23 @@ function setUnlockProgress(c) {
   } catch (_) {}
 }
 
-function openTokenModal(onProceed) {
+// onProceed: Spielstart nach Freischaltung (requireToken-Weg).
+// opts.grantOnly: nur 1 Notizblock gutschreiben (Shop-Weg), opts.onGranted danach.
+function openTokenModal(onProceed, opts = {}) {
+  const grantOnly = !!opts.grantOnly;
   document.getElementById('token-modal')?.remove();
   let seen = unlockProgress();
 
   const wrap = document.createElement('div');
   wrap.className = 'modal';
   wrap.id = 'token-modal';
+  const head = grantOnly ? '📝 Notizblock verdienen' : '📝 Keine Notizblöcke mehr';
   wrap.innerHTML = `
     <div class="modal-card token-card">
       <button class="modal-x" type="button" aria-label="Schließen">✕</button>
-      <h2>🎟 Keine Spielsteine mehr</h2>
-      <p class="muted" style="margin:6px 0 12px">Du bekommst jeden Tag ${TOKENS_MAX} neue Spielsteine.
-        Oder schau ${ADS_PER_UNLOCK} kurze Werbevideos und spiele sofort weiter.</p>
+      <h2>${head}</h2>
+      <p class="muted" style="margin:6px 0 12px">Jeden Tag gibt es gratis Notizblöcke.
+        Oder schau ${ADS_PER_UNLOCK} kurze Werbevideos und bekomme sofort einen Notizblock.</p>
       <div class="tok-dots" aria-hidden="true">
         ${Array.from({ length: ADS_PER_UNLOCK }, (_, i) => `<span class="tok-dot${i < seen ? ' done' : ''}"></span>`).join('')}
       </div>
@@ -132,12 +173,20 @@ function openTokenModal(onProceed) {
       watchBtn.disabled = false;
       return;
     }
-    // Beide Videos gesehen -> 1 Spiel frei (Stein gutschreiben + sofort einloesen).
+    // Beide Videos gesehen.
     setUnlockProgress(0);
-    refundToken();
-    spendToken();
-    close();
-    toast('Viel Spaß! 🎉', 'ok');
-    onProceed();
+    if (grantOnly) {
+      grantTokens(1);
+      close();
+      toast('Notizblock gutgeschrieben! 🎉', 'ok');
+      opts.onGranted?.();
+    } else {
+      // 1 Spiel frei: Notizblock gutschreiben + sofort einloesen.
+      grantTokens(1);
+      spendToken();
+      close();
+      toast('Viel Spaß! 🎉', 'ok');
+      onProceed?.();
+    }
   };
 }

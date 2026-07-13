@@ -93,3 +93,31 @@ export const CRYSTAL_PACKS = [
   { id: 'crystals_2500', amount: 2500, bonus: 500,  priceEUR: '19,99 €', img: 'lobby/pack_2500.jpg' },
   { id: 'crystals_6000', amount: 6000, bonus: 1500, priceEUR: '49,99 €', tag: 'Bester Preis', img: 'lobby/pack_6000.jpg' },
 ];
+
+// --- Notizblöcke (Spiel-Tokens) --------------------------------------------
+// Slot-Upgrades: dauerhaft mehr Gratis-Notizbloecke pro Tag. Kauf ueber den
+// Katalog (wizard_buy_item), Besitz im Server-Inventar; Preise = Wahrheit
+// serverseitig, hier nur zur Anzeige. slots_1 = Standard (gratis, immer aktiv).
+export const SLOT_TIERS = [
+  { id: 'slots_1', slots: 1, cost: 0,    rarity: 'common',    free: true },
+  { id: 'slots_2', slots: 2, cost: 1500, rarity: 'rare' },
+  { id: 'slots_3', slots: 3, cost: 3500, rarity: 'epic' },
+  { id: 'slots_5', slots: 5, cost: 7000, rarity: 'legendary' },
+];
+// Verbrauchs-Pakete: sofort Notizbloecke gutschreiben (wizard_buy_tokens).
+export const TOKEN_PACKS = [
+  { id: 'tokens_1',  qty: 1,  cost: 150,  rarity: 'common' },
+  { id: 'tokens_5',  qty: 5,  cost: 600,  rarity: 'rare',  tag: 'Beliebt' },
+  { id: 'tokens_15', qty: 15, cost: 1500, rarity: 'epic',  tag: 'Bester Preis' },
+];
+
+// --- Truhen (Loot) ---------------------------------------------------------
+// Seltenheiten mit Anzeige-Infos + Kristall-Kaufpreis (Preis serverseitig die
+// Wahrheit in wizard_buy_chest). label/color/emoji nur fuer die Anzeige.
+export const CHEST_TIERS = [
+  { rarity: 'holz',    label: 'Holztruhe',    color: '#b98a5a', price: 150,  emoji: '📦' },
+  { rarity: 'silber',  label: 'Silbertruhe',  color: '#c8d2e0', price: 400,  emoji: '🎁' },
+  { rarity: 'gold',    label: 'Goldtruhe',    color: '#f0b429', price: 900,  emoji: '🏆' },
+  { rarity: 'diamant', label: 'Diamanttruhe', color: '#67e8f9', price: 2000, emoji: '💎' },
+];
+export const CHEST_META = Object.fromEntries(CHEST_TIERS.map(c => [c.rarity, c]));
