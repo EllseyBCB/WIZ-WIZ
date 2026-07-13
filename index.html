@@ -1608,12 +1608,25 @@
   .chest-buy .chest-lbl { font-size: .78rem; }
   .chest-cost { font-weight: 800; font-variant-numeric: tabular-nums; font-size: .85rem; }
 
-  /* Truhen-Öffnen-Modal: Wackeln -> Blitz + Strahlen + Funkenflug -> Reveal */
+  /* Truhen-Öffnen-Modal: VOLLBILD-Erlebnis (Wackeln -> Sprung -> Frames -> Drops) */
+  #chest-modal { padding: 0; }
+  #chest-modal .modal-card.chest-card {
+    width: 100%; height: 100%; max-width: none; max-height: none; margin: 0;
+    border-radius: 0; border: none; box-shadow: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+    background:
+      radial-gradient(120% 90% at 50% 32%, color-mix(in srgb, var(--r) 16%, transparent), transparent 62%),
+      radial-gradient(150% 120% at 50% 110%, #241046 0%, #0a0716 72%);
+    padding: calc(16px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));
+  }
   .chest-card { text-align: center; overflow: hidden; }
+  .chest-card h2 { font-size: 1.45rem; }
+  .chest-card .btn { width: min(320px, 88%); }
   .chest-anim { margin: 4px 0 6px; }
-  .chest-stage { position: relative; width: 180px; height: 180px; margin: 0 auto;
+  .chest-stage { position: relative; width: 250px; height: 250px; margin: 0 auto;
     display: flex; align-items: center; justify-content: center; }
-  .chest-big-img { display: inline-block; width: 150px; height: 150px; object-fit: contain;
+  .chest-big-img { display: inline-block; width: 200px; height: 200px; object-fit: contain;
     position: relative; z-index: 2;
     filter: drop-shadow(0 0 20px color-mix(in srgb, var(--r) 60%, transparent)); }
   /* Rotierende Lichtstrahlen (Seltenheitsfarbe), erst beim Aufplatzen voll sichtbar */
@@ -1631,14 +1644,14 @@
       color-mix(in srgb, var(--r) 75%, #fff) 32%, transparent 68%);
   }
   /* Frame-Sequenz der sich oeffnenden Truhe (chest-open-2..5.png) */
-  .chest-frame-img { display: inline-block; height: 235px; width: auto; object-fit: contain;
-    position: relative; z-index: 2; margin-top: -58px;
+  .chest-frame-img { display: inline-block; height: 310px; width: auto; object-fit: contain;
+    position: relative; z-index: 2; margin-top: -76px;
     filter: drop-shadow(0 0 20px color-mix(in srgb, var(--r) 60%, transparent)); }
   /* hidden-Attribut muss gegen die display-Regeln oben gewinnen */
   .chest-big-img[hidden], .chest-frame-img[hidden] { display: none; }
   /* Lichtsaeule aus der geoeffneten Truhe */
   .chest-beam {
-    position: absolute; bottom: 46%; left: 50%; width: 70px; height: 250px;
+    position: absolute; bottom: 46%; left: 50%; width: 88px; height: 340px;
     transform: translateX(-50%) scaleY(0); transform-origin: bottom center;
     z-index: 1; opacity: 0; filter: blur(2px); border-radius: 40% 40% 0 0;
     background: linear-gradient(0deg,
@@ -1651,8 +1664,8 @@
     70%{opacity:.55} 100%{opacity:.3; transform:translateX(-50%) scaleY(1)} }
   /* Aufprall-Lichtwelle am Boden */
   .chest-shockwave {
-    position: absolute; bottom: 4px; left: 50%; width: 150px; height: 40px;
-    margin-left: -75px; border-radius: 50%; opacity: 0; z-index: 0;
+    position: absolute; bottom: 4px; left: 50%; width: 200px; height: 50px;
+    margin-left: -100px; border-radius: 50%; opacity: 0; z-index: 0;
     border: 3px solid color-mix(in srgb, var(--r) 80%, #fff);
     box-shadow: 0 0 18px color-mix(in srgb, var(--r) 60%, transparent);
   }
@@ -1722,14 +1735,25 @@
     border-radius: 8px; margin-bottom: 6px; }
   .drop-big.item .reveal-item-img { margin: 6px auto 4px; }
   .drop-big.item b { display: block; font-size: 1.1rem; }
-  /* Belohnung schwebt aus der Truhe: erst leuchtende Silhouette, dann Blitz-Reveal */
-  .drop-float { animation: floatUp .6s cubic-bezier(.2,.8,.3,1); transition: filter .3s ease; }
-  .drop-float.item-f { animation-duration: .85s; }
+  /* Belohnung ENTSTEHT IN der Truhe: springt aus der Oeffnung heraus (erst als
+     leuchtende Silhouette) und schwebt dann ueber der offenen Truhe. */
+  .chest-stage .drop-float {
+    position: absolute; left: 50%; bottom: 42%; z-index: 4; white-space: nowrap;
+    transform: translateX(-50%) translateY(30px) scale(.22);
+    animation: springOut .62s cubic-bezier(.3,1.45,.45,1) forwards;
+    transition: filter .3s ease;
+  }
+  .chest-stage .drop-float.item-f { animation-duration: .8s; white-space: normal; width: 220px; }
   .drop-float.sil { filter: brightness(0) drop-shadow(0 0 16px color-mix(in srgb, var(--r) 85%, #fff)); }
-  .drop-float.fly-off { animation: flyOff .25s ease-in forwards; }
-  @keyframes floatUp { 0%{transform:translateY(52px) scale(.55); opacity:0}
-    30%{opacity:1} 100%{transform:none} }
-  @keyframes flyOff { to { transform: translateY(-70px) scale(.8); opacity: 0; } }
+  .chest-stage .drop-float.fly-off { animation: flyOffStage .25s ease-in forwards; }
+  .chest-stage .drop-float.hover .drop-big { animation: dropHover 2.4s ease-in-out infinite; }
+  @keyframes springOut {
+    0%   { transform: translateX(-50%) translateY(30px) scale(.22); opacity: 0; }
+    22%  { opacity: 1; }
+    100% { transform: translateX(-50%) translateY(-118px) scale(1); opacity: 1; }
+  }
+  @keyframes flyOffStage { to { transform: translateX(-50%) translateY(-240px) scale(.7); opacity: 0; } }
+  @keyframes dropHover { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
   /* Fortschritts-Punkte + Tipp-Hinweis */
   .drop-dots { display: flex; justify-content: center; gap: 8px; margin: 2px 0 6px; }
   .drop-dot { width: 11px; height: 11px; border-radius: 50%;
@@ -1774,6 +1798,9 @@
     .chest-beam.go { opacity: .3; transform: translateX(-50%) scaleY(1); }
     .drop-float.sil { filter: none; }
     .reveal-item, .drop-float { transition: none; }
+    /* Drop ohne Sprung-Animation direkt an der Schwebe-Position zeigen */
+    .chest-stage .drop-float { transform: translateX(-50%) translateY(-118px); opacity: 1; }
+    .chest-stage .drop-float.hover .drop-big { animation: none; }
   }
 
   #toast {
@@ -2337,6 +2364,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=135"></script>
+<script type="module" src="./app.js?v=136"></script>
 </body>
 </html>

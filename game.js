@@ -3,7 +3,7 @@
 // geprueft. Tisch/Hand/Stich liegen in table.js (eigene Komponenten).
 import { renderTable } from './table.js?v=79';
 import { $, esc, clearChildren, toast, confetti } from './ui.js?v=2';
-import { sfxWin, haptic } from './audio.js?v=4';
+import { sfxWin, haptic } from './audio.js?v=5';
 import { gameOverAd } from './ads.js?v=8';
 
 // Spielende-Feier nur einmal pro beendetem Spiel ausloesen.
