@@ -1050,7 +1050,43 @@ async function buyChestFlow(rarity) {
   } catch (_) { toast('Kauf fehlgeschlagen.', 'err'); }
 }
 
-// Truhen-Öffnen mit Spannungs-Animation + Reveal (Kristalle + evtl. Item).
+// Truhen-Öffnen mit Spannungs-Animation + Reveal (Kristalle + evtl. Item):
+// eskalierendes Wackeln -> Lichtblitz + rotierende Strahlen + Funkenflug ->
+// hochzaehlender Kristall-Zaehler, danach ggf. Item-Enthuellung.
+const REDUCED_MOTION = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Funken/Kristalle aus der Truhenmitte in zufaellige Richtungen fliegen lassen.
+function spawnChestParticles(stage, count) {
+  if (REDUCED_MOTION || !stage) return;
+  const glyphs = ['✨', '💎', '⭐', '🪙'];
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('span');
+    s.className = 'chest-part';
+    s.textContent = glyphs[i % glyphs.length];
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 70 + Math.random() * 110;
+    s.style.setProperty('--tx', Math.cos(ang) * dist + 'px');
+    s.style.setProperty('--ty', Math.sin(ang) * dist - 30 + 'px');   // leicht nach oben
+    s.style.setProperty('--rot', (Math.random() * 240 - 120) + 'deg');
+    s.style.setProperty('--dur', (700 + Math.random() * 600) + 'ms');
+    s.style.animationDelay = (Math.random() * 180) + 'ms';
+    stage.appendChild(s);
+    setTimeout(() => s.remove(), 1600);
+  }
+}
+
+// Zaehler von 0 auf den Gewinn hochlaufen lassen (ease-out).
+function countUpCrystals(el, target) {
+  if (REDUCED_MOTION || target <= 0) { el.textContent = nf(target); return; }
+  const dur = Math.min(1400, 500 + target * 4);
+  const t0 = performance.now();
+  (function tick() {
+    const p = Math.min(1, (performance.now() - t0) / dur);
+    el.textContent = nf(Math.round(target * (1 - Math.pow(1 - p, 3))));
+    if (p < 1) requestAnimationFrame(tick);
+  })();
+}
+
 async function openChestModal(chest) {
   const meta = CHEST_META[chest.rarity] || {};
   document.getElementById('chest-modal')?.remove();
@@ -1058,7 +1094,13 @@ async function openChestModal(chest) {
   wrap.className = 'modal'; wrap.id = 'chest-modal';
   wrap.innerHTML = `
     <div class="modal-card chest-card" style="--r:${meta.color || '#888'}">
-      <div class="chest-anim"><img class="chest-big-img" src="lobby/chest-${esc(chest.rarity)}.png?v=1" alt=""></div>
+      <div class="chest-anim">
+        <div class="chest-stage">
+          <div class="chest-rays" aria-hidden="true"></div>
+          <div class="chest-flash" aria-hidden="true"></div>
+          <img class="chest-big-img" src="lobby/chest-${esc(chest.rarity)}.png?v=1" alt="">
+        </div>
+      </div>
       <h2>${esc(meta.label || 'Truhe')}</h2>
       <div id="chest-reveal" class="chest-reveal"></div>
       <button class="btn" id="chest-openbtn" type="button">Öffnen</button>
@@ -1068,28 +1110,44 @@ async function openChestModal(chest) {
   const closeBtn = wrap.querySelector('#chest-close');
   const openBtn = wrap.querySelector('#chest-openbtn');
   const anim = wrap.querySelector('.chest-anim');
+  const stage = wrap.querySelector('.chest-stage');
   const reveal = wrap.querySelector('#chest-reveal');
   const done = () => wrap.remove();
   closeBtn.onclick = done;
   wrap.addEventListener('click', e => { if (e.target === wrap && !closeBtn.hidden) done(); });
   openBtn.onclick = async () => {
     openBtn.disabled = true;
+    // Phase 1: Wackeln, nach kurzer Zeit staerker (Spannung steigt).
     anim.classList.add('shake');
+    const esk = setTimeout(() => anim.classList.add('shake2'), 450);
     let m;
-    try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Nur online möglich.', 'err'); done(); return; }
-    const r = await m.openChest(chest.id).catch(() => ({ ok: false }));
-    await new Promise(res => setTimeout(res, 750));   // Spannung
-    anim.classList.remove('shake');
+    try { m = await db(); await m.ensureAuth(); } catch (_) { clearTimeout(esk); toast('Nur online möglich.', 'err'); done(); return; }
+    const [r] = await Promise.all([
+      m.openChest(chest.id).catch(() => ({ ok: false })),
+      new Promise(res => setTimeout(res, REDUCED_MOTION ? 150 : 1000)),   // Mindest-Spannung
+    ]);
+    clearTimeout(esk);
+    anim.classList.remove('shake', 'shake2');
     if (!r.ok) { toast(r.message || 'Fehler beim Öffnen', 'err'); done(); return; }
-    confetti(chest.rarity === 'diamant' ? 3200 : 2200);
-    anim.classList.add('open');
+
+    // Phase 2: Blitz + Strahlen + Pop + Funkenflug + Konfetti.
+    anim.classList.add('burst');
+    spawnChestParticles(stage, chest.rarity === 'diamant' ? 26 : chest.rarity === 'gold' ? 20 : 14);
+    confetti(chest.rarity === 'diamant' ? 3600 : 2200);
+    haptic?.([30, 40, 30, 40, 120]);
     walletCache.crystals = r.new_crystals ?? walletCache.crystals;
-    let html = `<div class="reveal-crystals">${CRY} +${nf(r.crystals_won)}</div>`;
+
+    // Phase 3: Zaehler hochlaufen lassen, Item danach enthuellen.
+    reveal.innerHTML = `<div class="reveal-crystals">${CRY} +<b>0</b></div>`
+      + (r.item_id ? `<div class="reveal-item" id="reveal-item"></div>` : '');
+    countUpCrystals(reveal.querySelector('.reveal-crystals b'), r.crystals_won);
     if (r.item_id) {
       const it = findCatalogItem(r.item_id);
-      html += `<div class="reveal-item">✨ Neu freigeschaltet:<br><b>${esc(it?.name || r.item_id)}</b></div>`;
+      const itemEl = reveal.querySelector('#reveal-item');
+      itemEl.innerHTML = `✨ Neu freigeschaltet:<br><b>${esc(it?.name || r.item_id)}</b>`
+        + (it?.img ? `<img class="reveal-item-img" src="${esc(it.img)}?v=7" alt="">` : '');
+      setTimeout(() => itemEl.classList.add('show'), REDUCED_MOTION ? 0 : 900);
     }
-    reveal.innerHTML = html;
     openBtn.hidden = true; closeBtn.hidden = false;
     chestCache = chestCache.filter(c => c.id !== chest.id);
     refreshChestBadge();
