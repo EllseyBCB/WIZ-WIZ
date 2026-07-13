@@ -381,17 +381,37 @@
      Fallback = Gradient, falls die Datei (noch) fehlt. */
   .basar {
     position: relative; border-radius: 16px; overflow: hidden;
-    padding: 18px 16px 20px; margin-bottom: 12px; text-align: center;
+    padding: 14px 14px 20px; margin-bottom: 12px; text-align: center;
     border: 1.5px solid var(--goldline);
     background: linear-gradient(160deg, #3a2566 0%, #241046 55%, #160c2e 100%);
     box-shadow: 0 6px 20px rgba(0,0,0,.45);
   }
   .basar::after {
-    content: ""; position: absolute; inset: 0; z-index: 0; opacity: .55;
-    background-image: url('lobby/shop-hero.jpg?v=1');
-    background-size: cover; background-position: center;
+    content: ""; position: absolute; inset: 0; z-index: 0; opacity: .7;
+    /* Abdunkelnder Verlauf ueber dem Artwork, damit der Text lesbar bleibt. */
+    background-image: linear-gradient(180deg, rgba(12,7,26,.30), rgba(12,7,26,.62)),
+                      url('lobby/shop-hero.jpg?v=1');
+    background-size: cover, cover; background-position: center 30%, center 30%;
   }
   .basar > * { position: relative; z-index: 1; }
+  /* Kopfzeile des Banners: Guthaben-Pillen rechts oben, Kronen-Emblem mittig
+     darunter (gestapelt statt ueberlappend – auf schmalen Handys kollidiert
+     ein absolut zentriertes Emblem sonst mit den Pillen). */
+  .basar-top { display: flex; flex-direction: column; gap: 6px; }
+  .basar-crown {
+    width: 60px; height: 60px; border-radius: 50%; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--gold);
+    background: radial-gradient(circle at 50% 32%, #3a2566, #170d30);
+    box-shadow: 0 0 14px rgba(233,200,115,.35), 0 4px 10px rgba(0,0,0,.55), inset 0 0 12px rgba(120,80,200,.35);
+  }
+  .basar-crown img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+  .basar-shop {
+    margin-top: 8px; font-family: var(--font-myth); color: var(--gold);
+    font-size: 2rem; line-height: 1; letter-spacing: 5px; text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0,0,0,.85);
+  }
+  .basar-shop .bs-star { font-size: .55em; vertical-align: .28em; margin: 0 10px; opacity: .9; }
   .basar-pills { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   .bp {
     display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
@@ -410,8 +430,8 @@
     color: #fff; font-size: 1.3rem; font-weight: 700; line-height: 1;
   }
   .bp-plus:active { filter: brightness(1.1); }
-  .basar-kicker { margin-top: 14px; font-family: var(--font-myth); color: var(--gold);
-    letter-spacing: 2px; font-size: .82rem; text-transform: uppercase; text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+  .basar-kicker { margin-top: 12px; font-family: var(--font-myth); color: rgba(255,255,255,.88);
+    letter-spacing: 3px; font-size: .78rem; text-transform: uppercase; text-shadow: 0 2px 6px rgba(0,0,0,.7); }
   .basar-title { font-family: var(--font-myth); color: var(--gold); font-size: 1.7rem; line-height: 1.05;
     text-shadow: 0 2px 10px rgba(0,0,0,.85); }
   .basar-sub { margin: 8px auto 0; max-width: 340px; color: rgba(255,255,255,.82);
@@ -424,22 +444,61 @@
     background: linear-gradient(180deg, rgba(20,12,38,.96) 70%, rgba(20,12,38,0));
     -webkit-overflow-scrolling: touch;
   }
+  /* Kategorie-Chip im Mockup-Stil: rundes Icon mit Goldring, Label darunter;
+     die aktive Kategorie bekommt einen violett leuchtenden Rundeck-Rahmen. */
   .shopcat {
-    flex: 0 0 78px; scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; gap: 6px;
-    padding: 12px 6px; border-radius: 12px; cursor: pointer; color: var(--gold);
-    background: linear-gradient(180deg,#2a1b4e,#1b1038); border: 1.5px solid var(--goldline);
-    opacity: .82; transition: opacity .15s, border-color .15s, box-shadow .15s;
+    flex: 0 0 76px; scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 9px 4px 10px; border-radius: 14px; cursor: pointer; color: var(--gold);
+    background: none; border: 1.5px solid transparent;
+    opacity: .85; transition: opacity .15s, border-color .15s, box-shadow .15s;
   }
   .shopcat:active { filter: brightness(1.12); transform: translateY(1px); }
-  /* Aktive Kategorie: heller, kraeftiger Goldrahmen + Glow. */
+  .shopcat-ring {
+    width: 54px; height: 54px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--gold);
+    background: radial-gradient(circle at 50% 32%, #3a2566, #1b1038);
+    box-shadow: 0 3px 8px rgba(0,0,0,.5), inset 0 0 10px rgba(120,80,200,.35);
+  }
   .shopcat.active {
-    opacity: 1; border-color: var(--gold);
-    background: linear-gradient(180deg,#3a2566,#241046);
-    box-shadow: 0 0 14px rgba(233,200,115,.35), inset 0 0 12px rgba(120,80,200,.2);
+    opacity: 1; border-color: rgba(185,140,255,.85);
+    background: rgba(90,60,160,.16);
+    box-shadow: 0 0 14px rgba(168,85,247,.45), inset 0 0 10px rgba(120,80,200,.18);
+  }
+  .shopcat.active .shopcat-ring {
+    border-color: #ffe9ad;
+    box-shadow: 0 0 12px rgba(233,200,115,.5), inset 0 0 10px rgba(120,80,200,.35);
   }
   .shopcat.active .shopcat-lbl { color: #ffe9ad; }
-  .shopcat-ic { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-  .shopcat-lbl { font-family: var(--font-myth); font-size: .72rem; line-height: 1; text-align: center; }
+  .shopcat-ic { width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+  .shopcat-lbl { font-family: var(--font-myth); font-size: .68rem; line-height: 1.15; text-align: center;
+    letter-spacing: .4px; text-transform: uppercase; }
+
+  /* Mittiger Zier-Titel der Kategorie („✦ Kartendecks ✦") mit Goldlinien. */
+  .sec-head {
+    display: flex; align-items: center; gap: 12px; margin: 8px 0 12px;
+    font-family: var(--font-myth); color: var(--gold); font-size: 1.12rem;
+    letter-spacing: 2px; text-transform: uppercase; white-space: nowrap;
+  }
+  .sec-head::before, .sec-head::after { content: ""; flex: 1; height: 1px; }
+  .sec-head::before { background: linear-gradient(90deg, transparent, rgba(198,162,76,.65)); }
+  .sec-head::after  { background: linear-gradient(90deg, rgba(198,162,76,.65), transparent); }
+
+  /* Seltenheits-Filterleiste: Pillen in der jeweiligen Seltenheitsfarbe (--rc),
+     die aktive Pille ist gefuellt und leuchtet. */
+  .rar-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; -webkit-overflow-scrolling: touch; }
+  .rar-pill {
+    flex: none; padding: 7px 13px; border-radius: 12px; cursor: pointer;
+    font-family: var(--font-myth); font-size: .74rem; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--rc, #cfd4e0); background: rgba(18,11,36,.72);
+    border: 1.5px solid color-mix(in srgb, var(--rc, #ffffff) 45%, transparent);
+  }
+  .rar-pill:active { filter: brightness(1.15); }
+  .rar-pill.active {
+    color: #fff; border-color: var(--rc, #b98cff);
+    background: color-mix(in srgb, var(--rc, #7c3aed) 26%, rgba(18,11,36,.75));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--rc, #7c3aed) 40%, transparent);
+  }
 
   /* padding-top schafft Platz fuer die -9px hochstehenden Tags (sonst schneidet
      der overflow der Scroll-Reihe "Beliebt"/"Bester Preis" oben ab). */
@@ -496,12 +555,16 @@
   }
   .cat-rarity { font-size: .68rem; font-weight: 700; letter-spacing: .3px; color: var(--r); }
   /* Fuss: Statuszeile + Aktionsbutton, immer unten -> Buttons einer Reihe buendig. */
-  .tile-foot { margin-top: auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-top: 4px; }
+  .tile-foot { margin-top: auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 4px; }
   .tile-state { font-size: .8rem; font-weight: 700; color: #6ee7a8; line-height: 1; }
+  /* Preiszeile wie im Mockup: Kristall-Icon + Betrag, weiss, ueber dem Knopf. */
+  .tile-price { font-size: .95rem; font-weight: 800; color: #fff; line-height: 1;
+    font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
   .tile-buy {
-    width: 100%; padding: 7px 6px; border-radius: 10px; cursor: pointer;
+    width: 100%; padding: 8px 6px; border-radius: 10px; cursor: pointer;
     border: 1px solid var(--goldline); background: linear-gradient(180deg,#3a2566,#241046);
-    color: var(--gold); font-weight: 700; font-size: .86rem; font-variant-numeric: tabular-nums;
+    color: var(--gold); font-weight: 700; font-size: .78rem; font-variant-numeric: tabular-nums;
+    font-family: var(--font-myth); text-transform: uppercase; letter-spacing: 1.2px;
   }
   .tile-buy:active { filter: brightness(1.12); transform: translateY(1px); }
   /* Legendaere Produkte: dezentes Dauer-Funkeln am Rahmen. */
@@ -518,13 +581,21 @@
      Raster bleibt 2-spaltig. Die sticky Kategorie-Leiste haelt die Navigation
      beim Scrollen sichtbar, sodass der Kopf nicht dauerhaft Platz kostet. */
   @media (max-width: 360px) {
-    .basar { padding: 12px 12px 14px; margin-bottom: 10px; }
-    .basar-kicker { margin-top: 10px; font-size: .74rem; }
+    .basar { padding: 10px 10px 14px; margin-bottom: 10px; }
+    .basar-crown { width: 46px; height: 46px; }
+    .basar-crown img { width: 29px; height: 29px; }
+    .bp { padding: 4px 9px; font-size: .82rem; }
+    .bp-plus { width: 29px; height: 29px; font-size: 1.1rem; }
+    .basar-shop { font-size: 1.5rem; letter-spacing: 4px; }
+    .basar-kicker { margin-top: 9px; font-size: .7rem; }
     .basar-title { font-size: 1.35rem; }
     .basar-sub { font-size: .76rem; margin-top: 6px; }
+    .sec-head { font-size: .98rem; letter-spacing: 1.4px; }
+    .rar-pill { font-size: .68rem; padding: 6px 10px; }
     .cat-name { font-size: .84rem; }
-    .tile-buy { font-size: .8rem; padding: 6px 4px; }
+    .tile-buy { font-size: .72rem; padding: 7px 4px; }
     .tile-state { font-size: .74rem; }
+    .tile-price { font-size: .86rem; }
   }
   .shop-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   @media (min-width: 520px) { .shop-items { grid-template-columns: repeat(3, 1fr); } }
@@ -1719,12 +1790,9 @@
 
     <!-- Tab: Shop -->
     <div id="pane-shop" class="pane sheet">
-      <div class="sheet-head">
-        <img class="sheet-head-ic" src="./lobby/ic-crown.png?v=6" alt="" aria-hidden="true">
-        <div class="sheet-head-title"><span class="gem">◆</span>Shop<span class="gem">◆</span></div>
-      </div>
+      <!-- Kein sheet-head: Kronen-Emblem + SHOP-Titel stehen im Basar-Banner selbst. -->
       <div id="shop-grid"></div>
-      <button class="btn sekundaer" id="shop-restore" type="button" style="width:100%;margin-top:16px">Käufe wiederherstellen</button>
+      <button class="btn sekundaer" id="shop-restore" type="button" style="width:100%;margin-top:16px"><span aria-hidden="true" style="margin-right:8px">↻</span>Käufe wiederherstellen</button>
       <p class="muted" id="shop-hint" style="font-size:.78rem;margin-top:10px;text-align:center"></p>
     </div>
 
@@ -2001,6 +2069,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=125"></script>
+<script type="module" src="./app.js?v=126"></script>
 </body>
 </html>
