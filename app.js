@@ -763,7 +763,7 @@ function shopCatalogTile(it, owned) {
     state = `<span class="tile-state owned">✓ Im Besitz</span>`;
   }
 
-  const thumb = `<img class="cat-img" src="${esc(it.img)}?v=2" alt="" loading="lazy">`;
+  const thumb = `<img class="cat-img" src="${esc(it.img)}?v=3" alt="" loading="lazy">`;
   return `<div class="cat-tile${active ? ' is-active' : ''}" data-kind="${esc(it.kind)}" data-rar="${esc(it.rarity)}" style="--r:${r.color}">
     <div class="cat-thumb">${thumb}</div>
     <div class="cat-name">${esc(it.name)}</div>
