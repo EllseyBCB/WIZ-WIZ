@@ -187,10 +187,11 @@ export async function claimDailyChest() {
   const rows = await rpc('wizard_claim_daily_chest');
   return rows?.[0] || { ok: false, message: 'Fehler' };
 }
-// Truhe oeffnen. { ok, crystals_won, item_id, item_kind, new_crystals, rarity, message }.
+// Truhe oeffnen (v2: mehrere Drops).
+// { ok, rewards:[{t:'crystals'|'gold'|'item', n?, item_id?, kind?}], new_crystals, new_gold, rarity, message }.
 export async function openChest(chestId) {
   const rows = await rpc('wizard_open_chest', { p_chest_id: chestId });
-  return rows?.[0] || { ok: false, message: 'Fehler' };
+  return rows?.[0] || { ok: false, rewards: [], message: 'Fehler' };
 }
 // Truhe mit Kristallen kaufen. { ok, chest_id, crystals, message }.
 export async function buyChest(rarity) {

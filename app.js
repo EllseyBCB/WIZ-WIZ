@@ -991,7 +991,7 @@ function chestTile(c) {
   const m = CHEST_META[c.rarity] || {};
   const src = c.source === 'game' ? 'aus einem Spiel' : c.source === 'daily' ? 'Tagestruhe' : 'gekauft';
   return `<button class="chest-tile" data-openchest="${esc(c.id)}" type="button" style="--r:${m.color || '#888'}">
-    <img class="chest-img" src="lobby/chest-${esc(c.rarity)}.png?v=1" alt="" loading="lazy">
+    <img class="chest-img" src="lobby/chest-${esc(c.rarity)}.png?v=2" alt="" loading="lazy">
     <span class="chest-lbl">${esc(m.label || c.rarity)}</span>
     <span class="chest-sub">${src}</span>
     <span class="chest-open">Öffnen</span>
@@ -1004,7 +1004,7 @@ function chestPane() {
     : `<p class="muted" style="text-align:center;margin:14px 0">Noch keine Truhen. Hol die Tagestruhe oder spiel eine Online-Runde!</p>`;
   const buy = CHEST_TIERS.map(t => `
     <button class="chest-buy" data-buychest="${t.rarity}" type="button" style="--r:${t.color}">
-      <img class="chest-img sm" src="lobby/chest-${t.rarity}.png?v=1" alt="" loading="lazy">
+      <img class="chest-img sm" src="lobby/chest-${t.rarity}.png?v=2" alt="" loading="lazy">
       <span class="chest-lbl">${esc(t.label)}</span>
       <span class="chest-cost">${CRY} ${nf(t.price)}</span>
     </button>`).join('');
@@ -1087,6 +1087,20 @@ function countUpCrystals(el, target) {
   })();
 }
 
+// HTML fuer einen einzelnen Drop (Kristalle / Gold-Muenzen / Item).
+function chestDropHtml(d) {
+  if (d.t === 'item') {
+    const it = findCatalogItem(d.item_id);
+    return `<div class="drop-big item">
+      <span class="drop-new">✨ NEU</span>
+      ${it?.img ? `<img class="reveal-item-img" src="${esc(it.img)}?v=7" alt="">` : ''}
+      <b>${esc(it?.name || d.item_id)}</b>
+    </div>`;
+  }
+  if (d.t === 'gold') return `<div class="drop-big goldc">🪙 +<b class="drop-n">0</b></div>`;
+  return `<div class="drop-big crystals">${CRY} +<b class="drop-n">0</b></div>`;
+}
+
 async function openChestModal(chest) {
   const meta = CHEST_META[chest.rarity] || {};
   document.getElementById('chest-modal')?.remove();
@@ -1098,23 +1112,58 @@ async function openChestModal(chest) {
         <div class="chest-stage">
           <div class="chest-rays" aria-hidden="true"></div>
           <div class="chest-flash" aria-hidden="true"></div>
-          <img class="chest-big-img" src="lobby/chest-${esc(chest.rarity)}.png?v=1" alt="">
+          <img class="chest-big-img" src="lobby/chest-${esc(chest.rarity)}.png?v=2" alt="">
         </div>
       </div>
       <h2>${esc(meta.label || 'Truhe')}</h2>
       <div id="chest-reveal" class="chest-reveal"></div>
+      <div id="chest-dots" class="drop-dots" hidden></div>
+      <div id="chest-hint" class="drop-hint" hidden>👆 Tippen zum Aufdecken</div>
       <button class="btn" id="chest-openbtn" type="button">Öffnen</button>
       <button class="btn sekundaer" id="chest-close" type="button" style="margin-top:8px" hidden>Schließen</button>
     </div>`;
   document.body.appendChild(wrap);
+  const card = wrap.querySelector('.chest-card');
   const closeBtn = wrap.querySelector('#chest-close');
   const openBtn = wrap.querySelector('#chest-openbtn');
   const anim = wrap.querySelector('.chest-anim');
   const stage = wrap.querySelector('.chest-stage');
   const reveal = wrap.querySelector('#chest-reveal');
+  const dotsEl = wrap.querySelector('#chest-dots');
+  const hintEl = wrap.querySelector('#chest-hint');
   const done = () => wrap.remove();
   closeBtn.onclick = done;
   wrap.addEventListener('click', e => { if (e.target === wrap && !closeBtn.hidden) done(); });
+
+  // --- Clash-artiges Aufdecken: Drops einzeln, jeder Tipp zeigt den naechsten -
+  let drops = [], idx = 0, revealPhase = false, finishing = null;
+
+  const showNextDrop = () => {
+    if (idx >= drops.length) return;
+    const d = drops[idx];
+    reveal.innerHTML = chestDropHtml(d);
+    if (d.t === 'crystals' || d.t === 'gold') {
+      countUpCrystals(reveal.querySelector('.drop-n'), d.n | 0);
+    }
+    spawnChestParticles(stage, d.t === 'item' ? 12 : 6);
+    haptic?.(d.t === 'item' ? [30, 40, 80] : 18);
+    if (d.t === 'item') confetti(1800);
+    idx++;
+    dotsEl.innerHTML = drops.map((_, i) =>
+      `<span class="drop-dot${i < idx ? ' done' : ''}"></span>`).join('');
+    if (idx >= drops.length) {
+      hintEl.hidden = true;
+      revealPhase = false;
+      finishing?.();
+    }
+  };
+
+  // Tipp irgendwo auf die Karte (ausser Knoepfe) deckt den naechsten Drop auf.
+  card.addEventListener('click', (e) => {
+    if (!revealPhase || e.target.closest('button')) return;
+    showNextDrop();
+  });
+
   openBtn.onclick = async () => {
     openBtn.disabled = true;
     // Phase 1: Wackeln, nach kurzer Zeit staerker (Spannung steigt).
@@ -1123,7 +1172,7 @@ async function openChestModal(chest) {
     let m;
     try { m = await db(); await m.ensureAuth(); } catch (_) { clearTimeout(esk); toast('Nur online möglich.', 'err'); done(); return; }
     const [r] = await Promise.all([
-      m.openChest(chest.id).catch(() => ({ ok: false })),
+      m.openChest(chest.id).catch(() => ({ ok: false, rewards: [] })),
       new Promise(res => setTimeout(res, REDUCED_MOTION ? 150 : 1000)),   // Mindest-Spannung
     ]);
     clearTimeout(esk);
@@ -1136,23 +1185,34 @@ async function openChestModal(chest) {
     confetti(chest.rarity === 'diamant' ? 3600 : 2200);
     haptic?.([30, 40, 30, 40, 120]);
     walletCache.crystals = r.new_crystals ?? walletCache.crystals;
-
-    // Phase 3: Zaehler hochlaufen lassen, Item danach enthuellen.
-    reveal.innerHTML = `<div class="reveal-crystals">${CRY} +<b>0</b></div>`
-      + (r.item_id ? `<div class="reveal-item" id="reveal-item"></div>` : '');
-    countUpCrystals(reveal.querySelector('.reveal-crystals b'), r.crystals_won);
-    if (r.item_id) {
-      const it = findCatalogItem(r.item_id);
-      const itemEl = reveal.querySelector('#reveal-item');
-      itemEl.innerHTML = `✨ Neu freigeschaltet:<br><b>${esc(it?.name || r.item_id)}</b>`
-        + (it?.img ? `<img class="reveal-item-img" src="${esc(it.img)}?v=7" alt="">` : '');
-      setTimeout(() => itemEl.classList.add('show'), REDUCED_MOTION ? 0 : 900);
-    }
-    openBtn.hidden = true; closeBtn.hidden = false;
+    walletCache.gold = r.new_gold ?? walletCache.gold;
     chestCache = chestCache.filter(c => c.id !== chest.id);
     refreshChestBadge();
-    if (r.item_id) { try { walletCache = await m.getWallet(); } catch (_) {} }
-    renderShop();
+
+    // Phase 3: Drops einzeln aufdecken; am Ende Zusammenfassung + Schliessen.
+    drops = Array.isArray(r.rewards) ? r.rewards : [];
+    const gotItem = drops.some(d => d.t === 'item');
+    finishing = async () => {
+      const sumC = drops.filter(d => d.t === 'crystals').reduce((a, d) => a + (d.n | 0), 0);
+      const sumG = drops.filter(d => d.t === 'gold').reduce((a, d) => a + (d.n | 0), 0);
+      const items = drops.filter(d => d.t === 'item');
+      reveal.innerHTML = `<div class="drop-sum">
+          ${sumC ? `<span>${CRY} +${nf(sumC)}</span>` : ''}
+          ${sumG ? `<span>🪙 +${nf(sumG)}</span>` : ''}
+        </div>`
+        + items.map(d => {
+          const it = findCatalogItem(d.item_id);
+          return `<div class="reveal-item show">✨ <b>${esc(it?.name || d.item_id)}</b> freigeschaltet</div>`;
+        }).join('');
+      closeBtn.hidden = false;
+      if (gotItem) { try { walletCache = await m.getWallet(); } catch (_) {} }
+      renderShop();
+    };
+    openBtn.hidden = true;
+    if (!drops.length) { finishing(); return; }   // Sicherheitsnetz
+    dotsEl.hidden = false; hintEl.hidden = false;
+    revealPhase = true;
+    showNextDrop();   // ersten Drop sofort zeigen, die weiteren per Tipp
   };
 }
 
