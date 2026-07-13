@@ -1608,18 +1608,65 @@
   .chest-buy .chest-lbl { font-size: .78rem; }
   .chest-cost { font-weight: 800; font-variant-numeric: tabular-nums; font-size: .85rem; }
 
-  /* Truhen-Öffnen-Modal */
-  .chest-card { text-align: center; }
+  /* Truhen-Öffnen-Modal: Wackeln -> Blitz + Strahlen + Funkenflug -> Reveal */
+  .chest-card { text-align: center; overflow: hidden; }
   .chest-anim { margin: 4px 0 6px; }
+  .chest-stage { position: relative; width: 180px; height: 180px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center; }
   .chest-big-img { display: inline-block; width: 150px; height: 150px; object-fit: contain;
+    position: relative; z-index: 2;
     filter: drop-shadow(0 0 20px color-mix(in srgb, var(--r) 60%, transparent)); }
-  .chest-anim.shake .chest-big-img { animation: chestShake .35s ease-in-out infinite; }
-  .chest-anim.open .chest-big-img { animation: chestPop .5s ease; }
-  @keyframes chestShake { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
-  @keyframes chestPop { 0%{transform:scale(.7)} 60%{transform:scale(1.25)} 100%{transform:scale(1)} }
+  /* Rotierende Lichtstrahlen (Seltenheitsfarbe), erst beim Aufplatzen voll sichtbar */
+  .chest-rays {
+    position: absolute; inset: -26px; z-index: 0; border-radius: 50%; opacity: 0;
+    background: repeating-conic-gradient(from 0deg,
+      color-mix(in srgb, var(--r) 45%, transparent) 0deg 11deg, transparent 11deg 30deg);
+    -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+    mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+  }
+  /* Heller Blitz in der Mitte beim Aufplatzen */
+  .chest-flash {
+    position: absolute; inset: 0; z-index: 1; border-radius: 50%; opacity: 0;
+    background: radial-gradient(circle, #fff 0%,
+      color-mix(in srgb, var(--r) 75%, #fff) 32%, transparent 68%);
+  }
+  .chest-anim.shake .chest-big-img { animation: chestShake .34s ease-in-out infinite; }
+  .chest-anim.shake2 .chest-big-img { animation: chestShake2 .16s ease-in-out infinite; }
+  .chest-anim.shake2 .chest-rays { opacity: .35; animation: raysSpin 5s linear infinite; }
+  .chest-anim.burst .chest-big-img { animation: chestPop .55s cubic-bezier(.2,1.6,.4,1); }
+  .chest-anim.burst .chest-rays { opacity: 1; animation: raysSpin 7s linear infinite, raysIn .5s ease; }
+  .chest-anim.burst .chest-flash { animation: chestFlash .65s ease-out; }
+  @keyframes chestShake  { 0%,100%{transform:rotate(-7deg)}  50%{transform:rotate(7deg)} }
+  @keyframes chestShake2 { 0%,100%{transform:rotate(-13deg) translateY(-3px) scale(1.05)}
+                           50%{transform:rotate(13deg) translateY(2px) scale(1.05)} }
+  @keyframes chestPop   { 0%{transform:scale(.65)} 55%{transform:scale(1.3)} 100%{transform:scale(1)} }
+  @keyframes chestFlash { 0%{opacity:0} 18%{opacity:1} 100%{opacity:0; transform:scale(1.7)} }
+  @keyframes raysSpin   { to { transform: rotate(360deg); } }
+  @keyframes raysIn     { from { opacity: 0; transform: scale(.5); } }
+  /* Herausfliegende Funken/Kristalle */
+  .chest-part {
+    position: absolute; left: 50%; top: 50%; z-index: 3; pointer-events: none;
+    font-size: 1.25rem; opacity: 0; transform: translate(-50%,-50%) scale(.5);
+    animation: partFly var(--dur, 1s) ease-out forwards;
+  }
+  @keyframes partFly {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(.4); }
+    12%  { opacity: 1; }
+    100% { opacity: 0;
+           transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, -80px)))
+                      scale(1.35) rotate(var(--rot, 0deg)); }
+  }
   .chest-reveal { min-height: 8px; margin: 6px 0 12px; }
-  .reveal-crystals { font-size: 1.6rem; font-weight: 800; color: var(--gold); }
-  .reveal-item { margin-top: 8px; color: #fff; font-size: .95rem; }
+  .reveal-crystals { font-size: 1.7rem; font-weight: 800; color: var(--gold);
+    font-variant-numeric: tabular-nums; animation: revealPop .45s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes revealPop { from { transform: scale(.6); opacity: 0; } }
+  .reveal-item { margin-top: 10px; color: #fff; font-size: .95rem;
+    opacity: 0; transform: scale(.8) translateY(8px);
+    transition: opacity .4s ease, transform .4s cubic-bezier(.2,1.6,.4,1); }
+  .reveal-item.show { opacity: 1; transform: none; }
+  .reveal-item-img { display: block; width: 84px; height: 84px; object-fit: contain;
+    margin: 8px auto 0; border-radius: 10px;
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--r) 55%, transparent)); }
   .chest-card .btn { width: 100%; }
 
   /* Truhen-Badge auf dem Shop-Tab */
@@ -1632,7 +1679,12 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
   @media (prefers-reduced-motion: reduce) {
-    .chest-tile, .chest-anim.shake .chest-big-img, .chest-anim.open .chest-big-img { animation: none; }
+    .chest-tile, .chest-anim.shake .chest-big-img, .chest-anim.shake2 .chest-big-img,
+    .chest-anim.burst .chest-big-img, .chest-anim.burst .chest-rays,
+    .chest-anim.shake2 .chest-rays, .chest-anim.burst .chest-flash,
+    .chest-part, .reveal-crystals { animation: none; }
+    .chest-anim.burst .chest-rays { opacity: .5; }
+    .reveal-item { transition: none; }
   }
 
   #toast {
@@ -2196,6 +2248,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=132"></script>
+<script type="module" src="./app.js?v=133"></script>
 </body>
 </html>
