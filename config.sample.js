@@ -33,6 +33,8 @@ export const IAP_BUNDLE_ENTITLEMENT = 'magier';
 export const ADMOB = {
   bannerIos: '',
   interstitialIos: '',
+  rewardedIos: '',          // Anzeigenblock "Mit Praemie" (Video gegen Belohnung)
   bannerAndroid: '',
   interstitialAndroid: '',
+  rewardedAndroid: '',
 };

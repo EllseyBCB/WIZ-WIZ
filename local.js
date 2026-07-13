@@ -2,10 +2,10 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=4';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=4';
-import { render } from './game.js?v=81';
+import { render } from './game.js?v=82';
 import { showScreen, toast, esc } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=4';
-import { showBanner, hideBanner } from './ads.js?v=4';
+import { showBanner, hideBanner, preGameAd, midGameAd } from './ads.js?v=8';
 
 const BOT_DELAY = 750;     // ms zwischen Bot-Aktionen
 const TRICK_DELAY = 2500;  // ms, um den fertigen Stich + Gewinner zu zeigen
@@ -110,12 +110,16 @@ function paintTrickEnd(resolvedTrick) {
   render(st, actions);
 }
 
-// Banner "🏆 … gewinnt den Stich" (nutzt #trick-banner aus index.html).
-function showTrickBanner(name) {
+// Mittiges Banner (nutzt #trick-banner aus index.html) – fuer Stich-Gewinner
+// UND Ansagen wie die Halbzeit-Meldung.
+function showTrickBannerHtml(html) {
   let el = document.getElementById('trick-banner');
   if (!el) { el = document.createElement('div'); el.id = 'trick-banner'; document.body.appendChild(el); }
-  el.innerHTML = '🏆 <b>' + esc(name) + '</b><br>gewinnt den Stich';
+  el.innerHTML = html;
   el.classList.add('show');
+}
+function showTrickBanner(name) {
+  showTrickBannerHtml('🏆 <b>' + esc(name) + '</b><br>gewinnt den Stich');
 }
 function hideTrickBanner() { const el = document.getElementById('trick-banner'); if (el) el.classList.remove('show'); }
 
@@ -132,6 +136,22 @@ async function afterPlay(res) {
     if (!G) return;   // waehrend des Banners verlassen -> nichts mehr zeichnen
   }
   paint();
+  await maybeHalfway();
+}
+
+// Halbzeit der Pyramide: Ab Runde floor(T/2)+2 sinkt die Kartenzahl je Runde
+// (c = min(n, T-n+1)). Einmal je Spiel: Ansage-Banner + Vollbild-Werbung.
+// halfSeen wird im Solo-Spielstand mitgespeichert -> kein erneutes Ausloesen
+// nach App-Neustart/Fortsetzen.
+async function maybeHalfway() {
+  if (!G || G.status !== 'running' || G.halfSeen) return;
+  if (G.roundNo !== Math.floor(G.totalRounds / 2) + 2) return;
+  G.halfSeen = true; saveSolo();
+  showTrickBannerHtml('🃏 <b>Ab jetzt werden die Karten wieder weniger!</b>');
+  await sleep(2500);
+  hideTrickBanner();
+  if (!G) return;
+  await midGameAd();
 }
 
 // Bots ziehen lassen, bis der Mensch (Sitz 0) an der Reihe ist.
@@ -191,6 +211,8 @@ export async function startLocal(numOpponents, humanName, difficulty = 'normal')
   G = newGame([humanName || 'Du', ...bots]);
   hideBanner();
   showScreen('game-view');
+  await preGameAd();   // Vollbild-Werbung vor Runde 1 (Solo; Ausnahmen via adsBlocked)
+  if (!G) return;      // waehrend der Werbung verlassen
   sfxDeal();
   paint();
   await drive();

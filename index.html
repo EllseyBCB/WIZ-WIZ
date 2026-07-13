@@ -1536,6 +1536,26 @@
   #trick-banner.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
   #trick-banner b { color: #fff; }
 
+  /* Spielsteine-Pille auf der Startseite + Punkte im Token-Fenster */
+  .token-pill {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: fit-content; margin: 10px auto 12px; padding: 7px 16px; border-radius: 999px;
+    background: linear-gradient(180deg, rgba(44,31,86,.9), rgba(26,18,54,.9));
+    border: 1.5px solid var(--goldline); color: var(--gold);
+    font-family: var(--font-myth); font-size: .88rem; letter-spacing: .4px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  }
+  .token-pill b { color: #fff; }
+  .token-pill .tp-sub { color: rgba(255,255,255,.55); font-size: .76rem; }
+  .token-card { text-align: center; }
+  .token-card .tok-dots { display: flex; justify-content: center; gap: 10px; margin: 4px 0 14px; }
+  .token-card .tok-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--goldline); background: transparent;
+  }
+  .token-card .tok-dot.done { background: #6ee7a8; border-color: #6ee7a8; }
+  .token-card .btn { width: 100%; }
+
   #toast {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
     background: #2a2147; color: #fff; padding: 12px 18px; border-radius: 12px;
@@ -1583,6 +1603,9 @@
         <button class="hero-hot" id="hero-help" type="button" aria-label="Hilfe / Regeln"></button>
         <button class="hero-hot" id="hero-settings" type="button" aria-label="Einstellungen"></button>
       </div>
+
+      <!-- Spielsteine (nur sichtbar, wenn das Token-System aktiv ist) -->
+      <div class="token-pill" id="token-pill" hidden>🎟 <b id="token-n">3</b>/3 Spielsteine <span class="tp-sub">· täglich neu</span></div>
 
       <!-- Aktions-Karten -->
       <div class="home-actions">
@@ -2090,6 +2113,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=129"></script>
+<script type="module" src="./app.js?v=130"></script>
 </body>
 </html>
