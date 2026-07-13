@@ -27,6 +27,18 @@ const admob = () => cap()?.Plugins?.AdMob || null;
 // erscheint. Kann spaeter wieder entfernt werden.
 const D = (...a) => { try { console.log('[ads]', ...a); } catch (_) {} };
 
+// --- Sichtbarer Werbe-Status (fuer die Einstellungen) -----------------------
+// Haelt die letzte aussagekraeftige Meldung fest, damit man OHNE Xcode-Konsole
+// direkt in der App sehen kann, woran es haengt (Init, Consent, Ladefehler …).
+let lastStatus = 'Noch nicht initialisiert.';
+const statusListeners = [];
+export function adsStatus() { return lastStatus; }
+export function onAdsStatus(fn) { statusListeners.push(fn); }
+function setStatus(s) {
+  lastStatus = s; D('STATUS:', s);
+  statusListeners.forEach(f => { try { f(s); } catch (_) {} });
+}
+
 // Test-Anzeigen erzwingen (sicher, klickbar ohne Konto-Risiko):
 //   ?ads=test in der URL  ODER  localStorage wizard_adtest='1'.
 // Nutzt dann Google-Test-IDs statt der echten -> garantierte Auslieferung.
@@ -162,26 +174,52 @@ function ensureSizeListener(AdMob) {
       setAdVar(bannerOn ? h : 0);
     });
   } catch (_) {}
+  // Lade-Erfolg/-Fehler des Banners sichtbar machen: DAS ist die Stelle, an der
+  // man erkennt, ob AdMob wirklich ausliefert oder warum nicht (Fehlercode).
+  try {
+    AdMob.addListener('bannerAdLoaded', () => {
+      setStatus('Banner geladen ✓ (' + (adUnit('banner').testing ? 'Testanzeige' : 'echte Anzeige') + ')');
+    });
+    AdMob.addListener('bannerAdFailedToLoad', (err) => {
+      const code = err?.code != null ? ' [Code ' + err.code + ']' : '';
+      setStatus('Banner-Ladefehler' + code + ': ' + (err?.message || JSON.stringify(err || {})));
+    });
+  } catch (_) {}
 }
 
 // Einmalig initialisieren (inkl. iOS-Tracking-Abfrage + EU-Einwilligung/UMP).
 export async function initAds() {
   D('initAds: native=', isNative(), 'adFree=', isAdFree(), 'forceTest=', forceTest, 'plugin=', !!admob());
-  if (!isNative() || isAdFree()) { D('initAds: uebersprungen (nicht nativ oder werbefrei)'); return; }
-  const AdMob = admob(); if (!AdMob) { D('initAds: AdMob-Plugin nicht gefunden!'); return; }
+  if (!isNative()) { setStatus('Nur in der iOS-App aktiv (im Browser gibt es keine AdMob-Werbung).'); return; }
+  if (isAdFree()) { setStatus('Werbefrei ist aktiv – es wird bewusst keine Werbung geladen.'); return; }
+  const AdMob = admob();
+  if (!AdMob) { setStatus('AdMob-Plugin nicht gefunden – bitte App neu bauen (npm run ios).'); return; }
   ensureSizeListener(AdMob);
   try {
     const testing = adUnit('banner').testing;
-    D('initAds: initialize (testing=' + testing + ') …');
+    setStatus('Initialisiere AdMob (' + (testing ? 'Testmodus' : 'echte IDs') + ') …');
+    // iOS-Tracking-Abfrage (ATT): neuere Plugin-Versionen ignorieren die
+    // initialize-Option, deshalb zusaetzlich der direkte Aufruf.
+    try { if (AdMob.requestTrackingAuthorization) await AdMob.requestTrackingAuthorization(); } catch (_) {}
     await AdMob.initialize({ requestTrackingAuthorization: true, initializeForTesting: testing });
     try {
       const info = await AdMob.requestConsentInfo();
       D('initAds: consent status=', info?.status, 'formAvailable=', info?.isConsentFormAvailable);
-      if (info && info.isConsentFormAvailable && info.status === 'REQUIRED') { D('initAds: zeige Consent-Formular'); await AdMob.showConsentForm(); }
+      if (info && info.isConsentFormAvailable && info.status === 'REQUIRED') {
+        D('initAds: zeige Consent-Formular');
+        await AdMob.showConsentForm();
+      } else if (info && info.status === 'REQUIRED' && !info.isConsentFormAvailable) {
+        // Haeufigste Ursache fuer "gar keine Werbung" in der EU: die
+        // DSGVO-Nachricht ist im AdMob-Konto nicht veroeffentlicht -> ohne
+        // Einwilligung darf das SDK KEINE Anzeigen anfordern (auch keine Tests).
+        setStatus('DSGVO-Einwilligung ERFORDERLICH, aber kein Formular verfügbar. '
+          + 'Bitte im AdMob-Konto unter „Datenschutz & Mitteilungen" die DSGVO-Nachricht '
+          + 'veröffentlichen – ohne sie liefert AdMob in der EU keine Anzeigen aus.');
+      }
     } catch (e) { D('initAds: consent-Fehler', e?.message || e); }
     ready = true;
     D('initAds: fertig, ready=true');
-  } catch (e) { D('initAds: FEHLER bei initialize', e?.message || e); }
+  } catch (e) { setStatus('AdMob-Initialisierung fehlgeschlagen: ' + (e?.message || e)); }
 }
 
 // Banner unten einblenden (z. B. auf der Startseite).
@@ -198,10 +236,11 @@ export async function showBanner() {
       await AdMob.resumeBanner();
       bannerOn = true;
       setAdVar(lastBannerH);
+      setStatus('Banner wieder eingeblendet.');
       return;
     }
     const u = adUnit('banner');
-    D('showBanner: adId=', u.adId, 'testing=', u.testing);
+    setStatus('Banner angefordert (' + (u.testing ? 'Testanzeige' : 'echte Anzeige') + ', ID …' + u.adId.slice(-10) + ') – warte auf Laden …');
     await AdMob.showBanner({
       adId: u.adId, adSize: 'ADAPTIVE_BANNER',
       position: 'BOTTOM_CENTER', margin: 0, isTesting: u.testing
@@ -209,7 +248,7 @@ export async function showBanner() {
     bannerCreated = true;
     bannerOn = true;
     D('showBanner: OK');
-  } catch (e) { D('showBanner: FEHLER', e?.message || e); }
+  } catch (e) { setStatus('showBanner-Fehler: ' + (e?.message || e)); }
 }
 
 // Banner ausblenden (z. B. waehrend einer Partie, damit nichts verdeckt wird).

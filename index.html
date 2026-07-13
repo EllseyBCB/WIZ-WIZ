@@ -1908,6 +1908,7 @@
       <button id="adtest-toggle" class="switch" type="button" role="switch" aria-checked="false" aria-label="Testanzeigen an/aus"><span class="switch-knob"></span></button>
     </div>
     <p class="muted set-note">Nur in der App: erzwingt echte Google-Testanzeigen (garantiert sichtbar, gefahrlos anklickbar). Zum Prüfen, dass Werbung ankommt, solange dein AdMob-Konto noch keine echten Anzeigen ausliefert. Im Alltag ausschalten.</p>
+    <p class="muted set-note" id="ads-status" style="word-break:break-word;color:#e9c873">Werbe-Status: –</p>
 
     <h3 class="set-subtitle">Rechtliches</h3>
     <div class="legal-links">
@@ -2089,6 +2090,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=127"></script>
+<script type="module" src="./app.js?v=128"></script>
 </body>
 </html>
