@@ -68,6 +68,10 @@ function adUnit(kind) {
 // reagiert. Beim App-Start synchronisiert initIAP() den Status erneut.
 const LS_ADFREE = 'wizard_adfree';
 export function isAdFree() { return localStorage.getItem(LS_ADFREE) === '1'; }
+// Werbung unterdrueckt? „Werbefrei" gilt – AUSSER der Testanzeigen-Schalter ist
+// an. Der Schalter uebersteuert Werbefrei bewusst, denn das Inhaber-Konto
+// schaltet Werbefrei automatisch frei und koennte sonst NIE Werbung testen.
+const adsBlocked = () => isAdFree() && !forceTest;
 export function setAdFree(on) {
   localStorage.setItem(LS_ADFREE, on ? '1' : '0');
   if (on) hideBanner();   // laufendes Banner sofort entfernen
@@ -117,7 +121,7 @@ export function setPreview(on) {
   if (!preview) removePreviewBanner();
 }
 function showPreviewBanner() {
-  if (isAdFree() || document.getElementById('ad-preview-banner')) return;
+  if (adsBlocked() || document.getElementById('ad-preview-banner')) return;
   const el = document.createElement('div');
   el.id = 'ad-preview-banner';
   el.style.cssText = 'position:fixed;left:8px;right:8px;bottom:calc(62px + env(safe-area-inset-bottom));z-index:39;'
@@ -130,7 +134,7 @@ function showPreviewBanner() {
 }
 function removePreviewBanner() { const e = document.getElementById('ad-preview-banner'); if (e) e.remove(); }
 function showPreviewInterstitial() {
-  if (isAdFree() || document.getElementById('ad-preview-full')) return;
+  if (adsBlocked() || document.getElementById('ad-preview-full')) return;
   const ov = document.createElement('div');
   ov.id = 'ad-preview-full';
   ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(6,4,16,.94);display:flex;'
@@ -191,7 +195,7 @@ function ensureSizeListener(AdMob) {
 export async function initAds() {
   D('initAds: native=', isNative(), 'adFree=', isAdFree(), 'forceTest=', forceTest, 'plugin=', !!admob());
   if (!isNative()) { setStatus('Nur in der iOS-App aktiv (im Browser gibt es keine AdMob-Werbung).'); return; }
-  if (isAdFree()) { setStatus('Werbefrei ist aktiv – es wird bewusst keine Werbung geladen.'); return; }
+  if (adsBlocked()) { setStatus('Werbefrei ist aktiv (z. B. Inhaber-Konto) – darum keine Werbung. Testanzeigen-Schalter AN zeigt trotzdem Testwerbung.'); return; }
   const AdMob = admob();
   if (!AdMob) { setStatus('AdMob-Plugin nicht gefunden – bitte App neu bauen (npm run ios).'); return; }
   ensureSizeListener(AdMob);
@@ -224,7 +228,7 @@ export async function initAds() {
 
 // Banner unten einblenden (z. B. auf der Startseite).
 export async function showBanner() {
-  if (isAdFree()) { D('showBanner: werbefrei'); return; }
+  if (adsBlocked()) { D('showBanner: werbefrei'); return; }
   if (preview) { showPreviewBanner(); return; }        // Browser-Vorschau
   if (!ready || bannerOn) { D('showBanner: uebersprungen (ready=' + ready + ', bannerOn=' + bannerOn + ')'); return; }
   const AdMob = admob(); if (!AdMob) return;
@@ -263,7 +267,7 @@ export async function hideBanner() {
 
 // Vollbild-Werbung am Spielende (gedrosselt ueber everyNthGame).
 export async function gameOverAd() {
-  if (isAdFree()) return;
+  if (adsBlocked()) return;
   if (preview) { showPreviewInterstitial(); return; }  // Browser-Vorschau
   if (!ready) return;
   const AdMob = admob(); if (!AdMob) return;
