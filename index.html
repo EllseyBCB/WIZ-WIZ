@@ -1660,6 +1660,30 @@
   .reveal-crystals { font-size: 1.7rem; font-weight: 800; color: var(--gold);
     font-variant-numeric: tabular-nums; animation: revealPop .45s cubic-bezier(.2,1.6,.4,1); }
   @keyframes revealPop { from { transform: scale(.6); opacity: 0; } }
+  /* Einzelner Drop (Clash-artiges Aufdecken per Tipp) */
+  .drop-big { font-size: 1.8rem; font-weight: 800; color: var(--gold); min-height: 2.4rem;
+    font-variant-numeric: tabular-nums; animation: revealPop .45s cubic-bezier(.2,1.6,.4,1); }
+  .drop-big .cry { height: 1.2em; vertical-align: -0.22em; }
+  .drop-big.goldc { color: #ffd25e; }
+  .drop-big.item { font-size: 1.05rem; color: #fff; }
+  .drop-new { display: inline-block; background: var(--gold); color: #1a1033;
+    font-size: .62rem; font-weight: 800; letter-spacing: 1px; padding: 2px 9px;
+    border-radius: 8px; margin-bottom: 6px; }
+  .drop-big.item .reveal-item-img { margin: 6px auto 4px; }
+  .drop-big.item b { display: block; font-size: 1.1rem; }
+  /* Fortschritts-Punkte + Tipp-Hinweis */
+  .drop-dots { display: flex; justify-content: center; gap: 8px; margin: 2px 0 6px; }
+  .drop-dot { width: 11px; height: 11px; border-radius: 50%;
+    border: 2px solid var(--goldline); background: transparent; }
+  .drop-dot.done { background: var(--gold); border-color: var(--gold); }
+  .drop-hint { color: rgba(255,255,255,.65); font-size: .84rem; margin-bottom: 10px;
+    animation: hintPulse 1.4s ease-in-out infinite; }
+  @keyframes hintPulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  /* Abschluss-Zusammenfassung */
+  .drop-sum { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+    font-size: 1.25rem; font-weight: 800; color: var(--gold);
+    font-variant-numeric: tabular-nums; animation: revealPop .4s ease; }
+  .drop-sum .cry { height: 1.15em; vertical-align: -0.2em; }
   .reveal-item { margin-top: 10px; color: #fff; font-size: .95rem;
     opacity: 0; transform: scale(.8) translateY(8px);
     transition: opacity .4s ease, transform .4s cubic-bezier(.2,1.6,.4,1); }
@@ -1682,7 +1706,7 @@
     .chest-tile, .chest-anim.shake .chest-big-img, .chest-anim.shake2 .chest-big-img,
     .chest-anim.burst .chest-big-img, .chest-anim.burst .chest-rays,
     .chest-anim.shake2 .chest-rays, .chest-anim.burst .chest-flash,
-    .chest-part, .reveal-crystals { animation: none; }
+    .chest-part, .reveal-crystals, .drop-big, .drop-hint, .drop-sum { animation: none; }
     .chest-anim.burst .chest-rays { opacity: .5; }
     .reveal-item { transition: none; }
   }
@@ -2248,6 +2272,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=133"></script>
+<script type="module" src="./app.js?v=134"></script>
 </body>
 </html>

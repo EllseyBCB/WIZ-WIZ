@@ -292,3 +292,19 @@ begin
     execute format('grant execute on function public.%s to authenticated;', fn);
   end loop;
 end $$;
+
+-- ============================================================================
+-- v2 (Migration wizard_chest_multidrop): MEHRERE Drops pro Truhe.
+--   * Drops: holz 2, silber 3, gold 4, diamant 5 (max. 2 Items je Truhe)
+--   * Jeder Drop: 60% Kristalle / 40% Gold, Item-Chance je Drop
+--     (holz 2.5% / silber 5% / gold 9% / diamant 15%)
+--   * wizard_chests.reward_json speichert das Drop-Array
+--   * wizard_open_chest gibt jetzt (ok, rewards jsonb, new_crystals, new_gold,
+--     rarity, message) zurueck -> Client deckt Drop fuer Drop auf
+-- Vollstaendiger Funktionstext: siehe Migration wizard_chest_multidrop in
+-- Supabase (Stand der Wahrheit ist die Live-DB; hier nur die Signaturen).
+-- ============================================================================
+-- alter table public.wizard_chests add column reward_json jsonb;
+-- function public._wiz_roll_drop(p_uid uuid, p_rarity text, p_no_item boolean, p_skip text[]) returns jsonb
+-- function public.wizard_open_chest(p_chest_id uuid)
+--   returns table(ok boolean, rewards jsonb, new_crystals int, new_gold int, rarity text, message text)
