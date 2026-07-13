@@ -42,6 +42,7 @@ export const SHOP_SECTIONS = [
       { id: 'deck_standard', kind: 'deck', name: 'Standard', cost: 0, currency: 'crystals',
         rarity: 'common', icon: '🎴', img: 'lobby/deck-standard.png', folder: '', isDefault: true, free: true },
       I('deck_elemente',  'deck', 'Elemente',  800, 'crystals', 'epic',      '🌟', 'lobby/deck-elemente.png', 'cards/decks/elemente'),
+      I('deck_mythos',    'deck', 'Mythos',    800, 'crystals', 'legendary', '🐉', 'lobby/deck-mythos.png',   'cards/decks/mythos'),
       I('deck_feuer',     'deck', 'Feuer',     800, 'crystals', 'rare',      '🔥'),
       I('deck_eis',       'deck', 'Eis',       800, 'crystals', 'rare',      '❄️'),
       I('deck_wald',      'deck', 'Wald',      800, 'crystals', 'rare',      '🌿'),
