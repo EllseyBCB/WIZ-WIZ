@@ -1,12 +1,13 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=82';
+import { render } from './game.js?v=83';
 import { gameAssetUrls } from './table.js?v=79';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=71';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
-import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest } from './tokens.js?v=2';
+import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
+         getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=3';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=5';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
@@ -16,8 +17,8 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
          isOwnerEmail, ownerUnlock, setOwnerUnlock } from './cosmetics.js?v=10';
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume } from './audio.js?v=4';
-import { $, showScreen, toast, esc } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY } from './shop-catalog.js?v=15';
+import { $, showScreen, toast, esc, confetti } from './ui.js?v=2';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY, SLOT_TIERS, TOKEN_PACKS, CHEST_TIERS, CHEST_META } from './shop-catalog.js?v=16';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -44,7 +45,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=7'));
+const db = async () => (DB ||= await import('./db.js?v=8'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -70,6 +71,8 @@ const actions = {
   onBid:    (n) => { sfxBid(); haptic(12); return guarded(async (m) => m.placeBid(state.gameId, n)); },
   onPlay:   (card) => { haptic(15); return guarded(async (m) => m.playCard(state.gameId, card)); },
   onPause:  () => pauseOnline(),
+  // Endstand: "Truhen öffnen" -> in den Shop-Truhen-Tab wechseln.
+  onChests: () => { showScreen('home-view'); shopCat = 'chests'; switchPane('shop'); },
   // Warteraum: Freunde laden + in dieses Spiel einladen.
   onLoadFriends: async () => { try { return await (await db()).listFriends(); } catch (_) { return []; } },
   onInvite: async (friendUid) => {
@@ -275,6 +278,7 @@ function goHome() {
   showScreen('home-view');
   refreshResume();
   showBanner();
+  refreshChestList();   // nach einem Online-Spiel ggf. neue Truhe -> Badge
 }
 
 // Pausieren (Online): Verbindung trennen, ABER den Spielplatz merken, damit man
@@ -637,8 +641,10 @@ function iapUnavailableHint() {
 // der nativen App; im Browser Vorschau + Hinweis (mit ?shop=dev zum Testen frei).
 // Zuletzt geladenes Guthaben (fuer sofortiges Rendern der Kopfzeile).
 let walletCache = { crystals: 0, gold: 0, inventory: [] };
+// Zuletzt geladene ungeoeffnete Truhen (fuer den Truhen-Tab + Lobby-Badge).
+let chestCache = [];
 // Aktuell gewaehlte Shop-Kategorie (Tab-Filter statt aller Sektionen untereinander).
-let shopCat = 'avatar';
+let shopCat = 'chests';
 // Aktiver Seltenheits-Filter der Kategorie ('all' = alles zeigen).
 let shopRar = 'all';
 const nf = (n) => (n || 0).toLocaleString('de-DE');
@@ -648,11 +654,16 @@ async function loadShop() {
   if (!grid) return;
   checkOwnerUnlock();   // Inhaber-Konto ggf. freischalten (rendert danach neu)
 
-  // Guthaben + Inventar EINMAL laden (stellt leise die anonyme Anmeldung sicher).
-  // Der Kategoriewechsel danach rendert nur neu, ohne die Wallet erneut zu holen.
-  try { const m = await db(); await m.ensureAuth(); walletCache = await m.getWallet(); }
-  catch (_) { walletCache = { crystals: 0, gold: 0, inventory: [] }; }
+  // Guthaben + Inventar + Truhen EINMAL laden (stellt leise die anonyme
+  // Anmeldung sicher). Der Kategoriewechsel danach rendert nur neu.
+  try {
+    const m = await db(); await m.ensureAuth();
+    const [w, ch] = await Promise.all([m.getWallet(), m.listChests().catch(() => [])]);
+    walletCache = w; chestCache = ch || [];
+    deriveDailySlots(walletCache.inventory);   // gekaufte Slot-Stufe spiegeln
+  } catch (_) { walletCache = { crystals: 0, gold: 0, inventory: [] }; chestCache = []; }
   renderShop();
+  refreshChestBadge();
 }
 
 // Rendert Kopf + NUR die aktive Kategorie (Tab-Filter). Wird bei jedem Tab-Wechsel
@@ -669,12 +680,17 @@ function renderShop() {
   // Inhalt der aktiven Kategorie zusammenbauen. Jede Kategorie beginnt mit
   // einem mittigen Zier-Titel („✦ Kartendecks ✦" wie im Design-Mockup).
   const CAT_TITLES = {
+    chests: 'Truhen', tokens: 'Notizblöcke',
     avatar: 'Avatare', deck: 'Kartendecks', table: 'Spielfelder',
     back: 'Kartenrückseiten', crystals: 'Kristalle', vorteile: 'Angebote',
   };
   const head = `<div class="sec-head">✦&nbsp;&nbsp;${esc(CAT_TITLES[shopCat] || '')}&nbsp;&nbsp;✦</div>`;
   let body;
-  if (shopCat === 'crystals') {
+  if (shopCat === 'chests') {
+    body = head + chestPane();
+  } else if (shopCat === 'tokens') {
+    body = head + tokenPane(owned);
+  } else if (shopCat === 'crystals') {
     body = head + crystalPacksRow();
   } else if (shopCat === 'vorteile') {
     body = head + `<div class="shop-feature">${shopFeatureCard(SHOP_ADFREE)}${shopFeatureCard(SHOP_BUNDLE)}</div>`;
@@ -707,6 +723,15 @@ function renderShop() {
   grid.querySelectorAll('[data-cavatar]').forEach(b => { b.onclick = () => equipCatalogAvatar(b.dataset.cavatar); });
   grid.querySelectorAll('[data-pack]').forEach(b => {
     b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist.', 'info');
+  });
+  // Notizblöcke: Paket kaufen / Video ansehen.
+  grid.querySelectorAll('[data-tbuy]').forEach(b => { b.onclick = () => buyTokenPack(b.dataset.tbuy); });
+  grid.querySelectorAll('[data-tokad]').forEach(b => { b.onclick = () => watchAdForToken(() => renderShop()); });
+  // Truhen: tägliche holen / kaufen / öffnen.
+  grid.querySelectorAll('[data-claimdaily]').forEach(b => { b.onclick = () => claimDailyFlow(); });
+  grid.querySelectorAll('[data-buychest]').forEach(b => { b.onclick = () => buyChestFlow(b.dataset.buychest); });
+  grid.querySelectorAll('[data-openchest]').forEach(b => {
+    b.onclick = () => { const c = chestCache.find(x => x.id === b.dataset.openchest); if (c) openChestModal(c); };
   });
 
   const restore = document.getElementById('shop-restore');
@@ -762,7 +787,12 @@ const CRY = '<img class="cry" src="lobby/ic-crystal.png?v=1" alt="Kristalle">';
 function shopHeader() {
   // Reihenfolge: Kosmetik zuerst, dann Kristalle + Angebote. "Zubehör" entfaellt
   // (keine Produkte); Kartenrueckseiten nutzen die vorhandene cat-title-Kachel.
+  // 3. Element = Icon: PNG-Name (lobby/cat-*.png) ODER Emoji (fuer die neuen
+  // Tabs, solange kein echtes Artwork vorliegt). Emoji werden per <span> gezeigt.
+  const PNG_ICONS = ['avatar', 'deck', 'table', 'title', 'crystals', 'vorteile', 'chest', 'tokens'];
   const cats = [
+    ['chests',   'Truhen',         'chest'],
+    ['tokens',   'Notizblöcke',    'tokens'],
     ['avatar',   'Avatare',        'avatar'],
     ['deck',     'Kartendecks',    'deck'],
     ['table',    'Spielfelder',    'table'],
@@ -770,11 +800,15 @@ function shopHeader() {
     ['crystals', 'Kristalle',      'crystals'],
     ['vorteile', 'Angebote',       'vorteile'],
   ];
-  const catBtns = cats.map(([k, lbl, ic]) =>
-    `<button class="shopcat${shopCat === k ? ' active' : ''}" data-cat="${k}" type="button">
-       <span class="shopcat-ring"><img class="shopcat-ic" src="lobby/cat-${ic}.png?v=1" alt="" loading="lazy"></span>
+  const catBtns = cats.map(([k, lbl, ic]) => {
+    const inner = PNG_ICONS.includes(ic)
+      ? `<img class="shopcat-ic" src="lobby/cat-${ic}.png?v=1" alt="" loading="lazy">`
+      : `<span class="shopcat-emoji">${ic}</span>`;
+    return `<button class="shopcat${shopCat === k ? ' active' : ''}" data-cat="${k}" type="button">
+       <span class="shopcat-ring">${inner}</span>
        <span class="shopcat-lbl">${esc(lbl)}</span>
-     </button>`).join('');
+     </button>`;
+  }).join('');
   return `<div class="basar">
       <div class="basar-top">
         <div class="basar-pills">
@@ -894,6 +928,174 @@ async function buyCurrencyItem(itemId) {
     walletCache = { crystals: r.crystals ?? walletCache.crystals, gold: r.gold ?? walletCache.gold, inventory: walletCache.inventory };
     loadShop();
   } catch (e) { toast('Kauf fehlgeschlagen.', 'err'); }
+}
+
+// --- Notizblöcke: Shop-Pane -------------------------------------------------
+function tokenPane(owned) {
+  const cur = getDailySlots();
+  const status = `<div class="tok-shopstatus">Aktuell: <b>${getTokens()}</b> Notizblöcke · <b>${cur}</b>/Tag gratis</div>`;
+  const slotTiles = SLOT_TIERS.map(t => {
+    const r = RARITY[t.rarity] || RARITY.common;
+    const active = t.slots === cur;
+    const has = t.free || owned.has(t.id) || ownerUnlock() || isDevUnlock();
+    let foot;
+    if (active) foot = `<span class="tile-state active">✓ Aktiv</span>`;
+    else if (has) foot = `<span class="tile-state owned">✓ Im Besitz</span>`;
+    else foot = `<span class="tile-price">${CRY} ${nf(t.cost)}</span>`
+      + `<button class="tile-buy" data-cbuy="${esc(t.id)}" type="button">Kaufen</button>`;
+    return `<div class="cat-tile${active ? ' is-active' : ''}" data-rar="${t.rarity}" style="--r:${r.color}">
+      <div class="slot-badge">📝×${t.slots}</div>
+      <div class="cat-name">${t.slots} pro Tag</div>
+      <div class="cat-rarity">${r.label}</div>
+      <div class="tile-foot">${foot}</div>
+    </div>`;
+  }).join('');
+  const packTiles = TOKEN_PACKS.map(p => {
+    const r = RARITY[p.rarity] || RARITY.common;
+    return `<button class="pack-card${p.tag ? ' tagged' : ''}" data-tbuy="${esc(p.id)}" type="button" style="--r:${r.color}">
+      ${p.tag ? `<span class="pack-tag">${esc(p.tag)}</span>` : ''}
+      <div class="pack-emoji">📝</div>
+      <div class="pack-amt">${p.qty}× Notizblock</div>
+      <div class="pack-price">${CRY} ${nf(p.cost)}</div>
+    </button>`;
+  }).join('');
+  const vid = tokenGateActive()
+    ? `<button class="btn sekundaer" data-tokad="1" type="button" style="width:100%;margin-top:8px">🎬 2 Videos ansehen → 1 Notizblock</button>`
+    : '';
+  return status
+    + `<div class="tok-subhead">Slots · dauerhaft mehr pro Tag</div>`
+    + `<div class="shop-cat-grid">${slotTiles}</div>`
+    + `<div class="tok-subhead">Notizblöcke nachkaufen</div>`
+    + `<div class="pack-row">${packTiles}</div>`
+    + vid;
+}
+
+async function buyTokenPack(packId) {
+  let m;
+  try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Käufe nur online möglich.', 'err'); return; }
+  try {
+    const r = await m.buyTokens(packId);
+    if (r.ok) { grantTokens(r.granted || 0); toast(`+${r.granted} Notizblöcke 🎉`, 'ok'); }
+    else toast(r.message || 'Kauf nicht möglich', 'err');
+    walletCache = { crystals: r.crystals ?? walletCache.crystals, gold: r.gold ?? walletCache.gold, inventory: walletCache.inventory };
+    renderShop();
+  } catch (_) { toast('Kauf fehlgeschlagen.', 'err'); }
+}
+
+// --- Truhen: Shop-Pane ------------------------------------------------------
+function findCatalogItem(id) {
+  for (const s of SHOP_SECTIONS) { const it = s.items.find(i => i.id === id); if (it) return it; }
+  return null;
+}
+function chestTile(c) {
+  const m = CHEST_META[c.rarity] || {};
+  const src = c.source === 'game' ? 'aus einem Spiel' : c.source === 'daily' ? 'Tagestruhe' : 'gekauft';
+  return `<button class="chest-tile" data-openchest="${esc(c.id)}" type="button" style="--r:${m.color || '#888'}">
+    <img class="chest-img" src="lobby/chest-${esc(c.rarity)}.png?v=1" alt="" loading="lazy">
+    <span class="chest-lbl">${esc(m.label || c.rarity)}</span>
+    <span class="chest-sub">${src}</span>
+    <span class="chest-open">Öffnen</span>
+  </button>`;
+}
+function chestPane() {
+  const daily = `<button class="btn" data-claimdaily="1" type="button" style="width:100%">🎁 Tägliche Gratis-Truhe holen</button>`;
+  const list = chestCache.length
+    ? `<div class="chest-grid">${chestCache.map(chestTile).join('')}</div>`
+    : `<p class="muted" style="text-align:center;margin:14px 0">Noch keine Truhen. Hol die Tagestruhe oder spiel eine Online-Runde!</p>`;
+  const buy = CHEST_TIERS.map(t => `
+    <button class="chest-buy" data-buychest="${t.rarity}" type="button" style="--r:${t.color}">
+      <img class="chest-img sm" src="lobby/chest-${t.rarity}.png?v=1" alt="" loading="lazy">
+      <span class="chest-lbl">${esc(t.label)}</span>
+      <span class="chest-cost">${CRY} ${nf(t.price)}</span>
+    </button>`).join('');
+  return `<div class="tok-shopstatus">Öffne Truhen für Kristalle – mit Glück ist auch neue Kosmetik drin!</div>
+    ${daily}
+    <div class="tok-subhead">Deine Truhen</div>${list}
+    <div class="tok-subhead">Truhe kaufen</div><div class="chest-buyrow">${buy}</div>`;
+}
+
+async function refreshChestList() {
+  try { const m = await db(); await m.ensureAuth(); chestCache = await m.listChests() || []; }
+  catch (_) {}
+  refreshChestBadge();
+}
+function refreshChestBadge() {
+  const tab = document.querySelector('.tab[data-nav="shop"]');
+  if (!tab) return;
+  let b = tab.querySelector('.chest-badge');
+  const n = chestCache.length;
+  if (n > 0) {
+    if (!b) { b = document.createElement('span'); b.className = 'chest-badge'; tab.appendChild(b); }
+    b.textContent = n > 9 ? '9+' : String(n);
+  } else if (b) { b.remove(); }
+}
+
+async function claimDailyFlow() {
+  let m;
+  try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Nur online möglich.', 'err'); return; }
+  try {
+    const r = await m.claimDailyChest();
+    if (r.ok) { await refreshChestList(); renderShop(); toast('Tägliche Truhe erhalten! 🎁', 'ok'); }
+    else toast(r.message || 'Nicht möglich', 'info');
+  } catch (_) { toast('Fehler.', 'err'); }
+}
+
+async function buyChestFlow(rarity) {
+  let m;
+  try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Nur online möglich.', 'err'); return; }
+  try {
+    const r = await m.buyChest(rarity);
+    if (r.ok) { walletCache.crystals = r.crystals ?? walletCache.crystals; await refreshChestList(); renderShop(); toast('Truhe gekauft! 🎁', 'ok'); }
+    else toast(r.message || 'Kauf nicht möglich', 'err');
+  } catch (_) { toast('Kauf fehlgeschlagen.', 'err'); }
+}
+
+// Truhen-Öffnen mit Spannungs-Animation + Reveal (Kristalle + evtl. Item).
+async function openChestModal(chest) {
+  const meta = CHEST_META[chest.rarity] || {};
+  document.getElementById('chest-modal')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'modal'; wrap.id = 'chest-modal';
+  wrap.innerHTML = `
+    <div class="modal-card chest-card" style="--r:${meta.color || '#888'}">
+      <div class="chest-anim"><img class="chest-big-img" src="lobby/chest-${esc(chest.rarity)}.png?v=1" alt=""></div>
+      <h2>${esc(meta.label || 'Truhe')}</h2>
+      <div id="chest-reveal" class="chest-reveal"></div>
+      <button class="btn" id="chest-openbtn" type="button">Öffnen</button>
+      <button class="btn sekundaer" id="chest-close" type="button" style="margin-top:8px" hidden>Schließen</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  const closeBtn = wrap.querySelector('#chest-close');
+  const openBtn = wrap.querySelector('#chest-openbtn');
+  const anim = wrap.querySelector('.chest-anim');
+  const reveal = wrap.querySelector('#chest-reveal');
+  const done = () => wrap.remove();
+  closeBtn.onclick = done;
+  wrap.addEventListener('click', e => { if (e.target === wrap && !closeBtn.hidden) done(); });
+  openBtn.onclick = async () => {
+    openBtn.disabled = true;
+    anim.classList.add('shake');
+    let m;
+    try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Nur online möglich.', 'err'); done(); return; }
+    const r = await m.openChest(chest.id).catch(() => ({ ok: false }));
+    await new Promise(res => setTimeout(res, 750));   // Spannung
+    anim.classList.remove('shake');
+    if (!r.ok) { toast(r.message || 'Fehler beim Öffnen', 'err'); done(); return; }
+    confetti(chest.rarity === 'diamant' ? 3200 : 2200);
+    anim.classList.add('open');
+    walletCache.crystals = r.new_crystals ?? walletCache.crystals;
+    let html = `<div class="reveal-crystals">${CRY} +${nf(r.crystals_won)}</div>`;
+    if (r.item_id) {
+      const it = findCatalogItem(r.item_id);
+      html += `<div class="reveal-item">✨ Neu freigeschaltet:<br><b>${esc(it?.name || r.item_id)}</b></div>`;
+    }
+    reveal.innerHTML = html;
+    openBtn.hidden = true; closeBtn.hidden = false;
+    chestCache = chestCache.filter(c => c.id !== chest.id);
+    refreshChestBadge();
+    if (r.item_id) { try { walletCache = await m.getWallet(); } catch (_) {} }
+    renderShop();
+  };
 }
 
 // Anzeigepreis: bevorzugt der ECHTE Preis aus App Store Connect (StoreKit),
@@ -1756,7 +1958,7 @@ function wireSettings() {
   }
   syncTokTest();
   const tokTestBtn = document.getElementById('tokentest-btn');
-  if (tokTestBtn) tokTestBtn.onclick = () => { setTokensForTest(0); toast('Spielsteine auf 0 gesetzt', 'ok'); };
+  if (tokTestBtn) tokTestBtn.onclick = () => { setTokensForTest(0); toast('Notizblöcke auf 0 gesetzt', 'ok'); };
 
   // Live-Werbe-Status unter dem Schalter: zeigt Init-/Consent-/Ladefehler
   // direkt in der App an (ohne Xcode-Konsole).
@@ -2007,6 +2209,7 @@ async function init() {
   // Spielsteine-Pille aktuell halten (Verbrauch/Erstattung/Tageswechsel).
   window.addEventListener('wiz-tokens-changed', refreshTokenPill);
   refreshTokenPill();
+  refreshChestList();   // Truhen-Badge in der unteren Leiste (best-effort)
 
   // E-Mail-Bestaetigung: klickt der Nutzer den Link, kehrt er per Deep-Link
   // (zaubertisch://auth-callback...) in die App zurueck. Session aus der URL

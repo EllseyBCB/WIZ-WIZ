@@ -27,6 +27,7 @@ on conflict (item_id) do update set
 create or replace function public.wizard_buy_tokens(p_pack_id text)
 returns table(ok boolean, crystals int, gold int, granted int, message text)
 language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column   -- Rueckgabe-Spalte crystals/gold vs. Tabellenspalte
 declare
   v_uid  uuid := auth.uid();
   v_item public.wizard_catalog%rowtype;
@@ -227,6 +228,7 @@ end; $$;
 create or replace function public.wizard_buy_chest(p_rarity text)
 returns table(ok boolean, chest_id uuid, crystals int, message text)
 language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column   -- Rueckgabe-Spalte crystals vs. Tabellenspalte
 declare v_uid uuid := auth.uid(); v_cost int; v_w public.wizard_wallets%rowtype; v_id uuid;
 begin
   if v_uid is null then raise exception 'Nicht angemeldet'; end if;
