@@ -566,6 +566,8 @@ function iapUnavailableHint() {
 let walletCache = { crystals: 0, gold: 0, inventory: [] };
 // Aktuell gewaehlte Shop-Kategorie (Tab-Filter statt aller Sektionen untereinander).
 let shopCat = 'avatar';
+// Aktiver Seltenheits-Filter der Kategorie ('all' = alles zeigen).
+let shopRar = 'all';
 const nf = (n) => (n || 0).toLocaleString('de-DE');
 
 async function loadShop() {
@@ -591,23 +593,37 @@ function renderShop() {
   const canBuy = iapAvailable() || isDevUnlock() || ownerUnlock();
   if (hint) hint.textContent = canBuy ? '' : iapUnavailableHint();
 
-  // Inhalt der aktiven Kategorie zusammenbauen.
+  // Inhalt der aktiven Kategorie zusammenbauen. Jede Kategorie beginnt mit
+  // einem mittigen Zier-Titel („✦ Kartendecks ✦" wie im Design-Mockup).
+  const CAT_TITLES = {
+    avatar: 'Avatare', deck: 'Kartendecks', table: 'Spielfelder',
+    back: 'Kartenrückseiten', crystals: 'Kristalle', vorteile: 'Angebote',
+  };
+  const head = `<div class="sec-head">✦&nbsp;&nbsp;${esc(CAT_TITLES[shopCat] || '')}&nbsp;&nbsp;✦</div>`;
   let body;
   if (shopCat === 'crystals') {
-    body = crystalPacksRow();
+    body = head + crystalPacksRow();
   } else if (shopCat === 'vorteile') {
-    body = `<div class="shop-feature">${shopFeatureCard(SHOP_ADFREE)}${shopFeatureCard(SHOP_BUNDLE)}</div>`;
+    body = head + `<div class="shop-feature">${shopFeatureCard(SHOP_ADFREE)}${shopFeatureCard(SHOP_BUNDLE)}</div>`;
   } else {
     const sec = SHOP_SECTIONS.find(s => s.key === shopCat);
-    const items = sortItems(visibleItems(sec ? sec.items : []), owned);
-    body = `<div class="shop-cat-grid">${items.map(it => shopCatalogTile(it, owned)).join('')}</div>`;
+    const all = sortItems(visibleItems(sec ? sec.items : []), owned);
+    const items = shopRar === 'all' ? all : all.filter(it => it.rarity === shopRar);
+    const gridHtml = items.length
+      ? `<div class="shop-cat-grid">${items.map(it => shopCatalogTile(it, owned)).join('')}</div>`
+      : `<p class="muted" style="text-align:center;margin:20px 0">Keine Artikel dieser Seltenheit.</p>`;
+    body = head + rarityRow() + gridHtml;
   }
 
   grid.innerHTML = shopHeader() + `<div class="shop-body">${body}</div>`;
 
-  // Kategorie-Tabs: Filter statt Scroll.
+  // Kategorie-Tabs: Filter statt Scroll (Seltenheits-Filter dabei zuruecksetzen).
   grid.querySelectorAll('[data-cat]').forEach(b => {
-    b.onclick = () => { shopCat = b.dataset.cat; renderShop(); };
+    b.onclick = () => { shopCat = b.dataset.cat; shopRar = 'all'; renderShop(); };
+  });
+  // Seltenheits-Filterleiste.
+  grid.querySelectorAll('[data-rarf]').forEach(b => {
+    b.onclick = () => { shopRar = b.dataset.rarf; renderShop(); };
   });
   // Kauf-/Auswahl-Knöpfe verdrahten (unveraenderte Handler).
   grid.querySelectorAll('[data-buy]').forEach(b => { b.onclick = () => buyShopItem(b.dataset.buy); });
@@ -683,20 +699,39 @@ function shopHeader() {
   ];
   const catBtns = cats.map(([k, lbl, ic]) =>
     `<button class="shopcat${shopCat === k ? ' active' : ''}" data-cat="${k}" type="button">
-       <img class="shopcat-ic" src="lobby/cat-${ic}.png?v=1" alt="" loading="lazy">
+       <span class="shopcat-ring"><img class="shopcat-ic" src="lobby/cat-${ic}.png?v=1" alt="" loading="lazy"></span>
        <span class="shopcat-lbl">${esc(lbl)}</span>
      </button>`).join('');
   return `<div class="basar">
-      <div class="basar-pills">
-        <span class="bp"><span class="bp-ic">${CRY}</span><b>${nf(walletCache.crystals)}</b></span>
-        <span class="bp"><span class="bp-ic">🪙</span><b>${nf(walletCache.gold)}</b></span>
-        <button class="bp-plus" data-pack="open" type="button" aria-label="Kristalle kaufen">＋</button>
+      <div class="basar-top">
+        <div class="basar-pills">
+          <span class="bp"><span class="bp-ic">${CRY}</span><b>${nf(walletCache.crystals)}</b></span>
+          <span class="bp"><span class="bp-ic">🪙</span><b>${nf(walletCache.gold)}</b></span>
+          <button class="bp-plus" data-pack="open" type="button" aria-label="Kristalle kaufen">＋</button>
+        </div>
+        <span class="basar-crown"><img src="lobby/ic-crown.png?v=6" alt=""></span>
       </div>
+      <div class="basar-shop"><span class="bs-star">✦</span>Shop<span class="bs-star">✦</span></div>
       <div class="basar-kicker">Willkommen im</div>
       <div class="basar-title">Basar der Erzmagier</div>
-      <div class="basar-sub">Entdecke exklusive Gegenstände, passe deinen Stil an und werde zur Legende.</div>
+      <div class="basar-sub">Entdecke magische Gegenstände und passe dein Spielerlebnis an.</div>
     </div>
     <div class="shopcat-row">${catBtns}</div>`;
+}
+
+// Seltenheits-Filterleiste (Alle/Gewöhnlich/Selten/Episch/Legendär) – jede
+// Pille traegt ihre Seltenheitsfarbe, die aktive ist gefuellt + leuchtet.
+function rarityRow() {
+  const opts = [
+    ['all',       'Alle',                  '#b98cff'],
+    ['common',    RARITY.common.label,     RARITY.common.color],
+    ['rare',      RARITY.rare.label,       RARITY.rare.color],
+    ['epic',      RARITY.epic.label,       RARITY.epic.color],
+    ['legendary', RARITY.legendary.label,  RARITY.legendary.color],
+  ];
+  return `<div class="rar-row">${opts.map(([k, lbl, c]) =>
+    `<button class="rar-pill${shopRar === k ? ' active' : ''}" data-rarf="${k}" style="--rc:${c}" type="button">${esc(lbl)}</button>`
+  ).join('')}</div>`;
 }
 
 // Kristall-Pakete (Echtgeld – aktuell nur Anzeige, kommt mit der Store-Freigabe).
@@ -752,7 +787,9 @@ function shopCatalogTile(it, owned) {
   let state = '', btn = '';
   const equip = EQUIP_ATTR[it.kind];
   if (!has) {
-    btn = `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">${cur} ${nf(it.cost)}</button>`;
+    // Wie im Design-Mockup: Preiszeile (Kristall-Icon + Betrag) UEBER dem Knopf.
+    state = `<span class="tile-price">${cur} ${nf(it.cost)}</span>`;
+    btn = `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">Kaufen</button>`;
   } else if (active) {
     state = `<span class="tile-state active">✓ Aktiv</span>`;
   } else if (equip) {
