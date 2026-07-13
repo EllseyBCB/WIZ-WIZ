@@ -62,6 +62,10 @@ export function setAdFree(on) {
 }
 
 let ready = false, bannerOn = false, gamesSinceAd = 0;
+// Existiert bereits ein natives Banner-View (ggf. nur versteckt)? Dann muss
+// showBanner() es per resumeBanner() fortsetzen statt neu zu erstellen.
+let bannerCreated = false;
+let lastBannerH = 0;   // zuletzt gemeldete Bannerhoehe (fuer --ad-h nach resume)
 
 // --- Werbe-Vorschau (nur Test, im Browser) ---------------------------------
 // Zeigt Platzhalter, damit man im Browser sieht, WO/WIE die Werbung sitzt –
@@ -83,10 +87,15 @@ export async function setForceTest(on) {
   forceTest = !!on;
   try { localStorage.setItem('wizard_adtest', forceTest ? '1' : '0'); } catch (_) {}
   D('setForceTest:', forceTest);
-  await hideBanner();                 // laufendes Banner entfernen
-  bannerOn = false;
+  // Banner KOMPLETT entfernen (removeBanner), nicht nur verstecken: das Plugin
+  // uebernimmt eine neue Ad-Unit-ID (Test <-> echt) nur bei einem frisch
+  // erstellten Banner. Nach hideBanner() wuerde showBanner() das alte,
+  // versteckte Banner NICHT ersetzen -> es kaeme gar keine Werbung mehr.
+  const AdMob = admob();
+  try { if (AdMob?.removeBanner) await AdMob.removeBanner(); } catch (e) { D('setForceTest: removeBanner', e?.message || e); }
+  bannerCreated = false; bannerOn = false; setAdVar(0);
   if (!ready) await initAds();        // falls noch nicht initialisiert
-  await showBanner();                 // mit passender (Test-/Echt-)ID neu zeigen
+  await showBanner();                 // mit passender (Test-/Echt-)ID NEU erstellen
 }
 
 export function isPreview() { return preview; }
@@ -149,6 +158,7 @@ function ensureSizeListener(AdMob) {
     AdMob.addListener('bannerAdSizeChanged', (size) => {
       const h = size && typeof size.height === 'number' ? size.height : 0;
       D('bannerAdSizeChanged: height=', h);
+      if (h > 0) lastBannerH = h;
       setAdVar(bannerOn ? h : 0);
     });
   } catch (_) {}
@@ -181,12 +191,22 @@ export async function showBanner() {
   if (!ready || bannerOn) { D('showBanner: uebersprungen (ready=' + ready + ', bannerOn=' + bannerOn + ')'); return; }
   const AdMob = admob(); if (!AdMob) return;
   try {
+    // Ein bereits erstelltes, nur verstecktes Banner wird fortgesetzt –
+    // ein erneutes showBanner() wuerde es beim Plugin NICHT wieder einblenden.
+    if (bannerCreated && AdMob.resumeBanner) {
+      D('showBanner: resumeBanner (Banner existiert bereits)');
+      await AdMob.resumeBanner();
+      bannerOn = true;
+      setAdVar(lastBannerH);
+      return;
+    }
     const u = adUnit('banner');
     D('showBanner: adId=', u.adId, 'testing=', u.testing);
     await AdMob.showBanner({
       adId: u.adId, adSize: 'ADAPTIVE_BANNER',
       position: 'BOTTOM_CENTER', margin: 0, isTesting: u.testing
     });
+    bannerCreated = true;
     bannerOn = true;
     D('showBanner: OK');
   } catch (e) { D('showBanner: FEHLER', e?.message || e); }
