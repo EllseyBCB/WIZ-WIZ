@@ -41,6 +41,11 @@ export const IAP_BUNDLE_ENTITLEMENT = 'magier';
 export const ADMOB = {
   bannerIos: 'ca-app-pub-3811537285456646/2063717240',
   interstitialIos: 'ca-app-pub-3811537285456646/1680573868',
+  // Rewarded-Video ("Werbung ansehen -> Spiel freischalten"): leer = Google-
+  // Test-Rewarded. Sobald in der AdMob-Konsole ein Anzeigenblock vom Typ
+  // "Mit Praemie" angelegt ist, die ID hier eintragen.
+  rewardedIos: '',
   bannerAndroid: '',        // leer lassen, solange es keine Android-App gibt
   interstitialAndroid: '',
+  rewardedAndroid: '',
 };

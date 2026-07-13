@@ -1,11 +1,12 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=81';
+import { render } from './game.js?v=82';
 import { gameAssetUrls } from './table.js?v=79';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=70';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=71';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
-import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=7';
+import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
+import { requireToken, refundToken, getTokens, tokenGateActive } from './tokens.js?v=1';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=5';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
@@ -46,6 +47,16 @@ let DB = null;
 const db = async () => (DB ||= await import('./db.js?v=7'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
+// Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
+// eine noch nicht gestartete Lobby wieder, gibt es den Stein zurueck – so
+// kosten nur Spiele, die wirklich beginnen.
+let tokenPaidFor = null;
+function maybeRefundLobbyToken() {
+  if (tokenPaidFor && tokenPaidFor === state.gameId
+      && state.game?.status === 'lobby' && tokenGateActive()) refundToken();
+  tokenPaidFor = null;
+}
+
 const actions = {
   onStart:  () => guarded(async (m) => m.startGame(state.gameId)),
   // Schnelle Runde: Countdown abgelaufen -> Start anstossen. Mehrere Clients
@@ -53,8 +64,8 @@ const actions = {
   onQuickStart: async () => {
     try { await (await db()).quickStart(state.gameId); await reloadAll(); } catch (_) {}
   },
-  onLeave:  () => guarded(async (m) => { await m.leaveGame(state.gameId); goHome(); }),
-  onAbort:  () => guarded(async (m) => m.abortGame(state.gameId)),
+  onLeave:  () => guarded(async (m) => { maybeRefundLobbyToken(); await m.leaveGame(state.gameId); goHome(); }),
+  onAbort:  () => guarded(async (m) => { maybeRefundLobbyToken(); return m.abortGame(state.gameId); }),
   onTrump:  (c) => guarded(async (m) => m.chooseTrump(state.gameId, c)),
   onBid:    (n) => { sfxBid(); haptic(12); return guarded(async (m) => m.placeBid(state.gameId, n)); },
   onPlay:   (card) => { haptic(15); return guarded(async (m) => m.playCard(state.gameId, card)); },
@@ -134,8 +145,11 @@ async function reloadAll() {
   soundForUpdate(game);   // Klangeffekte / "du bist dran"
 
   // Wurde gerade ein Stich abgeschlossen? -> kurz anzeigen + Gewinner melden.
+  // (Die Halbzeit-Ansage kommt erst DANACH – showTrickResult laedt erneut.)
   const done = trickJustCompleted(game);
   if (done) { await showTrickResult(m, done); return; }
+
+  maybeAnnounceHalfway(game);   // "Karten werden wieder weniger"-Ansage
 
   prevSnap = { round: game.round_no, trick: game.trick_no, phase: game.phase };
   // Nur neu zeichnen, wenn sich wirklich etwas geaendert hat.
@@ -188,6 +202,33 @@ function showTrickBanner(name) {
   el.classList.add('show');
 }
 function hideTrickBanner() { const el = document.getElementById('trick-banner'); if (el) el.classList.remove('show'); }
+
+// Mittige Ansage (gleiche Optik wie das Stich-Banner), blendet sich selbst aus.
+let announceTimer = null;
+function announce(html, ms = 2500) {
+  let el = document.getElementById('trick-banner');
+  if (!el) { el = document.createElement('div'); el.id = 'trick-banner'; document.body.appendChild(el); }
+  el.innerHTML = html;
+  el.classList.add('show');
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// Ansage zur Spielhaelfte (Online): Ab jetzt sinkt die Kartenzahl je Runde.
+// Erste "sinkende" Runde der Pyramide c=min(n, T-n+1) ist n = floor(T/2)+2.
+// Einmal je Spiel (merkt sich die Spiel-ID); === verhindert ein Nachfeuern,
+// wenn man erst spaeter wieder einsteigt.
+const LS_HALF = 'wizard_halfseen';
+const firstDecreasingRound = (t) => Math.floor(t / 2) + 2;
+function maybeAnnounceHalfway(game) {
+  if (!game || game.status !== 'running' || !game.total_rounds) return;
+  if (game.round_no !== firstDecreasingRound(game.total_rounds)) return;
+  try {
+    if (localStorage.getItem(LS_HALF) === String(state.gameId)) return;
+    localStorage.setItem(LS_HALF, String(state.gameId));
+  } catch (_) {}
+  announce('🃏 <b>Ab jetzt werden die Karten wieder weniger!</b>');
+}
 
 function scheduleReload() {
   clearTimeout(reloadTimer);
@@ -296,6 +337,19 @@ function refreshResume() {
     if (bigSub) bigSub.textContent = onlineId ? 'Online-Partie fortsetzen'
       : (solo ? 'Pausiertes Solo-Spiel fortsetzen' : 'Kein pausiertes Spiel');
   }
+  refreshTokenPill();
+}
+
+// Spielsteine-Pille auf der Startseite (nur sichtbar, wenn das Gate aktiv ist).
+function refreshTokenPill() {
+  const pill = document.getElementById('token-pill');
+  if (!pill) return;
+  const active = tokenGateActive();
+  pill.hidden = !active;
+  if (active) {
+    const n = document.getElementById('token-n');
+    if (n) n.textContent = String(getTokens());
+  }
 }
 
 // Lobby-Modals (Gegen Computer / Online / Beitreten) öffnen/schliessen.
@@ -357,11 +411,17 @@ function wireHome() {
     const m = await ensureOnline();
     if (!m) return;
     m.upsertProfile(name).catch(() => {});
-    try {
-      const gameId = await m.quickMatch(name);
-      await enterGame(gameId);
-      toast('Suche Mitspieler …', 'ok');
-    } catch (e) { toast(e.message || 'Fehler', 'err'); }
+    requireToken(async () => {
+      try {
+        const gameId = await m.quickMatch(name);
+        tokenPaidFor = gameId;
+        await enterGame(gameId);
+        toast('Suche Mitspieler …', 'ok');
+      } catch (e) {
+        if (tokenGateActive()) refundToken();
+        toast(e.message || 'Fehler', 'err');
+      }
+    });
   };
   $('#act-solo').onclick = () => { if (hasSoloSave()) resumeSoloUI(); else toast('Kein pausiertes Solo-Spiel.', 'info'); };
   $('#resume-big').onclick = () => {
@@ -426,14 +486,15 @@ function wireHome() {
     } catch (e) { toast(e.message || 'Fehler', 'err'); }
   };
 
-  // Solo: braucht WEDER Anmeldung NOCH Supabase.
+  // Solo: braucht WEDER Anmeldung NOCH Supabase. Neues Spiel kostet 1 Spielstein.
   $('#local-btn').onclick = () => {
     clearInterval(pollTimer); pollTimer = null;
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
     const name = nameInput.value.trim() || 'Du';
     const bots = parseInt($('#bot-count').value, 10);
+    const diff = $('#difficulty').value;
     closeLobbyModals();
-    startLocal(bots, name, $('#difficulty').value);
+    requireToken(() => startLocal(bots, name, diff));
   };
 
   $('#create-btn').onclick = async () => {
@@ -443,13 +504,19 @@ function wireHome() {
     if (!m) return;
     m.upsertProfile(name).catch(() => {});   // Profilname fuer die Freundesliste pflegen
     const max = parseInt($('#max-players').value, 10);
-    try {
-      const code = await m.createGame(name, max);
-      const gameId = await m.joinGame(code, name);   // eigene Spiel-ID holen
-      closeLobbyModals();
-      await enterGame(gameId);
-      toast('Spiel erstellt – Code: ' + code, 'ok');
-    } catch (e) { toast(e.message || 'Fehler', 'err'); }
+    requireToken(async () => {
+      try {
+        const code = await m.createGame(name, max);
+        const gameId = await m.joinGame(code, name);   // eigene Spiel-ID holen
+        tokenPaidFor = gameId;
+        closeLobbyModals();
+        await enterGame(gameId);
+        toast('Spiel erstellt – Code: ' + code, 'ok');
+      } catch (e) {
+        if (tokenGateActive()) refundToken();
+        toast(e.message || 'Fehler', 'err');
+      }
+    });
   };
 
   $('#join-btn').onclick = async () => {
@@ -460,11 +527,17 @@ function wireHome() {
     const m = await ensureOnline();
     if (!m) return;
     m.upsertProfile(name).catch(() => {});   // Profilname fuer die Freundesliste pflegen
-    try {
-      const gameId = await m.joinGame(code, name);
-      closeLobbyModals();
-      await enterGame(gameId);
-    } catch (e) { toast(e.message || 'Fehler', 'err'); }
+    requireToken(async () => {
+      try {
+        const gameId = await m.joinGame(code, name);
+        tokenPaidFor = gameId;
+        closeLobbyModals();
+        await enterGame(gameId);
+      } catch (e) {
+        if (tokenGateActive()) refundToken();
+        toast(e.message || 'Fehler', 'err');
+      }
+    });
   };
 
   // Startseite initial befüllen.
@@ -1402,20 +1475,30 @@ async function inviteFromList(f, btn) {
   if (btn) btn.disabled = true;
   const m = await ensureOnline();
   if (!m) { if (btn) btn.disabled = false; return; }
-  try {
-    let gid = state.gameId;
-    const inLobby = gid && state.game && state.game.status === 'lobby';
-    if (!inLobby) {
-      const code = await m.createGame(name, 6);
-      gid = await m.joinGame(code, name);
-      await enterGame(gid);              // -> Warteraum
-    }
+  const inLobby = state.gameId && state.game && state.game.status === 'lobby';
+  const doInvite = async (gid) => {
     await m.inviteFriend(gid, f.uid);
     toast('Einladung an ' + (f.name || 'Freund:in') + ' gesendet', 'ok');
-  } catch (e) {
-    toast(e.message || 'Einladen fehlgeschlagen', 'err');
-    if (btn) btn.disabled = false;
+  };
+  if (inLobby) {
+    try { await doInvite(state.gameId); }
+    catch (e) { toast(e.message || 'Einladen fehlgeschlagen', 'err'); if (btn) btn.disabled = false; }
+    return;
   }
+  // Neues Spiel fuer die Einladung eroeffnen -> kostet einen Spielstein.
+  requireToken(async () => {
+    try {
+      const code = await m.createGame(name, 6);
+      const gid = await m.joinGame(code, name);
+      tokenPaidFor = gid;
+      await enterGame(gid);              // -> Warteraum
+      await doInvite(gid);
+    } catch (e) {
+      if (tokenGateActive()) refundToken();
+      toast(e.message || 'Einladen fehlgeschlagen', 'err');
+      if (btn) btn.disabled = false;
+    }
+  });
 }
 
 // --- Eingehende Einladungen (Realtime) -------------------------------------
@@ -1466,10 +1549,16 @@ async function acceptInvite(inv) {
   $('#invite-banner').hidden = true;
   const m = await ensureOnline();
   if (!m) return;
-  try {
-    const gid = await m.joinGame(inv.code, currentName() || 'Spieler');
-    await enterGame(gid);
-  } catch (e) { toast(e.message || 'Beitreten fehlgeschlagen', 'err'); }
+  requireToken(async () => {
+    try {
+      const gid = await m.joinGame(inv.code, currentName() || 'Spieler');
+      tokenPaidFor = gid;
+      await enterGame(gid);
+    } catch (e) {
+      if (tokenGateActive()) refundToken();
+      toast(e.message || 'Beitreten fehlgeschlagen', 'err');
+    }
+  });
 }
 
 async function removeFriendUI(f) {
@@ -1907,6 +1996,10 @@ async function init() {
 
   // Inhaber-Konto (eingeloggt) ggf. komplett freischalten.
   checkOwnerUnlock();
+
+  // Spielsteine-Pille aktuell halten (Verbrauch/Erstattung/Tageswechsel).
+  window.addEventListener('wiz-tokens-changed', refreshTokenPill);
+  refreshTokenPill();
 
   // E-Mail-Bestaetigung: klickt der Nutzer den Link, kehrt er per Deep-Link
   // (zaubertisch://auth-callback...) in die App zurueck. Session aus der URL

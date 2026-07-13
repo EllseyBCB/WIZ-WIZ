@@ -13,11 +13,12 @@ import { ADMOB } from './config.js';
 const TEST_IDS = {
   banner:       { ios: 'ca-app-pub-3940256099942544/2934735716', android: 'ca-app-pub-3940256099942544/6300978111' },
   interstitial: { ios: 'ca-app-pub-3940256099942544/4411468910', android: 'ca-app-pub-3940256099942544/1033173712' },
+  rewarded:     { ios: 'ca-app-pub-3940256099942544/1712485313', android: 'ca-app-pub-3940256099942544/5224354917' },
 };
 const EVERY_NTH_GAME = 1;   // Vollbild-Werbung nach jedem N-ten Spiel (1 = jedes)
 
 const cap = () => window.Capacitor;
-const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
+export const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
 const plat = () => (cap()?.getPlatform?.() === 'android' ? 'android' : 'ios');
 const admob = () => cap()?.Plugins?.AdMob || null;
 
@@ -53,12 +54,16 @@ let forceTest = false;
 })();
 
 // Eigene ID aus config.js (falls gesetzt), sonst Test-ID + Testmodus.
+// Config-Schluessel je Anzeigentyp: [iOS-Feld, Android-Feld].
+const OWN_KEYS = {
+  banner:       ['bannerIos',       'bannerAndroid'],
+  interstitial: ['interstitialIos', 'interstitialAndroid'],
+  rewarded:     ['rewardedIos',     'rewardedAndroid'],
+};
 function adUnit(kind) {
   const p = plat();
   if (forceTest) return { adId: TEST_IDS[kind][p], testing: true };
-  const own = p === 'android'
-    ? (kind === 'banner' ? ADMOB?.bannerAndroid : ADMOB?.interstitialAndroid)
-    : (kind === 'banner' ? ADMOB?.bannerIos : ADMOB?.interstitialIos);
+  const own = ADMOB?.[OWN_KEYS[kind][p === 'android' ? 1 : 0]];
   if (own) return { adId: own, testing: false };
   return { adId: TEST_IDS[kind][p], testing: true };
 }
@@ -265,18 +270,115 @@ export async function hideBanner() {
   bannerOn = false;
 }
 
-// Vollbild-Werbung am Spielende (gedrosselt ueber everyNthGame).
-export async function gameOverAd() {
+// Gemeinsamer Interstitial-Kern (Vollbild-Werbung), mit allen Guards.
+async function showInterstitialNow() {
   if (adsBlocked()) return;
   if (preview) { showPreviewInterstitial(); return; }  // Browser-Vorschau
   if (!ready) return;
   const AdMob = admob(); if (!AdMob) return;
+  try {
+    const u = adUnit('interstitial');
+    setStatus('Vollbild-Werbung angefordert (' + (u.testing ? 'Testanzeige' : 'echte Anzeige') + ') …');
+    await AdMob.prepareInterstitial({ adId: u.adId, isTesting: u.testing });
+    await AdMob.showInterstitial();
+  } catch (e) { setStatus('Interstitial-Fehler: ' + (e?.message || e)); }
+}
+
+// Vollbild-Werbung vor Runde 1 bzw. zur Spielhaelfte (nur Solo-Modus).
+export async function preGameAd() { await showInterstitialNow(); }
+export async function midGameAd() { await showInterstitialNow(); }
+
+// Vollbild-Werbung am Spielende (gedrosselt ueber everyNthGame).
+export async function gameOverAd() {
+  if (adsBlocked()) return;
   gamesSinceAd++;
   if (gamesSinceAd < EVERY_NTH_GAME) return;
   gamesSinceAd = 0;
+  await showInterstitialNow();
+}
+
+// --- Rewarded-Video ("Werbung ansehen -> Belohnung") ------------------------
+// Liefert true, wenn das Video bis zur Belohnung angesehen wurde.
+let rewardListenersOn = false;
+let rewardResolve = null;
+let gotReward = false;
+
+function resolveReward(ok) {
+  const r = rewardResolve; rewardResolve = null;
+  if (r) r(ok);
+}
+function ensureRewardListeners(AdMob) {
+  if (rewardListenersOn || !AdMob?.addListener) return;
+  rewardListenersOn = true;
+  // Plugin-Versionen benennen die Events unterschiedlich (mit/ohne "on"-Praefix)
+  // -> beide Varianten registrieren; doppelte Ausloesung ist unschaedlich.
+  const on = (names, fn) => names.forEach(n => { try { AdMob.addListener(n, fn); } catch (_) {} });
+  on(['onRewardedVideoAdReward', 'rewardedVideoAdReward'], () => {
+    gotReward = true;
+    setStatus('Belohnung erhalten ✓');
+  });
+  on(['onRewardedVideoAdDismissed', 'rewardedVideoAdDismissed'], () => resolveReward(gotReward));
+  on(['onRewardedVideoAdFailedToLoad', 'rewardedVideoAdFailedToLoad',
+      'onRewardedVideoAdFailedToShow', 'rewardedVideoAdFailedToShow'], (err) => {
+    const code = err?.code != null ? ' [Code ' + err.code + ']' : '';
+    setStatus('Video-Ladefehler' + code + ': ' + (err?.message || JSON.stringify(err || {})));
+    resolveReward(false);
+  });
+}
+
+export async function showRewardedAd() {
+  if (preview) return showPreviewRewarded();           // Browser-Vorschau
+  if (!isNative()) { setStatus('Videos gibt es nur in der iOS-App.'); return false; }
+  if (!ready) await initAds();
+  const AdMob = admob(); if (!AdMob || !ready) return false;
+  ensureRewardListeners(AdMob);
+  gotReward = false;
+  const done = new Promise(res => { rewardResolve = res; });
   try {
-    const u = adUnit('interstitial');
-    await AdMob.prepareInterstitial({ adId: u.adId, isTesting: u.testing });
-    await AdMob.showInterstitial();
-  } catch (_) {}
+    const u = adUnit('rewarded');
+    setStatus('Video-Werbung angefordert (' + (u.testing ? 'Testanzeige' : 'echte Anzeige') + ') – warte auf Laden …');
+    await AdMob.prepareRewardVideoAd({ adId: u.adId, isTesting: u.testing });
+    const item = await AdMob.showRewardVideoAd();
+    // Manche Plugin-Builds liefern die Belohnung direkt zurueck statt (nur)
+    // per Event – beide Wege zaehlen.
+    if (item && (item.type != null || item.amount != null)) { gotReward = true; setStatus('Belohnung erhalten ✓'); }
+  } catch (e) {
+    setStatus('Video-Fehler: ' + (e?.message || e));
+    resolveReward(false);
+  }
+  // Sicherheitsnetz: falls das Dismiss-Event nie kommt, nach 120 s aufloesen.
+  const timeout = new Promise(res => setTimeout(() => res(gotReward), 120000));
+  return Promise.race([done, timeout]);
+}
+
+// Browser-Vorschau des Rewarded-Videos: Countdown, danach "Belohnung erhalten".
+function showPreviewRewarded() {
+  return new Promise((resolve) => {
+    if (document.getElementById('ad-preview-reward')) { resolve(false); return; }
+    const ov = document.createElement('div');
+    ov.id = 'ad-preview-reward';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(6,4,16,.94);display:flex;'
+      + 'flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px';
+    ov.innerHTML = '<div style="font-size:11px;background:#c6a24c;color:#1a1033;padding:2px 9px;border-radius:5px;letter-spacing:.5px">ANZEIGE</div>'
+      + '<div style="font-family:Cinzel,Georgia,serif;color:#e9c873;font-size:1.35rem">Beispiel-Videowerbung (Belohnung)</div>'
+      + '<div style="color:rgba(255,255,255,.6);font-size:.85rem;max-width:300px;line-height:1.5">In der App läuft hier ein kurzes Werbevideo. Wer es zu Ende ansieht, bekommt die Belohnung.</div>';
+    const btn = document.createElement('button');
+    btn.disabled = true; btn.textContent = 'Belohnung in 5 …';
+    btn.style.cssText = 'margin-top:8px;padding:11px 22px;border-radius:24px;border:1px solid #c6a24c;background:#a78bfa;'
+      + 'color:#1a1033;font-weight:700;cursor:pointer;opacity:.45';
+    const cancel = document.createElement('button');
+    cancel.textContent = 'Abbrechen';
+    cancel.style.cssText = 'padding:8px 18px;border-radius:24px;border:1px solid rgba(255,255,255,.25);background:transparent;'
+      + 'color:rgba(255,255,255,.6);font-weight:600;cursor:pointer';
+    ov.appendChild(btn); ov.appendChild(cancel);
+    document.body.appendChild(ov);
+    let n = 5;
+    const t = setInterval(() => {
+      n--;
+      if (n <= 0) { clearInterval(t); btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '✕ Schließen (Belohnung erhalten)'; }
+      else btn.textContent = 'Belohnung in ' + n + ' …';
+    }, 1000);
+    btn.onclick = () => { clearInterval(t); ov.remove(); resolve(true); };
+    cancel.onclick = () => { clearInterval(t); ov.remove(); resolve(false); };
+  });
 }
