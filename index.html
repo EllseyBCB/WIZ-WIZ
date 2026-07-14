@@ -1626,9 +1626,16 @@
   .chest-anim { margin: 4px 0 6px; }
   .chest-stage { position: relative; width: 250px; height: 250px; margin: 0 auto;
     display: flex; align-items: center; justify-content: center; }
-  .chest-big-img { display: inline-block; width: 200px; height: 200px; object-fit: contain;
+  .chest-big-img { display: inline-block; width: auto; height: 250px; object-fit: contain;
     position: relative; z-index: 2;
     filter: drop-shadow(0 0 20px color-mix(in srgb, var(--r) 60%, transparent)); }
+  /* Tipp = Drehung (3D um die Hochachse), waehrenddessen ggf. Upgrade-Wechsel */
+  .chest-anim.spin .chest-big-img { animation: chestSpin .82s cubic-bezier(.3,.15,.25,1); }
+  @keyframes chestSpin { from { transform: perspective(600px) rotateY(0deg); }
+                         to   { transform: perspective(600px) rotateY(720deg); } }
+  .chest-upcap { font-family: var(--font-myth); color: #ffe9ad; font-size: 1.05rem;
+    letter-spacing: .5px; text-shadow: 0 0 12px rgba(233,200,115,.6);
+    animation: revealPop .4s cubic-bezier(.2,1.6,.4,1); }
   /* Rotierende Lichtstrahlen (Seltenheitsfarbe), erst beim Aufplatzen voll sichtbar */
   .chest-rays {
     position: absolute; inset: -26px; z-index: 0; border-radius: 50%; opacity: 0;
@@ -1791,7 +1798,8 @@
     .chest-anim.shake2 .chest-rays, .chest-anim.burst .chest-flash,
     .chest-part, .reveal-crystals, .drop-big, .drop-hint, .drop-sum,
     .chest-rise, .drop-float, .chest-beam.go, .chest-shockwave.go,
-    .chest-whiteflash.go, .chest-card.quake, .chest-flash.re,
+    .chest-whiteflash.go, .chest-card.quake, .chest-flash.re, .chest-upcap,
+    .chest-anim.spin .chest-big-img,
     .chest-anim.charge .chest-big-img, .chest-anim.jump .chest-big-img,
     .chest-anim.land .chest-big-img, .chest-anim.open-frames .chest-frame-img { animation: none; }
     .chest-anim.burst .chest-rays { opacity: .5; }
@@ -2364,6 +2372,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=136"></script>
+<script type="module" src="./app.js?v=137"></script>
 </body>
 </html>

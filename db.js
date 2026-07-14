@@ -187,6 +187,12 @@ export async function claimDailyChest() {
   const rows = await rpc('wizard_claim_daily_chest');
   return rows?.[0] || { ok: false, message: 'Fehler' };
 }
+// Truhe drehen (Tipp): kleine Chance auf eine bessere Truhe.
+// { ok, rarity, upgraded, spins }  (max. 3 Drehungen je Truhe)
+export async function spinChest(chestId) {
+  const rows = await rpc('wizard_spin_chest', { p_chest_id: chestId });
+  return rows?.[0] || { ok: false, upgraded: false };
+}
 // Truhe oeffnen (v2: mehrere Drops).
 // { ok, rewards:[{t:'crystals'|'gold'|'item', n?, item_id?, kind?}], new_crystals, new_gold, rarity, message }.
 export async function openChest(chestId) {

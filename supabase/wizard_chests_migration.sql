@@ -308,3 +308,10 @@ end $$;
 -- function public._wiz_roll_drop(p_uid uuid, p_rarity text, p_no_item boolean, p_skip text[]) returns jsonb
 -- function public.wizard_open_chest(p_chest_id uuid)
 --   returns table(ok boolean, rewards jsonb, new_crystals int, new_gold int, rarity text, message text)
+
+-- ============================================================================
+-- v3 (Migration wizard_chest_spin_upgrade): Truhen-Drehen mit Upgrade-Chance.
+--   * wizard_chests.spins (max. 3 Drehungen je Truhe)
+--   * wizard_spin_chest(uuid) -> (ok, rarity, upgraded, spins)
+--   * Chancen je Dreh: holz->silber 6%, silber->gold 4%, gold->diamant 2,5%
+-- ============================================================================
