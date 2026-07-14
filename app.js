@@ -1139,7 +1139,9 @@ async function openChestModal(chest) {
           <div class="chest-beam" aria-hidden="true"></div>
           <div class="chest-flash" aria-hidden="true"></div>
           <div class="chest-shockwave" aria-hidden="true"></div>
+          <div class="chest-ground" aria-hidden="true"></div>
           <img class="chest-big-img" id="chest-anim-img" src="${CHEST_FRAME(rarity, 1)}" alt="">
+          <div class="chest-sheen" aria-hidden="true"></div>
         </div>
       </div>
       <div id="chest-upcap" class="chest-upcap" hidden>✨ Verbessert!</div>
