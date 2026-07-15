@@ -1150,7 +1150,7 @@ function loadChest3D() {
       add('3d/chest-blau.js?v=1').catch(() => {}),
       add('3d/chest-silber.js?v=1').catch(() => {}),
     ]);
-    await add('3d/chest-scene.js?v=2');
+    await add('3d/chest-scene.js?v=3');
     return !!window.WizChest3D;
   })().catch(() => { chest3dLoad = null; return false; });
   return chest3dLoad;
@@ -1180,14 +1180,11 @@ async function openChestModal(chest) {
       <div id="chest-upcap" class="chest-upcap" hidden>✨ Verbessert!</div>
       <h2 id="chest-title">${esc(metaOf(rarity).label || 'Truhe')}</h2>
       <div id="chest-reveal" class="chest-reveal"></div>
-      <div id="chest-dots" class="drop-dots" hidden></div>
       <div id="chest-hint" class="drop-hint">👆 Tippen zum Drehen!</div>
-      <button class="btn sekundaer" id="chest-close" type="button" style="margin-top:8px" hidden>Schließen</button>
       <div class="chest-whiteflash" aria-hidden="true"></div>
     </div>`;
   document.body.appendChild(wrap);
   const card = wrap.querySelector('.chest-card');
-  const closeBtn = wrap.querySelector('#chest-close');
   const anim = wrap.querySelector('.chest-anim');
   const stage = wrap.querySelector('.chest-stage');
   const animImg = wrap.querySelector('#chest-anim-img');
@@ -1198,11 +1195,9 @@ async function openChestModal(chest) {
   const titleEl = wrap.querySelector('#chest-title');
   const upcap = wrap.querySelector('#chest-upcap');
   const reveal = wrap.querySelector('#chest-reveal');
-  const dotsEl = wrap.querySelector('#chest-dots');
   const hintEl = wrap.querySelector('#chest-hint');
   let three = null;   // 3D-Szene (null = Bild-Frame-Fallback)
   const done = () => { try { three?.dispose(); } catch (_) {} wrap.remove(); };
-  closeBtn.onclick = done;
 
   // Echte 3D-Truhe laden und einwechseln (asynchron; bis dahin Bild-Frames).
   if (!REDUCED_MOTION) {
@@ -1251,11 +1246,6 @@ async function openChestModal(chest) {
     collectEl.insertAdjacentHTML('beforeend', chestChipHtml(d));
     const c = collectEl.lastElementChild;
     requestAnimationFrame(() => c.classList.add('in'));
-  };
-
-  const updateDots = () => {
-    dotsEl.innerHTML = drops.map((_, i) =>
-      `<span class="drop-dot${i < idx ? ' done' : ''}"></span>`).join('');
   };
 
   // --- Tipp-Phase 1: Drehen (mit kleiner Upgrade-Chance, serverseitig) -------
@@ -1365,12 +1355,12 @@ async function openChestModal(chest) {
           return `<div class="reveal-item show">✨ <b>${esc(it?.name || d.item_id)}</b> freigeschaltet</div>`;
         }).join('');
       phase = 'done';
-      closeBtn.hidden = false;
+      hintEl.textContent = '👆 Tippen zum Schließen';
+      hintEl.hidden = false;
       if (gotItem) { try { walletCache = await m.getWallet(); } catch (_) {} }
       renderShop();
     };
     if (!drops.length) { finishing(); return; }
-    dotsEl.hidden = false;
     hintEl.textContent = '👆 Tippen zum Aufdecken';
     hintEl.hidden = false;
     phase = 'drops';
@@ -1409,7 +1399,7 @@ async function openChestModal(chest) {
     if (d.t === 'crystals' || d.t === 'gold') { sfxDropReveal(); countUpCrystals(fl.querySelector('.drop-n'), d.n | 0); }
     else { sfxItemReveal(); confetti(1800); }
     haptic?.(isItem ? [30, 40, 80] : 18);
-    idx++; updateDots();
+    idx++;
     if (idx >= drops.length) {
       hintEl.hidden = true;
       if (!REDUCED_MOTION) await wait(1100);
