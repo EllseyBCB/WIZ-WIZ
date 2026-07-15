@@ -1099,8 +1099,12 @@ const LOOT_IMG_V = 2;   // v2 = echte OpenAI-Bilder statt Platzhalter
 function lootTier(n) { return n < 20 ? 1 : n < 50 ? 2 : n < 90 ? 3 : n < 150 ? 4 : 5; }
 function lootVisHtml(kind, n) {
   const t = lootTier(n);
-  const suff = kind === 'gold' ? '-gold' : '';
-  const img = (f) => `<img class="loot-img" src="lobby/${f}${suff}.png?v=${LOOT_IMG_V}" alt="" onerror="this.remove()">`;
+  if (kind !== 'gold') {
+    // Kristalle: 5 eigene Stufenbilder des Users (loot-kri-1..5, freigestellt)
+    const img = `<img class="loot-img" src="lobby/loot-kri-${t}.png?v=${LOOT_IMG_V}" alt="" onerror="this.remove()">`;
+    return `<div class="loot-vis kv k${t}">${t === 5 ? '<span class="loot-rays" aria-hidden="true"></span>' : ''}${img}</div>`;
+  }
+  const img = (f) => `<img class="loot-img" src="lobby/${f}-gold.png?v=${LOOT_IMG_V}" alt="" onerror="this.remove()">`;
   if (t === 1) return `<div class="loot-vis t1">${img('loot-beutel')}</div>`;
   if (t === 2) return `<div class="loot-vis t2">${img('loot-beutel')}${img('loot-beutel')}</div>`;
   if (t === 3) return `<div class="loot-vis t3">${img('loot-truhe-klein')}</div>`;
