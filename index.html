@@ -1660,7 +1660,10 @@
     display: flex; align-items: center; justify-content: center; perspective: 700px; }
   /* Echte 3D-Truhe (Three.js): groessere Buehne, Canvas fuellt sie komplett */
   .chest-stage { --fly-y: -118px; }
-  .chest-stage.three { width: 100vw; height: min(62vh, 580px); --fly-y: max(-24vh, -280px); }
+  /* Bildschirmhohe Buehne: die Lichtstrahlen reichen bis ganz nach oben.
+     Der ueberstehende obere Teil wird vom Vollbild-Fenster abgeschnitten. */
+  .chest-stage.three { width: 100vw; height: 100vh; height: 100dvh; --fly-y: max(-24vh, -280px); }
+  .chest-stage.three .drop-float { bottom: 27%; }
   .chest-3d { position: absolute; inset: 0; z-index: 2; }
   .chest-3d canvas { width: 100% !important; height: 100% !important; display: block; }
   .chest-big-img { display: inline-block; width: auto; height: 250px; object-fit: contain;
@@ -1809,6 +1812,55 @@
     border-radius: 8px; margin-bottom: 6px; }
   .drop-big.item .reveal-item-img { margin: 8px auto 4px; width: 128px; height: 128px; }
   .drop-big.item b { display: block; font-size: 1.35rem; }
+  /* Gestufte Kristall-/Gold-Drops: Beutel -> 2 Beutel -> Truhe -> volle Truhe
+     -> episch platzende Truhe (je nach Menge) */
+  .drop-big.loot { font-size: 1.9rem; }
+  .loot-vis { display: flex; justify-content: center; align-items: flex-end; gap: 0; }
+  .loot-img { width: 120px; height: 120px; object-fit: contain;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.55)); }
+  .loot-vis.t2 .loot-img { width: 102px; height: 102px; }
+  .loot-vis.t2 .loot-img:first-child { transform: rotate(-5deg) translate(8px, 2px); }
+  .loot-vis.t2 .loot-img:last-child { transform: scaleX(-1) rotate(-5deg) translate(8px, 2px); }
+  .loot-vis.t4 .loot-img { width: 148px; height: 148px; }
+  .loot-vis.t5 { position: relative; }
+  .loot-vis.t5 .loot-img { width: 182px; height: 182px; animation: epicPulse 1.5s ease-in-out infinite; }
+  @keyframes epicPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+  /* Rotierender Strahlenkranz hinter dem epischen Fund */
+  .loot-rays { position: absolute; left: 50%; top: 50%; width: 340px; height: 340px;
+    margin: -170px 0 0 -170px; z-index: -1; border-radius: 50%; pointer-events: none;
+    background: repeating-conic-gradient(from 0deg,
+      rgba(255,216,122,.55) 0deg 7deg, transparent 7deg 24deg);
+    -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 68%);
+    mask-image: radial-gradient(circle, #000 12%, transparent 68%);
+    mix-blend-mode: screen; filter: blur(2px);
+    animation: legendSpin 8s linear infinite; }
+  @keyframes legendSpin { to { transform: rotate(360deg); } }
+  .loot-amt { display: block; margin-top: 2px; }
+  .chest-stage .drop-float.loot-f { white-space: normal; width: 300px; }
+  /* Legendaer: Kristalle/Muenzen platzen aus der Truhe ueber den ganzen Schirm */
+  .loot-burst { position: absolute; left: 50%; bottom: 27%; z-index: 5; pointer-events: none;
+    font-size: 1.5rem; animation: lootBurst var(--dur, 1.1s) cubic-bezier(.15,.6,.35,1) forwards; }
+  .loot-burst img { height: 34px; vertical-align: middle;
+    filter: drop-shadow(0 0 8px rgba(216,180,254,.8)); }
+  @keyframes lootBurst {
+    0%   { transform: translate(-50%, 0) scale(.35) rotate(0deg); opacity: 0; }
+    8%   { opacity: 1; }
+    82%  { opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--tx, 0px)), var(--ty, -300px))
+                      scale(1.15) rotate(var(--rot, 0deg)); opacity: 0; }
+  }
+  .chest-legend { position: absolute; left: 50%; top: 35%; z-index: 6; pointer-events: none;
+    transform: translate(-50%, -50%); white-space: nowrap; text-align: center;
+    font-family: var(--font-myth); font-size: 1.7rem; letter-spacing: 1.5px; color: #ffe9ad;
+    text-shadow: 0 0 20px rgba(255,200,90,.95), 0 0 46px rgba(255,170,60,.6), 0 2px 8px rgba(0,0,0,.75);
+    animation: legendIn 2.7s cubic-bezier(.2,1.4,.4,1) forwards; }
+  @keyframes legendIn {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(.25); }
+    12%  { opacity: 1; transform: translate(-50%,-50%) scale(1.18); }
+    22%  { transform: translate(-50%,-50%) scale(1); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%,-62%) scale(1.06); }
+  }
   /* Belohnung ENTSTEHT IN der Truhe: springt aus der Oeffnung heraus (erst als
      leuchtende Silhouette) und schwebt dann ueber der offenen Truhe. */
   .chest-stage .drop-float {
@@ -1888,7 +1940,9 @@
     .chest-card::before, .chest-card::after,
     .chest-anim.jump .chest-ground, .chest-anim.land .chest-ground,
     .chest-anim.charge .chest-big-img, .chest-anim.jump .chest-big-img,
-    .chest-anim.land .chest-big-img, .chest-anim.open-frames .chest-frame-img { animation: none; }
+    .chest-anim.land .chest-big-img, .chest-anim.open-frames .chest-frame-img,
+    .loot-burst, .chest-legend, .loot-rays, .loot-vis.t5 .loot-img { animation: none; }
+    .chest-legend { opacity: 1; }
     .chest-anim.burst .chest-rays { opacity: .5; }
     .chest-beam.go { opacity: .3; transform: translateX(-50%) scaleY(1); }
     .drop-float.sil { filter: none; }
@@ -2460,6 +2514,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=145"></script>
+<script type="module" src="./app.js?v=146"></script>
 </body>
 </html>

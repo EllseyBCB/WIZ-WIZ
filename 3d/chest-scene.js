@@ -87,16 +87,25 @@
     var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 60);
     var CAM_BASE = new THREE.Vector3(0, 2.7, 6.9);
     var LOOK_AT = new THREE.Vector3(0, 2.3, 0);
+    var visH = 8, topY = 8;   // sichtbare Welt-Hoehe / Welt-Y der Bild-Oberkante
 
     function fit() {
       var w = container.clientWidth || 300, h = container.clientHeight || 300;
       renderer.setSize(w, h);
       camera.aspect = w / h;
       var halfWidthNeeded = 2.25;
-      var tanHalfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
+      var tanHalfV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      var tanHalfH = tanHalfV * camera.aspect;
       CAM_BASE.z = Math.max(6.9, halfWidthNeeded / tanHalfH);
       CAM_BASE.y = 2.7 + (CAM_BASE.z - 6.9) * 0.12;
       camera.updateProjectionMatrix();
+      // Truhe unten im Bild verankern: der Boden (y=0) liegt ~10% ueber der
+      // Unterkante. Bei einer bildschirmhohen Buehne wandert der Blickpunkt
+      // dadurch weit nach oben - die Strahlen haben freie Bahn bis ganz oben.
+      visH = 2 * tanHalfV * CAM_BASE.z;
+      LOOK_AT.y = Math.max((H || 1.5) * 0.52 + 1.25, visH * 0.40);
+      topY = LOOK_AT.y + visH / 2;
+      if (raysGroup) updateRayLengths();
     }
     fit();
     camera.position.copy(CAM_BASE);
@@ -148,7 +157,8 @@
     var rayTex = makeCanvas(128, function (g, s) {
       var v = g.createLinearGradient(0, s, 0, 0);   // unten hell -> oben transparent
       v.addColorStop(0, 'rgba(255,255,255,0.95)');
-      v.addColorStop(0.5, 'rgba(255,255,255,0.45)');
+      v.addColorStop(0.5, 'rgba(255,255,255,0.62)');
+      v.addColorStop(0.9, 'rgba(255,255,255,0.3)');
       v.addColorStop(1, 'rgba(255,255,255,0)');
       g.fillStyle = v;
       g.fillRect(0, 0, s, s);
@@ -221,7 +231,7 @@
       innerLight.position.set(0, H * 0.9, 0);
       raysGroup.position.y = H + 0.25;
       mouthGlow.position.set(0, H + 0.3, 0);
-      LOOK_AT.y = H * 0.52 + 1.25;   // Blick hoeher -> Truhe sitzt unten im Bild
+      fit();   // Blickpunkt + Strahlenlaengen an die neue Truhenhoehe anpassen
       modelReady = true;
       if (tintModel) applyTint(currentRarity);
     }
@@ -434,13 +444,14 @@
     // ---------- Lichtsaeule / Funken / Muenzen ----------
     // ECHTE Lichtstrahlen: einzelne Ebenen faechern aus der Oeffnung in alle
     // Richtungen, jede mit eigener Laenge/Breite/Helligkeit, oben auslaufend.
+    // Die Laenge wird in updateRayLengths() so berechnet, dass jeder Strahl
+    // bis UEBER die Bild-Oberkante reicht (Einheits-Geometrie + scale.y).
     var raysGroup = new THREE.Group();
     var rayDefs = [];
-    [-54, -40, -27, -14, 0, 13, 27, 41, 55].forEach(function (deg) {
-      var len = 5.0 + Math.random() * 3.6;
+    [-55, -42, -30, -19, -9, 0, 8, 18, 29, 41, 54].forEach(function (deg) {
       var wdt = 0.28 + Math.random() * 0.55;
-      var geo = new THREE.PlaneGeometry(wdt, len);
-      geo.translate(0, len / 2, 0);                 // Fusspunkt am Ursprung
+      var geo = new THREE.PlaneGeometry(wdt, 1);
+      geo.translate(0, 0.5, 0);                    // Fusspunkt am Ursprung
       var mat = new THREE.MeshBasicMaterial({
         map: rayTex, color: 0xffd97a, transparent: true, opacity: 0,
         blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
@@ -449,13 +460,27 @@
       m.rotation.z = THREE.MathUtils.degToRad(deg);
       raysGroup.add(m);
       rayDefs.push({
-        mesh: m, base: 0.16 + Math.random() * 0.16,
+        mesh: m, base: 0.2 + Math.random() * 0.18,
         phase: Math.random() * Math.PI * 2, speed: 0.7 + Math.random() * 0.9,
-        baseZ: m.rotation.z
+        baseZ: m.rotation.z,
+        lenR: 1.3 + Math.random() * 0.45,          // Spitze deutlich UEBER der Oberkante
+        len: 6
       });
     });
     raysGroup.position.y = H + 0.25;
     scene.add(raysGroup);
+    // Strahlenlaengen an die aktuelle Bildhoehe anpassen: vom Fusspunkt an der
+    // Truhenoeffnung bis ueber die Oberkante (schraege Strahlen entsprechend
+    // laenger); breite Strahlen wachsen mit, damit nichts nadelduenn wird.
+    function updateRayLengths() {
+      var dist = Math.max(3, topY - raysGroup.position.y);
+      rayDefs.forEach(function (d) {
+        d.len = dist / Math.max(0.4, Math.cos(d.baseZ)) * d.lenR;
+        d.mesh.scale.x = 0.75 + d.len * 0.1;
+        if (opened) d.mesh.scale.y = d.len;
+      });
+    }
+    updateRayLengths();
     // Runder Lichtschein direkt an der Oeffnung (leuchtet in alle Richtungen)
     var mouthGlow = new THREE.Sprite(new THREE.SpriteMaterial({
       map: glowTex, color: 0xffd97a, transparent: true, opacity: 0,
@@ -618,7 +643,7 @@
         innerLight.intensity = q * 3.8;
         rayDefs.forEach(function (d) {
           d.mesh.material.opacity = q * d.base;
-          d.mesh.scale.y = 0.25 + q * 0.75;
+          d.mesh.scale.y = d.len * (0.25 + q * 0.75);
         });
         mouthGlow.material.opacity = q * 0.7;
         if (!burstDone && openT >= 0.3) { burstDone = true; spawnBurst(); }

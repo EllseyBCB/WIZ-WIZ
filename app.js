@@ -1088,6 +1088,23 @@ function countUpCrystals(el, target) {
   })();
 }
 
+// Gestufte Loot-Visuals fuer Kristall-/Gold-Drops: je mehr, desto praechtiger.
+//   Stufe 1 (<20): 1 offener Beutel      Stufe 2 (<50): 2 Beutel nebeneinander
+//   Stufe 3 (<90): Truhe, wenig Inhalt   Stufe 4 (<150): gut gefuellte Truhe
+//   Stufe 5 (ab 150): EPISCH - platzende Truhe + Legendaer-Animation
+const LOOT_IMG_V = 1;
+function lootTier(n) { return n < 20 ? 1 : n < 50 ? 2 : n < 90 ? 3 : n < 150 ? 4 : 5; }
+function lootVisHtml(kind, n) {
+  const t = lootTier(n);
+  const suff = kind === 'gold' ? '-gold' : '';
+  const img = (f) => `<img class="loot-img" src="lobby/${f}${suff}.png?v=${LOOT_IMG_V}" alt="" onerror="this.remove()">`;
+  if (t === 1) return `<div class="loot-vis t1">${img('loot-beutel')}</div>`;
+  if (t === 2) return `<div class="loot-vis t2">${img('loot-beutel')}${img('loot-beutel')}</div>`;
+  if (t === 3) return `<div class="loot-vis t3">${img('loot-truhe-klein')}</div>`;
+  if (t === 4) return `<div class="loot-vis t4">${img('loot-truhe-voll')}</div>`;
+  return `<div class="loot-vis t5"><span class="loot-rays" aria-hidden="true"></span>${img('loot-truhe-episch')}</div>`;
+}
+
 // HTML fuer einen einzelnen Drop (Kristalle / Gold-Muenzen / Item).
 function chestDropHtml(d) {
   if (d.t === 'item') {
@@ -1098,8 +1115,35 @@ function chestDropHtml(d) {
       <b>${esc(it?.name || d.item_id)}</b>
     </div>`;
   }
-  if (d.t === 'gold') return `<div class="drop-big goldc">🪙 +<b class="drop-n">0</b></div>`;
-  return `<div class="drop-big crystals">${CRY} +<b class="drop-n">0</b></div>`;
+  const n = d.n | 0;
+  const icon = d.t === 'gold' ? '🪙' : CRY;
+  return `<div class="drop-big ${d.t === 'gold' ? 'goldc' : 'crystals'} loot">
+    ${lootVisHtml(d.t, n)}
+    <span class="loot-amt">${icon} +<b class="drop-n">0</b></span>
+  </div>`;
+}
+
+// Legendaer-Explosion: Kristalle/Muenzen fliegen aus der Truhe ueber den
+// GANZEN Bildschirm (in alle Ecken), in zwei Wellen.
+function spawnLootBurst(stage, kind, count) {
+  if (REDUCED_MOTION || !stage) return;
+  const w = stage.clientWidth || 400, h = stage.clientHeight || 700;
+  const bit = kind === 'gold' ? 'loot-muenze' : 'loot-kristall';
+  const mk = () => {
+    const s = document.createElement('span');
+    s.className = 'loot-burst';
+    s.innerHTML = `<img src="lobby/${bit}.png?v=${LOOT_IMG_V}" alt="">`;
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 0.35 + Math.random() * 0.65;   // bis in die Ecken
+    s.style.setProperty('--tx', Math.cos(ang) * w * 0.62 * dist + 'px');
+    s.style.setProperty('--ty', (Math.sin(ang) * h * 0.45 - h * 0.22) * dist + 'px');
+    s.style.setProperty('--rot', (Math.random() * 520 - 260) + 'deg');
+    s.style.setProperty('--dur', (900 + Math.random() * 700) + 'ms');
+    stage.appendChild(s);
+    setTimeout(() => s.remove(), 1800);
+  };
+  for (let i = 0; i < count; i++) mk();
+  setTimeout(() => { for (let i = 0; i < Math.floor(count * 0.6); i++) mk(); }, 260);
 }
 
 // Aufsteigende Ambient-Funken waehrend der Aufladephase.
@@ -1150,7 +1194,7 @@ function loadChest3D() {
       add('3d/chest-blau.js?v=1').catch(() => {}),
       add('3d/chest-silber.js?v=1').catch(() => {}),
     ]);
-    await add('3d/chest-scene.js?v=5');
+    await add('3d/chest-scene.js?v=6');
     return !!window.WizChest3D;
   })().catch(() => { chest3dLoad = null; return false; });
   return chest3dLoad;
@@ -1374,6 +1418,8 @@ async function openChestModal(chest) {
     busy = true;
     const d = drops[idx];
     const isItem = d.t === 'item';
+    const tier = isItem ? 0 : lootTier(d.n | 0);
+    const big = isItem || tier >= 4;   // grosse Funde bekommen die Item-Dramaturgie
     // Aktuellen Drop nach unten in die Sammel-Reihe wandern lassen.
     const prev = stage.querySelector('.drop-float');
     if (prev) {
@@ -1381,24 +1427,41 @@ async function openChestModal(chest) {
       prev.remove();
       if (idx > 0) addCollectChip(drops[idx - 1]);
     }
-    if (isItem && !REDUCED_MOTION) {
+    if (big && !REDUCED_MOTION) {
       anim.classList.add('shake2');
       sfxChestRumble();
       spawnChestParticles(stage, 8);
-      await wait(550);
+      await wait(tier === 5 ? 750 : 550);
       anim.classList.remove('shake2');
     }
     stage.insertAdjacentHTML('beforeend',
-      `<div class="drop-float sil${isItem ? ' item-f' : ''}">${chestDropHtml(d)}</div>`);
+      `<div class="drop-float sil${isItem ? ' item-f' : ' loot-f'}">${chestDropHtml(d)}</div>`);
     const fl = stage.querySelector('.drop-float');
-    spawnChestParticles(stage, isItem ? 12 : 6);
-    if (!REDUCED_MOTION) await wait(isItem ? 850 : 620);
+    spawnChestParticles(stage, big ? 12 : 6);
+    if (!REDUCED_MOTION) await wait(big ? 850 : 620);
     flash.classList.remove('re'); void flash.offsetWidth; flash.classList.add('re');
     fl.classList.remove('sil');
     fl.classList.add('hover');
-    if (d.t === 'crystals' || d.t === 'gold') { sfxDropReveal(); countUpCrystals(fl.querySelector('.drop-n'), d.n | 0); }
+    if (d.t === 'crystals' || d.t === 'gold') {
+      sfxDropReveal();
+      countUpCrystals(fl.querySelector('.drop-n'), d.n | 0);
+      if (tier === 5) {
+        // EPISCH: Blitz, Beben, Legendaer-Banner, Loot platzt in alle Ecken.
+        whiteflash.classList.remove('go'); void whiteflash.offsetWidth; whiteflash.classList.add('go');
+        card.classList.add('quake');
+        setTimeout(() => card.classList.remove('quake'), 350);
+        sfxChestOpen(); sfxItemReveal();
+        spawnLootBurst(stage, d.t, 26);
+        const lg = document.createElement('div');
+        lg.className = 'chest-legend';
+        lg.innerHTML = '⚡ LEGENDÄRER FUND! ⚡';
+        card.appendChild(lg);
+        setTimeout(() => lg.remove(), 2700);
+        confetti(4200);
+      }
+    }
     else { sfxItemReveal(); confetti(1800); }
-    haptic?.(isItem ? [30, 40, 80] : 18);
+    haptic?.(tier === 5 ? [40, 60, 40, 60, 160] : isItem ? [30, 40, 80] : 18);
     idx++;
     if (idx >= drops.length) {
       hintEl.hidden = true;
