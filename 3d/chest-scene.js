@@ -148,8 +148,9 @@
     var shaftAlpha = makeCanvas(64, function (g, s) {
       var grad = g.createLinearGradient(0, 0, 0, s);
       grad.addColorStop(0, '#000');
-      grad.addColorStop(0.45, '#fff');
-      grad.addColorStop(1, '#fff');
+      grad.addColorStop(0.30, '#fff');
+      grad.addColorStop(0.62, '#fff');
+      grad.addColorStop(1, '#000');
       g.fillStyle = grad;
       g.fillRect(0, 0, s, s);
     });
@@ -212,7 +213,7 @@
       currentModel = model;
       LID_OPEN = lidOpen;
       innerLight.position.set(0, H * 0.9, 0);
-      shaft.position.y = H + 3.1;
+      shaft.position.y = H + 4.2;
       LOOK_AT.y = H * 0.52;
       modelReady = true;
       if (tintModel) applyTint(currentRarity);
@@ -425,13 +426,13 @@
 
     // ---------- Lichtsaeule / Funken / Muenzen ----------
     var shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.7, 0.45, 7.0, 24, 1, true),
+      new THREE.CylinderGeometry(1.9, 0.45, 9.5, 24, 1, true),
       new THREE.MeshBasicMaterial({
         color: 0xffd97a, transparent: true, opacity: 0, alphaMap: shaftAlpha,
         blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
       })
     );
-    shaft.position.y = H + 3.1;
+    shaft.position.y = H + 4.2;
     scene.add(shaft);
 
     var SPARKS = reducedMotion ? 50 : 150;
