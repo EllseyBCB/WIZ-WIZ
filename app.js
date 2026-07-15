@@ -1284,15 +1284,22 @@ async function openChestModal(chest) {
     try { three?.setRarity(r); } catch (_) {}
   };
 
-  // Ein gesammeltes Item als kleiner Chip in der Reihe unter der Truhe.
+  // Gesammelte Belohnungen unter der Truhe: MINI-Ausgaben derselben Karten,
+  // die oben herauskommen (gleiches Bild, gleicher Kartenrahmen).
   const collectEl = wrap.querySelector('#chest-collect');
   const chestChipHtml = (d) => {
     if (d.t === 'item') {
       const it = findCatalogItem(d.item_id);
-      return `<span class="cchip item">${it?.img ? `<img class="ci" src="${esc(it.img)}?v=7" alt="">` : '✨'}${esc(it?.name || d.item_id)}</span>`;
+      return `<span class="cchip item">
+        ${it?.img ? `<img class="cc-img" src="${esc(it.img)}?v=7" alt="">` : '<span class="cc-emo">✨</span>'}
+        <span class="cc-amt">${esc(it?.name || d.item_id)}</span></span>`;
     }
-    if (d.t === 'gold') return `<span class="cchip">🪙 +${nf(d.n | 0)}</span>`;
-    return `<span class="cchip">${CRY} +${nf(d.n | 0)}</span>`;
+    const n = d.n | 0, t = lootTier(n);
+    const img = d.t === 'gold'
+      ? `lobby/loot-${t <= 2 ? 'beutel' : t === 3 ? 'truhe-klein' : t === 4 ? 'truhe-voll' : 'truhe-episch'}-gold.png?v=${LOOT_IMG_V}`
+      : `lobby/loot-kri-${t}.png?v=${LOOT_IMG_V}`;
+    return `<span class="cchip"><img class="cc-img" src="${img}" alt="">
+      <span class="cc-amt">${d.t === 'gold' ? '🪙' : CRY} +${nf(n)}</span></span>`;
   };
   const addCollectChip = (d) => {
     collectEl.insertAdjacentHTML('beforeend', chestChipHtml(d));
