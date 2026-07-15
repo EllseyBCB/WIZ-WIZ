@@ -1142,8 +1142,15 @@ function loadChest3D() {
       add('3d/RoomEnvironment.js?v=1'),
       add('3d/RoundedBoxGeometry.js?v=1'),
       add('3d/chest-model.js?v=1'),
+      add('3d/GLTFLoader.js?v=1'),
     ]);
-    await add('3d/chest-scene.js?v=1');
+    // KI-Truhen des Users (Meshy, Base64-GLB in window.__CHESTS). Optional:
+    // schlaegt ein Register fehl, laufen die betroffenen Stufen handgebaut.
+    await Promise.all([
+      add('3d/chest-blau.js?v=1').catch(() => {}),
+      add('3d/chest-silber.js?v=1').catch(() => {}),
+    ]);
+    await add('3d/chest-scene.js?v=2');
     return !!window.WizChest3D;
   })().catch(() => { chest3dLoad = null; return false; });
   return chest3dLoad;
