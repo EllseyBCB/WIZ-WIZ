@@ -1442,13 +1442,18 @@ async function openChestModal(chest) {
       await wait(tier === 5 ? 750 : 550);
       anim.classList.remove('shake2');
     }
+    // Erst fliegt nur eine ZAUBERKUGEL heraus (man sieht nicht, was drin ist),
+    // dann zerplatzt sie und die Belohnungs-KARTE klappt auf.
     stage.insertAdjacentHTML('beforeend',
-      `<div class="drop-float sil${isItem ? ' item-f' : ' loot-f'}">${chestDropHtml(d)}</div>`);
+      `<div class="drop-float orb${isItem ? ' item-f' : ' loot-f'}">
+         <div class="drop-card">${chestDropHtml(d)}</div>
+         <span class="drop-orb" aria-hidden="true"></span>
+       </div>`);
     const fl = stage.querySelector('.drop-float');
     spawnChestParticles(stage, big ? 12 : 6);
-    if (!REDUCED_MOTION) await wait(big ? 850 : 620);
+    if (!REDUCED_MOTION) await wait(big ? 950 : 720);
     flash.classList.remove('re'); void flash.offsetWidth; flash.classList.add('re');
-    fl.classList.remove('sil');
+    fl.classList.remove('orb');
     fl.classList.add('hover');
     if (d.t === 'crystals' || d.t === 'gold') {
       sfxDropReveal();
