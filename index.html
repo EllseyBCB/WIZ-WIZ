@@ -1658,6 +1658,10 @@
   /* Perspektive fuer echte 3D-Drehung */
   .chest-stage { position: relative; width: 250px; height: 250px; margin: 0 auto;
     display: flex; align-items: center; justify-content: center; perspective: 700px; }
+  /* Echte 3D-Truhe (Three.js): groessere Buehne, Canvas fuellt sie komplett */
+  .chest-stage.three { width: min(100%, 430px); height: min(50vh, 440px); }
+  .chest-3d { position: absolute; inset: 0; z-index: 2; }
+  .chest-3d canvas { width: 100% !important; height: 100% !important; display: block; }
   .chest-big-img { display: inline-block; width: auto; height: 250px; object-fit: contain;
     position: relative; z-index: 2; backface-visibility: visible;
     filter: drop-shadow(0 0 20px color-mix(in srgb, var(--r) 60%, transparent)); }
@@ -2435,6 +2439,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=138"></script>
+<script type="module" src="./app.js?v=139"></script>
 </body>
 </html>
