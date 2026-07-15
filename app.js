@@ -803,7 +803,7 @@ function shopHeader() {
   ];
   const catBtns = cats.map(([k, lbl, ic]) => {
     const inner = PNG_ICONS.includes(ic)
-      ? `<img class="shopcat-ic" src="lobby/cat-${ic}.png?v=1" alt="" loading="lazy">`
+      ? `<img class="shopcat-ic" src="lobby/cat-${ic}.png?v=2" alt="" loading="lazy">`
       : `<span class="shopcat-emoji">${ic}</span>`;
     return `<button class="shopcat${shopCat === k ? ' active' : ''}" data-cat="${k}" type="button">
        <span class="shopcat-ring">${inner}</span>
