@@ -1150,7 +1150,7 @@ function loadChest3D() {
       add('3d/chest-blau.js?v=1').catch(() => {}),
       add('3d/chest-silber.js?v=1').catch(() => {}),
     ]);
-    await add('3d/chest-scene.js?v=4');
+    await add('3d/chest-scene.js?v=5');
     return !!window.WizChest3D;
   })().catch(() => { chest3dLoad = null; return false; });
   return chest3dLoad;

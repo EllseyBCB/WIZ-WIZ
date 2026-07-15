@@ -145,13 +145,19 @@
       g.fillStyle = grad;
       g.fillRect(0, 0, s, s);
     });
-    var shaftAlpha = makeCanvas(64, function (g, s) {
-      var grad = g.createLinearGradient(0, 0, 0, s);
-      grad.addColorStop(0, '#000');
-      grad.addColorStop(0.30, '#fff');
-      grad.addColorStop(0.62, '#fff');
-      grad.addColorStop(1, '#000');
-      g.fillStyle = grad;
+    var rayTex = makeCanvas(128, function (g, s) {
+      var v = g.createLinearGradient(0, s, 0, 0);   // unten hell -> oben transparent
+      v.addColorStop(0, 'rgba(255,255,255,0.95)');
+      v.addColorStop(0.5, 'rgba(255,255,255,0.45)');
+      v.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = v;
+      g.fillRect(0, 0, s, s);
+      g.globalCompositeOperation = 'destination-in';
+      var h = g.createLinearGradient(0, 0, s, 0);   // weiche Seitenkanten
+      h.addColorStop(0, 'rgba(255,255,255,0)');
+      h.addColorStop(0.5, 'rgba(255,255,255,1)');
+      h.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = h;
       g.fillRect(0, 0, s, s);
     });
 
@@ -213,8 +219,7 @@
       currentModel = model;
       LID_OPEN = lidOpen;
       innerLight.position.set(0, H * 0.9, 0);
-      shaft.position.y = H + 4.2;
-      shaft2.position.y = H + 2.4;
+      raysGroup.position.y = H + 0.25;
       mouthGlow.position.set(0, H + 0.3, 0);
       LOOK_AT.y = H * 0.52 + 1.25;   // Blick hoeher -> Truhe sitzt unten im Bild
       modelReady = true;
@@ -427,25 +432,30 @@
     }
 
     // ---------- Lichtsaeule / Funken / Muenzen ----------
-    var shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.9, 0.5, 9.5, 24, 1, true),
-      new THREE.MeshBasicMaterial({
-        color: 0xffd97a, transparent: true, opacity: 0, alphaMap: shaftAlpha,
+    // ECHTE Lichtstrahlen: einzelne Ebenen faechern aus der Oeffnung in alle
+    // Richtungen, jede mit eigener Laenge/Breite/Helligkeit, oben auslaufend.
+    var raysGroup = new THREE.Group();
+    var rayDefs = [];
+    [-54, -40, -27, -14, 0, 13, 27, 41, 55].forEach(function (deg) {
+      var len = 5.0 + Math.random() * 3.6;
+      var wdt = 0.28 + Math.random() * 0.55;
+      var geo = new THREE.PlaneGeometry(wdt, len);
+      geo.translate(0, len / 2, 0);                 // Fusspunkt am Ursprung
+      var mat = new THREE.MeshBasicMaterial({
+        map: rayTex, color: 0xffd97a, transparent: true, opacity: 0,
         blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-      })
-    );
-    shaft.position.y = H + 4.2;
-    scene.add(shaft);
-    // Breiter, schwacher Streukegel: Licht faellt auch seitlich aus der Truhe
-    var shaft2 = new THREE.Mesh(
-      new THREE.CylinderGeometry(4.6, 0.8, 6.2, 24, 1, true),
-      new THREE.MeshBasicMaterial({
-        color: 0xffd97a, transparent: true, opacity: 0, alphaMap: shaftAlpha,
-        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-      })
-    );
-    shaft2.position.y = H + 2.4;
-    scene.add(shaft2);
+      });
+      var m = new THREE.Mesh(geo, mat);
+      m.rotation.z = THREE.MathUtils.degToRad(deg);
+      raysGroup.add(m);
+      rayDefs.push({
+        mesh: m, base: 0.16 + Math.random() * 0.16,
+        phase: Math.random() * Math.PI * 2, speed: 0.7 + Math.random() * 0.9,
+        baseZ: m.rotation.z
+      });
+    });
+    raysGroup.position.y = H + 0.25;
+    scene.add(raysGroup);
     // Runder Lichtschein direkt an der Oeffnung (leuchtet in alle Richtungen)
     var mouthGlow = new THREE.Sprite(new THREE.SpriteMaterial({
       map: glowTex, color: 0xffd97a, transparent: true, opacity: 0,
@@ -503,8 +513,7 @@
       var newId = MODEL_BY_RARITY[r] || null;
       currentRarity = r;
       tier = TIERS[r] || TIERS.holz;
-      srgb(shaft.material.color, tier.color);
-      srgb(shaft2.material.color, tier.color);
+      rayDefs.forEach(function (d) { srgb(d.mesh.material.color, tier.color); });
       srgb(mouthGlow.material.color, tier.color);
       innerLight.color.setHex(tier.color);
       if (newId !== oldId || !currentModel) loadModelFor(r);
@@ -607,10 +616,10 @@
         var q = clamp01((openT - 0.18) / 0.55);
         setLid(easeOutBack(q));
         innerLight.intensity = q * 3.8;
-        shaft.material.opacity = q * 0.22;
-        shaft.scale.set(1, 0.2 + q * 0.8, 1);
-        shaft2.material.opacity = q * 0.10;
-        shaft2.scale.set(1, 0.2 + q * 0.8, 1);
+        rayDefs.forEach(function (d) {
+          d.mesh.material.opacity = q * d.base;
+          d.mesh.scale.y = 0.25 + q * 0.75;
+        });
         mouthGlow.material.opacity = q * 0.7;
         if (!burstDone && openT >= 0.3) { burstDone = true; spawnBurst(); }
         if (openT > 1.6) {
@@ -619,8 +628,10 @@
         }
       }
       if (opened) {
-        shaft.material.opacity = 0.28 + Math.sin(t * 2.2) * 0.05;
-        shaft2.material.opacity = 0.12 + Math.sin(t * 1.7) * 0.03;
+        rayDefs.forEach(function (d) {
+          d.mesh.material.opacity = d.base * (0.72 + 0.28 * Math.sin(t * d.speed + d.phase));
+          d.mesh.rotation.z = d.baseZ + Math.sin(t * 0.5 + d.phase) * 0.018;
+        });
         mouthGlow.material.opacity = 0.62 + Math.sin(t * 3.1) * 0.12;
         innerLight.intensity = 4.6 + Math.sin(t * 5) * 0.6;
       }
