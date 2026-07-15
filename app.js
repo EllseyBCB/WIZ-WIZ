@@ -1176,6 +1176,7 @@ async function openChestModal(chest) {
           <div class="chest-sheen" aria-hidden="true"></div>
         </div>
       </div>
+      <div id="chest-collect" class="chest-collect" aria-live="polite"></div>
       <div id="chest-upcap" class="chest-upcap" hidden>✨ Verbessert!</div>
       <h2 id="chest-title">${esc(metaOf(rarity).label || 'Truhe')}</h2>
       <div id="chest-reveal" class="chest-reveal"></div>
@@ -1234,6 +1235,22 @@ async function openChestModal(chest) {
     card.style.setProperty('--r', metaOf(r).color || '#888');
     titleEl.textContent = metaOf(r).label || 'Truhe';
     try { three?.setRarity(r); } catch (_) {}
+  };
+
+  // Ein gesammeltes Item als kleiner Chip in der Reihe unter der Truhe.
+  const collectEl = wrap.querySelector('#chest-collect');
+  const chestChipHtml = (d) => {
+    if (d.t === 'item') {
+      const it = findCatalogItem(d.item_id);
+      return `<span class="cchip item">${it?.img ? `<img class="ci" src="${esc(it.img)}?v=7" alt="">` : '✨'}${esc(it?.name || d.item_id)}</span>`;
+    }
+    if (d.t === 'gold') return `<span class="cchip">🪙 +${nf(d.n | 0)}</span>`;
+    return `<span class="cchip">${CRY} +${nf(d.n | 0)}</span>`;
+  };
+  const addCollectChip = (d) => {
+    collectEl.insertAdjacentHTML('beforeend', chestChipHtml(d));
+    const c = collectEl.lastElementChild;
+    requestAnimationFrame(() => c.classList.add('in'));
   };
 
   const updateDots = () => {
@@ -1367,10 +1384,12 @@ async function openChestModal(chest) {
     busy = true;
     const d = drops[idx];
     const isItem = d.t === 'item';
+    // Aktuellen Drop nach unten in die Sammel-Reihe wandern lassen.
     const prev = stage.querySelector('.drop-float');
     if (prev) {
-      if (!REDUCED_MOTION) { prev.classList.add('fly-off'); await wait(220); }
+      if (!REDUCED_MOTION) { prev.classList.add('fly-down'); await wait(260); }
       prev.remove();
+      if (idx > 0) addCollectChip(drops[idx - 1]);
     }
     if (isItem && !REDUCED_MOTION) {
       anim.classList.add('shake2');
@@ -1394,7 +1413,12 @@ async function openChestModal(chest) {
     if (idx >= drops.length) {
       hintEl.hidden = true;
       if (!REDUCED_MOTION) await wait(1100);
-      stage.querySelector('.drop-float')?.remove();
+      const last = stage.querySelector('.drop-float');
+      if (last) {
+        if (!REDUCED_MOTION) { last.classList.add('fly-down'); await wait(260); }
+        last.remove();
+        addCollectChip(d);
+      }
       finishing?.();
     }
     busy = false;

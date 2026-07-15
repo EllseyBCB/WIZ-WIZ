@@ -1659,7 +1659,8 @@
   .chest-stage { position: relative; width: 250px; height: 250px; margin: 0 auto;
     display: flex; align-items: center; justify-content: center; perspective: 700px; }
   /* Echte 3D-Truhe (Three.js): groessere Buehne, Canvas fuellt sie komplett */
-  .chest-stage.three { width: min(88vw, 430px); height: min(50vh, 440px); }
+  .chest-stage { --fly-y: -118px; }
+  .chest-stage.three { width: min(88vw, 430px); height: min(50vh, 440px); --fly-y: -265px; }
   .chest-3d { position: absolute; inset: 0; z-index: 2; }
   .chest-3d canvas { width: 100% !important; height: 100% !important; display: block; }
   .chest-big-img { display: inline-block; width: auto; height: 250px; object-fit: contain;
@@ -1822,9 +1823,27 @@
   @keyframes springOut {
     0%   { transform: translateX(-50%) translateY(30px) scale(.22); opacity: 0; }
     22%  { opacity: 1; }
-    100% { transform: translateX(-50%) translateY(-118px) scale(1); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(var(--fly-y, -118px)) scale(1); opacity: 1; }
   }
   @keyframes flyOffStage { to { transform: translateX(-50%) translateY(-240px) scale(.7); opacity: 0; } }
+  /* Beim Weitertippen wandert der Drop nach UNTEN in die Sammel-Reihe */
+  .chest-stage .drop-float.fly-down { animation: flyDown .28s ease-in forwards; }
+  @keyframes flyDown { to { transform: translateX(-50%) translateY(120px) scale(.35); opacity: 0; } }
+  /* Sammel-Reihe unter der Truhe: alle bereits erhaltenen Belohnungen */
+  .chest-collect { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+    min-height: 32px; margin: 4px auto 2px; max-width: 360px; }
+  .cchip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px;
+    border-radius: 999px; background: rgba(20,12,40,.78);
+    border: 1.5px solid var(--goldline); color: #fff;
+    font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums;
+    opacity: 0; transform: translateY(-16px) scale(.6);
+    transition: opacity .28s ease, transform .28s cubic-bezier(.2,1.4,.4,1);
+  }
+  .cchip.in { opacity: 1; transform: none; }
+  .cchip .cry { height: 1em; vertical-align: -0.15em; }
+  .cchip img.ci { width: 20px; height: 20px; object-fit: contain; border-radius: 4px; }
+  .cchip.item { color: #ffe9ad; }
   @keyframes dropHover { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
   /* Fortschritts-Punkte + Tipp-Hinweis */
   .drop-dots { display: flex; justify-content: center; gap: 8px; margin: 2px 0 6px; }
@@ -1874,7 +1893,8 @@
     .drop-float.sil { filter: none; }
     .reveal-item, .drop-float { transition: none; }
     /* Drop ohne Sprung-Animation direkt an der Schwebe-Position zeigen */
-    .chest-stage .drop-float { transform: translateX(-50%) translateY(-118px); opacity: 1; }
+    .chest-stage .drop-float { transform: translateX(-50%) translateY(var(--fly-y, -118px)); opacity: 1; }
+    .cchip { transition: none; opacity: 1; transform: none; }
     .chest-stage .drop-float.hover .drop-big { animation: none; }
   }
 
@@ -2439,6 +2459,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=141"></script>
+<script type="module" src="./app.js?v=142"></script>
 </body>
 </html>
