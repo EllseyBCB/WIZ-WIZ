@@ -1200,8 +1200,9 @@ function loadChest3D() {
     await Promise.all([
       add('3d/chest-blau.js?v=1').catch(() => {}),
       add('3d/chest-silber.js?v=1').catch(() => {}),
+      add('3d/chest-holz.js?v=1').catch(() => {}),
     ]);
-    await add('3d/chest-scene.js?v=6');
+    await add('3d/chest-scene.js?v=7');
     return !!window.WizChest3D;
   })().catch(() => { chest3dLoad = null; return false; });
   return chest3dLoad;
