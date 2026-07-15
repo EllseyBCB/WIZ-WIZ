@@ -1394,18 +1394,10 @@ async function openChestModal(chest) {
 
     drops = Array.isArray(r.rewards) ? r.rewards : [];
     const gotItem = drops.some(d => d.t === 'item');
+    // Ab jetzt bleibt es unter der Truhe CLEAN: nur die Sammel-Chips.
+    titleEl.hidden = true;
+    reveal.hidden = true;
     finishing = async () => {
-      const sumC = drops.filter(d => d.t === 'crystals').reduce((a, d) => a + (d.n | 0), 0);
-      const sumG = drops.filter(d => d.t === 'gold').reduce((a, d) => a + (d.n | 0), 0);
-      const items = drops.filter(d => d.t === 'item');
-      reveal.innerHTML = `<div class="drop-sum">
-          ${sumC ? `<span>${CRY} +${nf(sumC)}</span>` : ''}
-          ${sumG ? `<span>🪙 +${nf(sumG)}</span>` : ''}
-        </div>`
-        + items.map(d => {
-          const it = findCatalogItem(d.item_id);
-          return `<div class="reveal-item show">✨ <b>${esc(it?.name || d.item_id)}</b> freigeschaltet</div>`;
-        }).join('');
       phase = 'done';
       hintEl.textContent = '👆 Tippen zum Schließen';
       hintEl.hidden = false;

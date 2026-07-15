@@ -1922,7 +1922,11 @@
   @keyframes flyDown { to { transform: translateX(-50%) translateY(120px) scale(.35); opacity: 0; } }
   /* Sammel-Reihe unter der Truhe: alle bereits erhaltenen Belohnungen */
   .chest-collect { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
-    min-height: 32px; margin: 4px auto 2px; max-width: 360px; }
+    min-height: 32px; margin: 4px auto 2px; max-width: min(94vw, 440px);
+    flex-shrink: 0; }
+  /* Hinweis darf ebenfalls nicht zusammengedrueckt werden - stattdessen gibt
+     die (ohnehin oben ueberstehende) 3D-Buehne den Platz her. */
+  .chest-card .drop-hint { flex-shrink: 0; }
   .cchip {
     display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px;
     border-radius: 999px; background: rgba(20,12,40,.78);
@@ -2555,6 +2559,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=152"></script>
+<script type="module" src="./app.js?v=153"></script>
 </body>
 </html>
