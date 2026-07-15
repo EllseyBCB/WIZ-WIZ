@@ -1546,6 +1546,10 @@
     box-shadow: 0 4px 14px rgba(0,0,0,.4);
   }
   .token-pill b { color: #fff; }
+  /* Notizbuch-Icon (Artwork des Users statt 📝-Emoji), skaliert mit dem Text */
+  .note-ic { height: 1.35em; vertical-align: -0.3em; }
+  .slot-badge .note-ic { height: 1.15em; vertical-align: -0.14em; }
+  .pack-emoji .note-ic { height: 2.1rem; vertical-align: middle; }
   .token-pill .tp-sub { color: rgba(255,255,255,.55); font-size: .76rem; }
   .token-card { text-align: center; }
   .token-card .tok-dots { display: flex; justify-content: center; gap: 10px; margin: 4px 0 14px; }
@@ -2002,7 +2006,7 @@
       </div>
 
       <!-- Notizblöcke (nur sichtbar, wenn das Token-System aktiv ist) -->
-      <div class="token-pill" id="token-pill" hidden>📝 <b id="token-n">1</b> Notizblöcke <span class="tp-sub">· täglich neu</span></div>
+      <div class="token-pill" id="token-pill" hidden><img class="note-ic" src="lobby/ic-notizbuch.png?v=1" alt=""> <b id="token-n">1</b> Notizblöcke <span class="tp-sub">· täglich neu</span></div>
 
       <!-- Aktions-Karten -->
       <div class="home-actions">
@@ -2330,7 +2334,7 @@
     <p class="muted set-note">Nur in der App: erzwingt echte Google-Testanzeigen (garantiert sichtbar, gefahrlos anklickbar). Zum Prüfen, dass Werbung ankommt, solange dein AdMob-Konto noch keine echten Anzeigen ausliefert. Im Alltag ausschalten.</p>
     <p class="muted set-note" id="ads-status" style="word-break:break-word;color:#e9c873">Werbe-Status: –</p>
     <div class="set-row" id="tokentest-row" hidden>
-      <span class="set-label">📝 Notizblöcke auf 0 (Test)</span>
+      <span class="set-label"><img class="note-ic" src="lobby/ic-notizbuch.png?v=1" alt=""> Notizblöcke auf 0 (Test)</span>
       <button id="tokentest-btn" class="btn sekundaer small-btn" type="button">Leeren</button>
     </div>
 
@@ -2514,6 +2518,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=147"></script>
+<script type="module" src="./app.js?v=148"></script>
 </body>
 </html>

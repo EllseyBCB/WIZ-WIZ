@@ -7,7 +7,7 @@ import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=72';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
-         getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=3';
+         getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=4';
 import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=5';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
@@ -782,6 +782,9 @@ function sortItems(items, owned) {
 // per CSS-Klasse .cry an den jeweiligen Kontext angepasst.
 const CRY = '<img class="cry" src="lobby/ic-crystal.png?v=1" alt="Kristalle">';
 
+// Notizblock-Icon (Artwork des Users statt 📝-Emoji), Groesse per .note-ic.
+const NOTE = '<img class="note-ic" src="lobby/ic-notizbuch.png?v=1" alt="Notizblock">';
+
 // Shop-Kopf „Basar der Erzmagier": Banner-Artwork (Platzhalter-Gradient, bis
 // lobby/shop-hero.jpg vorliegt) + echte dynamische Guthaben-Pillen + „+" +
 // Kategorie-Navigation. Die Pillen zeigen das Server-Guthaben (nicht gefaked).
@@ -945,7 +948,7 @@ function tokenPane(owned) {
     else foot = `<span class="tile-price">${CRY} ${nf(t.cost)}</span>`
       + `<button class="tile-buy" data-cbuy="${esc(t.id)}" type="button">Kaufen</button>`;
     return `<div class="cat-tile${active ? ' is-active' : ''}" data-rar="${t.rarity}" style="--r:${r.color}">
-      <div class="slot-badge">📝×${t.slots}</div>
+      <div class="slot-badge">${NOTE}×${t.slots}</div>
       <div class="cat-name">${t.slots} pro Tag</div>
       <div class="cat-rarity">${r.label}</div>
       <div class="tile-foot">${foot}</div>
@@ -955,7 +958,7 @@ function tokenPane(owned) {
     const r = RARITY[p.rarity] || RARITY.common;
     return `<button class="pack-card${p.tag ? ' tagged' : ''}" data-tbuy="${esc(p.id)}" type="button" style="--r:${r.color}">
       ${p.tag ? `<span class="pack-tag">${esc(p.tag)}</span>` : ''}
-      <div class="pack-emoji">📝</div>
+      <div class="pack-emoji">${NOTE}</div>
       <div class="pack-amt">${p.qty}× Notizblock</div>
       <div class="pack-price">${CRY} ${nf(p.cost)}</div>
     </button>`;
@@ -1092,7 +1095,7 @@ function countUpCrystals(el, target) {
 //   Stufe 1 (<20): 1 offener Beutel      Stufe 2 (<50): 2 Beutel nebeneinander
 //   Stufe 3 (<90): Truhe, wenig Inhalt   Stufe 4 (<150): gut gefuellte Truhe
 //   Stufe 5 (ab 150): EPISCH - platzende Truhe + Legendaer-Animation
-const LOOT_IMG_V = 1;
+const LOOT_IMG_V = 2;   // v2 = echte OpenAI-Bilder statt Platzhalter
 function lootTier(n) { return n < 20 ? 1 : n < 50 ? 2 : n < 90 ? 3 : n < 150 ? 4 : 5; }
 function lootVisHtml(kind, n) {
   const t = lootTier(n);
