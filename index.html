@@ -1828,6 +1828,12 @@
   .loot-vis.t4 .loot-img { width: 148px; height: 148px; }
   .loot-vis.t5 { position: relative; }
   .loot-vis.t5 .loot-img { width: 182px; height: 182px; animation: epicPulse 1.5s ease-in-out infinite; }
+  /* Kristall-Stufenbilder (loot-kri-1..5): eigene Groessen je Stufe */
+  .loot-vis.kv .loot-img { width: 118px; height: 118px; }
+  .loot-vis.kv.k2 .loot-img, .loot-vis.kv.k3 .loot-img { width: 140px; height: 140px; }
+  .loot-vis.kv.k4 .loot-img { width: 158px; height: 158px; }
+  .loot-vis.kv.k5 { position: relative; }
+  .loot-vis.kv.k5 .loot-img { width: 185px; height: 185px; animation: epicPulse 1.5s ease-in-out infinite; }
   @keyframes epicPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
   /* Rotierender Strahlenkranz hinter dem epischen Fund */
   .loot-rays { position: absolute; left: 50%; top: 50%; width: 340px; height: 340px;
@@ -1945,7 +1951,8 @@
     .chest-anim.jump .chest-ground, .chest-anim.land .chest-ground,
     .chest-anim.charge .chest-big-img, .chest-anim.jump .chest-big-img,
     .chest-anim.land .chest-big-img, .chest-anim.open-frames .chest-frame-img,
-    .loot-burst, .chest-legend, .loot-rays, .loot-vis.t5 .loot-img { animation: none; }
+    .loot-burst, .chest-legend, .loot-rays,
+    .loot-vis.t5 .loot-img, .loot-vis.kv.k5 .loot-img { animation: none; }
     .chest-legend { opacity: 1; }
     .chest-anim.burst .chest-rays { opacity: .5; }
     .chest-beam.go { opacity: .3; transform: translateX(-50%) scaleY(1); }
@@ -2518,6 +2525,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=148"></script>
+<script type="module" src="./app.js?v=149"></script>
 </body>
 </html>
