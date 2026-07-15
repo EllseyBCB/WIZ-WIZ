@@ -1,25 +1,29 @@
 /*
  * Einbettbare 3D-Truhen-Szene fuer das Truhen-Oeffnen-Fenster (Zaubertisch).
- * Basiert auf dem Truhen-Repo des Users (ellseybcb/truhen): handgebautes
- * Three.js-Modell (chest-model.js) + dessen Effekt-Ideen (Lichtsaeule,
- * Funken-Burst, Muenzen mit Bounce-Physik, Kamera-Punch).
+ * Basiert auf dem Truhen-Repo des Users (ellseybcb/truhen).
  *
- * Gesteuert wird die Szene von aussen (app.js openChestModal):
- *   var api = WizChest3D.create(containerEl, 'holz');
- *   api.tapWobble()        – Squash&Stretch-Wackler (jeder Tipp)
- *   api.spin()             – volle 720-Grad-Drehung (Tipp-Drehen)
- *   api.setRarity('gold')  – Truhe umfaerben (Upgrade mitten in der Drehung)
- *   api.shake(ms)          – heftiges Wackeln (Spannung vor der Oeffnung)
- *   api.open()             – Deckel + Lichtsaeule + Burst; Promise nach ~1,6s
- *   api.dispose()          – Renderer/Loop aufraeumen (Fenster geschlossen)
- * Kein HUD, keine Sounds, keine Eingabe – das macht alles das Modal.
+ * ZWEI Modell-Wege:
+ *   1. KI-Modelle des Users (Meshy, als Base64-GLB in window.__CHESTS aus
+ *      3d/chest-<id>.js): echte Texturen, Deckel wird automatisch an der
+ *      Fugenhoehe abgeschnitten (Plane-Clipping) + dunkler Innenraum mit
+ *      Silber-Randlippe. Zuordnung: diamant -> 'blau' (Kristalltruhe),
+ *      silber -> 'silber' (Runentruhe).
+ *   2. Handgebautes Modell (chest-model.js) fuer Stufen ohne KI-Modell
+ *      (holz, gold) - wird je Seltenheit umgefaerbt.
+ *
+ * API (gesteuert vom Modal in app.js):
+ *   tapWobble / spin / setRarity / shake / open / isOpen / dispose
+ * Kein HUD, keine Sounds, keine Eingabe - das macht alles das Modal.
  */
 (function () {
   'use strict';
 
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Unsere Seltenheiten -> Stufen aus dem Truhen-Repo (Farben je Material).
+  // Welche Seltenheit nutzt welches KI-Modell aus window.__CHESTS?
+  var MODEL_BY_RARITY = { diamant: 'blau', silber: 'silber' };
+
+  // Farbstufen fuer das handgebaute Modell + Effektfarben fuer alle.
   var TIERS = {
     holz: {
       color: 0xffc94d,
@@ -51,18 +55,23 @@
   };
 
   function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
-  function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
   function easeOutBack(x) {
     var c1 = 1.55, c3 = c1 + 1;
     return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
   }
   function easeInOutCubic(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+  function decodeB64(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  }
 
   function create(container, rarityKey) {
     var renderer;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    } catch (e) { return null; }                 // kein WebGL -> Fallback (Bilder)
+    } catch (e) { return null; }                 // kein WebGL -> Bild-Fallback
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
@@ -111,7 +120,6 @@
     var innerLight = new THREE.PointLight(0xffc24d, 0, 7, 2);
     scene.add(innerLight);
 
-    // Schattenfaenger (transparent – der epische CSS-Hintergrund bleibt sichtbar)
     var shadowCatcher = new THREE.Mesh(
       new THREE.PlaneGeometry(12, 12),
       new THREE.ShadowMaterial({ opacity: 0.38 })
@@ -121,7 +129,6 @@
     shadowCatcher.receiveShadow = true;
     scene.add(shadowCatcher);
 
-    // Hilfs-Texturen
     function makeCanvas(size, draw) {
       var c = document.createElement('canvas');
       c.width = c.height = size;
@@ -147,35 +154,276 @@
       g.fillRect(0, 0, s, s);
     });
 
-    // Truhe (handgebautes Modell aus dem Truhen-Repo)
+    // ---------- Truhen-Modelle ----------
     var chest = new THREE.Group();
     scene.add(chest);
-    var built = buildChest(THREE);
-    var lidGroup = built.lid;
-    var matByName = built.materials;
-    var model = built.root;
     var W = 2.3;
-    var box = new THREE.Box3().setFromObject(model);
-    var size = box.getSize(new THREE.Vector3());
-    model.scale.setScalar(W / size.x);
-    box = new THREE.Box3().setFromObject(model);
-    model.position.y = -box.min.y;
-    model.position.x = -(box.min.x + box.max.x) / 2;
-    model.position.z = -(box.min.z + box.max.z) / 2;
-    var H = box.max.y - box.min.y;
-    model.traverse(function (o) {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.frustumCulled = false;
-        var mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach(function (m) { m.envMapIntensity = 0.45; });
-      }
-    });
-    chest.add(model);
-    innerLight.position.set(0, H * 0.9, 0);
-    LOOK_AT.y = H * 0.52;
+    var H = 1.5;
+    var currentModel = null, lidGroup = null, lidRestX = 0;
+    var tintModel = true, matByName = {};
+    var LID_OPEN = -1.92;
+    var modelReady = false;
+    var currentRarity = rarityKey;
 
-    // Lichtsaeule
+    function finishModel(model, lidOpen, texB64) {
+      var box = new THREE.Box3().setFromObject(model);
+      var size = box.getSize(new THREE.Vector3());
+      model.scale.setScalar(W / size.x);
+      box = new THREE.Box3().setFromObject(model);
+      model.position.y = -box.min.y;
+      model.position.x = -(box.min.x + box.max.x) / 2;
+      model.position.z = -(box.min.z + box.max.z) / 2;
+      H = box.max.y - box.min.y;
+
+      // Farbtextur der KI-Modelle als Daten-URI (blob:-URLs sind in der
+      // iOS-App per CSP blockiert -> Modell bliebe sonst weiss).
+      var colorMap = null;
+      if (!tintModel && texB64) {
+        colorMap = new THREE.TextureLoader().load('data:image/jpeg;base64,' + texB64);
+        colorMap.flipY = false;
+        colorMap.encoding = THREE.sRGBEncoding;
+        colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
+      }
+
+      model.traverse(function (obj) {
+        if (obj.isMesh) {
+          obj.castShadow = true;
+          obj.frustumCulled = false;
+          var mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach(function (m) {
+            if (m.userData && m.userData.frame) return;
+            if (tintModel) {
+              m.envMapIntensity = 0.45;
+            } else {
+              m.envMapIntensity = 0.18;
+              if (m.metalness == null || m.metalness > 0.5) m.metalness = 0.5;
+              if (m.roughness == null || m.roughness < 0.5) m.roughness = 0.55;
+              if (colorMap) {
+                m.map = colorMap;
+                m.color.setHex(0xffffff);
+                m.needsUpdate = true;
+              }
+            }
+          });
+        }
+      });
+
+      chest.add(model);
+      currentModel = model;
+      LID_OPEN = lidOpen;
+      innerLight.position.set(0, H * 0.9, 0);
+      shaft.position.y = H + 3.1;
+      LOOK_AT.y = H * 0.52;
+      modelReady = true;
+      if (tintModel) applyTint(currentRarity);
+    }
+
+    function useBuiltModel() {
+      var built = buildChest(THREE);
+      lidGroup = built.lid;
+      lidRestX = 0;
+      tintModel = true;
+      matByName = built.materials;
+      finishModel(built.root, -1.92, null);
+    }
+
+    // Zerlegt ein Mesh an der Ebene y=seamY in Unter-/Oberteil (echtes
+    // Plane-Clipping mit Attribut-Interpolation -> glatte Schnittkante).
+    function splitMeshAtY(mesh, seamY) {
+      var geo = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
+      geo.applyMatrix4(mesh.matrixWorld);
+      var attrs = Object.keys(geo.attributes);
+      var lower = {}, upper = {};
+      attrs.forEach(function (a) { lower[a] = []; upper[a] = []; });
+
+      function vert(i) {
+        var v = {};
+        attrs.forEach(function (a) {
+          var attr = geo.attributes[a], sz = attr.itemSize, arr = [];
+          for (var k = 0; k < sz; k++) arr.push(attr.array[i * sz + k]);
+          v[a] = arr;
+        });
+        return v;
+      }
+      function y(v) { return v.position[1]; }
+      function lerpV(a, b, t) {
+        var v = {};
+        attrs.forEach(function (name) {
+          var out = [], A = a[name], B = b[name];
+          for (var k = 0; k < A.length; k++) out.push(A[k] + (B[k] - A[k]) * t);
+          v[name] = out;
+        });
+        return v;
+      }
+      function clip(a, b) { return lerpV(a, b, (seamY - y(a)) / (y(b) - y(a))); }
+      function push(dst, v) { attrs.forEach(function (n) { for (var k = 0; k < v[n].length; k++) dst[n].push(v[n][k]); }); }
+      function tri(dst, a, b, c) { push(dst, a); push(dst, b); push(dst, c); }
+
+      var pos = geo.attributes.position;
+      for (var i = 0; i < pos.count; i += 3) {
+        var v0 = vert(i), v1 = vert(i + 1), v2 = vert(i + 2);
+        var above = [], below = [];
+        [v0, v1, v2].forEach(function (v) { (y(v) >= seamY ? above : below).push(v); });
+        if (below.length === 3) { tri(lower, v0, v1, v2); continue; }
+        if (above.length === 3) { tri(upper, v0, v1, v2); continue; }
+        if (above.length === 1) {
+          var A = above[0], B = below[0], C = below[1];
+          var P = clip(A, B), Q = clip(A, C);
+          tri(upper, A, P, Q);
+          tri(lower, P, B, C); tri(lower, P, C, Q);
+        } else {
+          var A2 = above[0], B2 = above[1], C2 = below[0];
+          var P2 = clip(A2, C2), Q2 = clip(B2, C2);
+          tri(lower, C2, P2, Q2);
+          tri(upper, A2, B2, Q2); tri(upper, A2, Q2, P2);
+        }
+      }
+
+      function build(data) {
+        if (!data.position.length) return null;
+        var g = new THREE.BufferGeometry();
+        attrs.forEach(function (a) {
+          g.setAttribute(a, new THREE.Float32BufferAttribute(data[a], geo.attributes[a].itemSize));
+        });
+        return g;
+      }
+      return { lower: build(lower), upper: build(upper) };
+    }
+
+    // Dunkler Innenraum + Silber-Randlippe, damit die aufgeschnittene Truhe
+    // wie ein echter Behaelter wirkt (aus dem Truhen-Repo uebernommen).
+    function buildChestInterior(meshes, box, seamY, backZ, body, lid) {
+      var modelH = box.max.y - box.min.y;
+      var d = modelH * 0.04;
+      var oxMin = Infinity, oxMax = -Infinity, ozMin = Infinity, ozMax = -Infinity, n = 0;
+      meshes.forEach(function (m) {
+        var g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+        g.applyMatrix4(m.matrixWorld);
+        var pos = g.attributes.position;
+        for (var i = 0; i < pos.count; i++) {
+          var yy = pos.getY(i);
+          if (yy < seamY - d || yy > seamY + d) continue;
+          var xx = pos.getX(i), zz = pos.getZ(i);
+          if (xx < oxMin) oxMin = xx; if (xx > oxMax) oxMax = xx;
+          if (zz < ozMin) ozMin = zz; if (zz > ozMax) ozMax = zz;
+          n++;
+        }
+      });
+      if (n < 20) { oxMin = box.min.x; oxMax = box.max.x; ozMin = box.min.z; ozMax = box.max.z; }
+      var oin = Math.min(oxMax - oxMin, ozMax - ozMin) * 0.10;
+      oxMin += oin; oxMax -= oin; ozMin += oin; ozMax -= oin;
+
+      var spanX = oxMax - oxMin, spanZ = ozMax - ozMin;
+      var cx = (oxMin + oxMax) / 2, cz = (ozMin + ozMax) / 2;
+
+      var silver = new THREE.MeshStandardMaterial({ color: 0xc4d3e6, metalness: 0.6, roughness: 0.4 });
+      silver.envMapIntensity = 0.2;
+      silver.userData.frame = true;
+      var dark = new THREE.MeshStandardMaterial({ color: 0x0a1524, metalness: 0.1, roughness: 1 });
+      dark.userData.frame = true;
+
+      var rimW = Math.min(spanX, spanZ) * 0.11;
+      var rimH = modelH * 0.022;
+      var inX0 = oxMin + rimW, inX1 = oxMax - rimW;
+      var inZ0 = ozMin + rimW, inZ1 = ozMax - rimW;
+      var inSpanX = inX1 - inX0, inSpanZ = inZ1 - inZ0;
+
+      function bar(w, h, dd, x, y, z, mat, group) {
+        var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dd), mat);
+        m.position.set(x, y, z);
+        m.castShadow = true; m.receiveShadow = true;
+        group.add(m);
+      }
+      function rimFrame(group, yC, zOff) {
+        bar(spanX, rimH, rimW, cx, yC, ozMin + rimW / 2 + zOff, silver, group);
+        bar(spanX, rimH, rimW, cx, yC, ozMax - rimW / 2 + zOff, silver, group);
+        bar(rimW, rimH, spanZ - 2 * rimW, oxMin + rimW / 2, yC, cz + zOff, silver, group);
+        bar(rimW, rimH, spanZ - 2 * rimW, oxMax - rimW / 2, yC, cz + zOff, silver, group);
+      }
+      rimFrame(body, seamY - rimH / 2, 0);
+
+      var wallT = rimW * 0.5;
+      var cavDepth = modelH * 0.32;
+      var floorY = seamY - cavDepth;
+      var wallCY = seamY - cavDepth / 2;
+      bar(inSpanX, cavDepth, wallT, cx, wallCY, inZ0 + wallT / 2, dark, body);
+      bar(inSpanX, cavDepth, wallT, cx, wallCY, inZ1 - wallT / 2, dark, body);
+      bar(wallT, cavDepth, inSpanZ, inX0 + wallT / 2, wallCY, cz, dark, body);
+      bar(wallT, cavDepth, inSpanZ, inX1 - wallT / 2, wallCY, cz, dark, body);
+      bar(inSpanX, modelH * 0.03, inSpanZ, cx, floorY, cz, dark, body);
+
+      bar(inSpanX, modelH * 0.03, inSpanZ, cx, modelH * 0.02, cz - backZ, dark, lid);
+      rimFrame(lid, rimH / 2, -backZ);
+    }
+
+    // KI-Modell (GLB) laden: benannter Deckel ODER Auto-Schnitt an der Fuge.
+    function useGlbModel(cfg) {
+      new THREE.GLTFLoader().parse(decodeB64(cfg.glb), '', function (gltf) {
+        var src = gltf.scene;
+        tintModel = false;
+        matByName = {};
+        var lidOpen = cfg.lidOpen != null ? cfg.lidOpen : -0.75;
+
+        var named = null;
+        src.traverse(function (o) {
+          if (!named && /(^|[_ -])(lid|top|deckel)([_ -]|$)/i.test(o.name || '')) named = o;
+        });
+        if (named) {
+          lidGroup = named;
+          lidRestX = named.rotation.x;
+          finishModel(src, lidOpen, cfg.tex);
+          return;
+        }
+
+        src.rotation.y = cfg.yaw != null ? cfg.yaw : Math.PI / 2;
+        src.updateMatrixWorld(true);
+        var box = new THREE.Box3().setFromObject(src);
+        var seam = cfg.seam != null ? cfg.seam : 0.62;
+        var seamY = box.min.y + (box.max.y - box.min.y) * seam;
+        var backZ = box.min.z + (box.max.z - box.min.z) * 0.02;
+
+        var meshes = [];
+        src.traverse(function (o) { if (o.isMesh) meshes.push(o); });
+
+        var model = new THREE.Group();
+        var body = new THREE.Group();
+        var lid = new THREE.Group();
+        lid.position.set(0, seamY, backZ);
+        model.add(body);
+        model.add(lid);
+
+        meshes.forEach(function (m) {
+          var mats = Array.isArray(m.material) ? m.material : [m.material];
+          mats.forEach(function (mm) { mm.side = THREE.DoubleSide; });
+          var parts = splitMeshAtY(m, seamY);
+          if (parts.lower) body.add(new THREE.Mesh(parts.lower, m.material));
+          if (parts.upper) {
+            parts.upper.translate(0, -seamY, -backZ);
+            lid.add(new THREE.Mesh(parts.upper, m.material));
+          }
+        });
+
+        buildChestInterior(meshes, box, seamY, backZ, body, lid);
+        lidGroup = lid;
+        lidRestX = 0;
+        finishModel(model, lidOpen, cfg.tex);
+      }, function () {
+        useBuiltModel();   // GLB kaputt -> handgebaute Truhe
+      });
+    }
+
+    // Modell fuer eine Seltenheit laden (KI-Modell falls registriert).
+    function loadModelFor(r) {
+      if (currentModel) { chest.remove(currentModel); currentModel = null; }
+      modelReady = false;
+      lidGroup = null;
+      var id = MODEL_BY_RARITY[r];
+      var cfg = id && window.__CHESTS && window.__CHESTS[id];
+      if (cfg && window.THREE && THREE.GLTFLoader) useGlbModel(cfg);
+      else useBuiltModel();
+    }
+
+    // ---------- Lichtsaeule / Funken / Muenzen ----------
     var shaft = new THREE.Mesh(
       new THREE.CylinderGeometry(1.7, 0.45, 7.0, 24, 1, true),
       new THREE.MeshBasicMaterial({
@@ -186,7 +434,6 @@
     shaft.position.y = H + 3.1;
     scene.add(shaft);
 
-    // Funken
     var SPARKS = reducedMotion ? 50 : 150;
     var sparkPos = new Float32Array(SPARKS * 3);
     var sparkVel = new Float32Array(SPARKS * 3);
@@ -202,7 +449,6 @@
     sparks.visible = false;
     scene.add(sparks);
 
-    // Muenzen
     var COINS = reducedMotion ? 6 : 15;
     var coinGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.035, 18);
     var coinMat = new THREE.MeshStandardMaterial({ roughness: 0.34, metalness: 0.85 });
@@ -218,28 +464,35 @@
 
     function srgb(target, hex) { target.setHex(hex).convertSRGBToLinear(); return target; }
 
-    var tier = TIERS.holz;
-    function setRarity(keyName) {
-      tier = TIERS[keyName] || TIERS.holz;
-      Object.keys(tier.mats).forEach(function (name) {
+    var tier = TIERS[rarityKey] || TIERS.holz;
+    function applyTint(r) {
+      var t = TIERS[r] || TIERS.holz;
+      Object.keys(t.mats).forEach(function (name) {
         var m = matByName[name];
         if (!m) return;
-        var def = tier.mats[name];
+        var def = t.mats[name];
         srgb(m.color, def.color);
         srgb(m.emissive, def.emissive || 0x000000);
         m.emissiveIntensity = def.intensity || 0;
         if (def.roughness != null) m.roughness = def.roughness;
       });
+    }
+    function setRarity(r) {
+      var oldId = MODEL_BY_RARITY[currentRarity] || null;
+      var newId = MODEL_BY_RARITY[r] || null;
+      currentRarity = r;
+      tier = TIERS[r] || TIERS.holz;
       srgb(shaft.material.color, tier.color);
       innerLight.color.setHex(tier.color);
+      if (newId !== oldId || !currentModel) loadModelFor(r);
+      else if (tintModel) applyTint(r);
     }
-    setRarity(rarityKey);
 
     // ---------- Ablauf-Zustand ----------
     var tapAnim = 0;
-    var spinT = -1;            // 0..1 waehrend der 720-Grad-Drehung
-    var shakeT = 0;            // Restzeit heftiges Wackeln (Sekunden)
-    var openT = -1;            // Sekunden seit Oeffnungsbeginn (-1 = zu)
+    var spinT = -1;
+    var shakeT = 0;
+    var openT = -1;
     var opened = false;
     var burstDone = false;
     var camShake = 0;
@@ -279,8 +532,7 @@
       camShake = reducedMotion ? 0 : 1;
     }
 
-    var LID_OPEN = -1.92;
-    function setLid(eased) { if (lidGroup) lidGroup.rotation.x = LID_OPEN * eased; }
+    function setLid(eased) { if (lidGroup) lidGroup.rotation.x = lidRestX + LID_OPEN * eased; }
 
     var clock = new THREE.Clock();
     function animate() {
@@ -289,16 +541,14 @@
       var dt = Math.min(clock.getDelta(), 0.05);
       var t = clock.elapsedTime;
 
-      // Idle-Wippen + glimmender Rahmen
       var bob = (openT < 0) ? Math.sin(t * 1.8) * 0.015 : 0;
       chest.position.y = bob;
-      if (matByName.DarkMetal) {
+      if (tintModel && matByName.DarkMetal) {
         var pulse = (openT < 0) ? 0.1 + Math.sin(t * 2.4) * 0.07 : 0.04;
         matByName.DarkMetal.emissive.copy(matByName.DarkMetal.color);
         matByName.DarkMetal.emissiveIntensity = pulse;
       }
 
-      // Tipp-Wackler (Squash & Stretch)
       if (tapAnim > 0) {
         tapAnim = Math.max(0, tapAnim - dt * 2.4);
         var w = reducedMotion ? tapAnim * 0.3 : tapAnim;
@@ -310,14 +560,12 @@
         chest.scale.set(1, 1, 1);
       }
 
-      // 720-Grad-Drehung (Tipp-Drehen)
       if (spinT >= 0) {
         spinT += dt / 0.82;
         if (spinT >= 1) { spinT = -1; chest.rotation.y = 0; }
         else chest.rotation.y = easeInOutCubic(spinT) * Math.PI * 4;
       }
 
-      // Heftiges Wackeln (Spannung vor der Oeffnung)
       if (shakeT > 0) {
         shakeT = Math.max(0, shakeT - dt);
         chest.rotation.z = Math.sin(t * 46) * 0.1;
@@ -325,10 +573,9 @@
         if (shakeT === 0) chest.rotation.z = 0;
       }
 
-      // Oeffnung
       if (openT >= 0 && !opened) {
         openT += dt;
-        if (openT < 0.22) {           // Anticipation: kurz zusammenstauchen
+        if (openT < 0.22) {
           var p = Math.sin((openT / 0.22) * Math.PI);
           chest.scale.set(1 + 0.12 * p, 1 - 0.2 * p, 1 + 0.12 * p);
         } else {
@@ -345,12 +592,11 @@
           if (openResolve) { openResolve(); openResolve = null; }
         }
       }
-      if (opened) {                    // Truhe bleibt offen und leuchtet
+      if (opened) {
         shaft.material.opacity = 0.32 + Math.sin(t * 2.2) * 0.05;
         innerLight.intensity = 4.6 + Math.sin(t * 5) * 0.6;
       }
 
-      // Funken
       if (sparks.visible) {
         sparkAge += dt;
         for (var i = 0; i < SPARKS; i++) {
@@ -364,7 +610,6 @@
         if (sparkAge > 1.3) sparks.visible = false;
       }
 
-      // Muenz-Physik
       coins.forEach(function (c) {
         if (!c.mesh.visible) return;
         c.vel.y -= 8.5 * dt;
@@ -381,7 +626,6 @@
         }
       });
 
-      // Kamera: sanfte Drift + Punch beim Oeffnen
       var drift = reducedMotion ? 0 : 1;
       camera.position.x = CAM_BASE.x + Math.sin(t * 0.3) * 0.22 * drift;
       camera.position.y = CAM_BASE.y + Math.sin(t * 0.4) * 0.08 * drift;
@@ -395,7 +639,18 @@
 
       renderer.render(scene, camera);
     }
+
+    loadModelFor(rarityKey);
     animate();
+
+    function whenReady() {
+      return new Promise(function (res) {
+        (function poll() {
+          if (modelReady || disposed) res();
+          else setTimeout(poll, 60);
+        })();
+      });
+    }
 
     return {
       tapWobble: function () { tapAnim = 1; },
@@ -403,14 +658,16 @@
       setRarity: setRarity,
       shake: function (ms) { shakeT = (ms || 500) / 1000; },
       open: function () {
-        return new Promise(function (resolve) {
-          if (openT >= 0) { resolve(); return; }
-          openResolve = resolve;
-          openT = 0;
-          if (reducedMotion) {         // sofort offen, ohne Drama
-            setLid(1);
-            openT = 1.7;
-          }
+        return whenReady().then(function () {
+          return new Promise(function (resolve) {
+            if (openT >= 0) { resolve(); return; }
+            openResolve = resolve;
+            openT = 0;
+            if (reducedMotion) {
+              setLid(1);
+              openT = 1.7;
+            }
+          });
         });
       },
       isOpen: function () { return opened; },
