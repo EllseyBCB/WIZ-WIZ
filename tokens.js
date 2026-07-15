@@ -135,7 +135,8 @@ function openTokenModal(onProceed, opts = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'modal';
   wrap.id = 'token-modal';
-  const head = grantOnly ? '📝 Notizblock verdienen' : '📝 Keine Notizblöcke mehr';
+  const NOTE = '<img class="note-ic" src="lobby/ic-notizbuch.png?v=1" alt="">';
+  const head = grantOnly ? NOTE + ' Notizblock verdienen' : NOTE + ' Keine Notizblöcke mehr';
   wrap.innerHTML = `
     <div class="modal-card token-card">
       <button class="modal-x" type="button" aria-label="Schließen">✕</button>
