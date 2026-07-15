@@ -1660,7 +1660,7 @@
     display: flex; align-items: center; justify-content: center; perspective: 700px; }
   /* Echte 3D-Truhe (Three.js): groessere Buehne, Canvas fuellt sie komplett */
   .chest-stage { --fly-y: -118px; }
-  .chest-stage.three { width: min(88vw, 430px); height: min(46vh, 420px); --fly-y: max(-38vh, -400px); }
+  .chest-stage.three { width: 100vw; height: min(62vh, 580px); --fly-y: max(-24vh, -280px); }
   .chest-3d { position: absolute; inset: 0; z-index: 2; }
   .chest-3d canvas { width: 100% !important; height: 100% !important; display: block; }
   .chest-big-img { display: inline-block; width: auto; height: 250px; object-fit: contain;
@@ -2460,6 +2460,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=143"></script>
+<script type="module" src="./app.js?v=144"></script>
 </body>
 </html>

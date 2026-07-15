@@ -86,7 +86,7 @@
 
     var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 60);
     var CAM_BASE = new THREE.Vector3(0, 2.7, 6.9);
-    var LOOK_AT = new THREE.Vector3(0, 1.05, 0);
+    var LOOK_AT = new THREE.Vector3(0, 2.3, 0);
 
     function fit() {
       var w = container.clientWidth || 300, h = container.clientHeight || 300;
@@ -214,7 +214,9 @@
       LID_OPEN = lidOpen;
       innerLight.position.set(0, H * 0.9, 0);
       shaft.position.y = H + 4.2;
-      LOOK_AT.y = H * 0.52;
+      shaft2.position.y = H + 2.4;
+      mouthGlow.position.set(0, H + 0.3, 0);
+      LOOK_AT.y = H * 0.52 + 1.25;   // Blick hoeher -> Truhe sitzt unten im Bild
       modelReady = true;
       if (tintModel) applyTint(currentRarity);
     }
@@ -426,7 +428,7 @@
 
     // ---------- Lichtsaeule / Funken / Muenzen ----------
     var shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.9, 0.45, 9.5, 24, 1, true),
+      new THREE.CylinderGeometry(2.9, 0.5, 9.5, 24, 1, true),
       new THREE.MeshBasicMaterial({
         color: 0xffd97a, transparent: true, opacity: 0, alphaMap: shaftAlpha,
         blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
@@ -434,6 +436,24 @@
     );
     shaft.position.y = H + 4.2;
     scene.add(shaft);
+    // Breiter, schwacher Streukegel: Licht faellt auch seitlich aus der Truhe
+    var shaft2 = new THREE.Mesh(
+      new THREE.CylinderGeometry(4.6, 0.8, 6.2, 24, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0xffd97a, transparent: true, opacity: 0, alphaMap: shaftAlpha,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+      })
+    );
+    shaft2.position.y = H + 2.4;
+    scene.add(shaft2);
+    // Runder Lichtschein direkt an der Oeffnung (leuchtet in alle Richtungen)
+    var mouthGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex, color: 0xffd97a, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    mouthGlow.scale.set(5.2, 3.6, 1);
+    mouthGlow.position.set(0, H + 0.3, 0);
+    scene.add(mouthGlow);
 
     var SPARKS = reducedMotion ? 50 : 150;
     var sparkPos = new Float32Array(SPARKS * 3);
@@ -484,6 +504,8 @@
       currentRarity = r;
       tier = TIERS[r] || TIERS.holz;
       srgb(shaft.material.color, tier.color);
+      srgb(shaft2.material.color, tier.color);
+      srgb(mouthGlow.material.color, tier.color);
       innerLight.color.setHex(tier.color);
       if (newId !== oldId || !currentModel) loadModelFor(r);
       else if (tintModel) applyTint(r);
@@ -585,8 +607,11 @@
         var q = clamp01((openT - 0.18) / 0.55);
         setLid(easeOutBack(q));
         innerLight.intensity = q * 3.8;
-        shaft.material.opacity = q * 0.24;
+        shaft.material.opacity = q * 0.22;
         shaft.scale.set(1, 0.2 + q * 0.8, 1);
+        shaft2.material.opacity = q * 0.10;
+        shaft2.scale.set(1, 0.2 + q * 0.8, 1);
+        mouthGlow.material.opacity = q * 0.7;
         if (!burstDone && openT >= 0.3) { burstDone = true; spawnBurst(); }
         if (openT > 1.6) {
           opened = true;
@@ -594,7 +619,9 @@
         }
       }
       if (opened) {
-        shaft.material.opacity = 0.32 + Math.sin(t * 2.2) * 0.05;
+        shaft.material.opacity = 0.28 + Math.sin(t * 2.2) * 0.05;
+        shaft2.material.opacity = 0.12 + Math.sin(t * 1.7) * 0.03;
+        mouthGlow.material.opacity = 0.62 + Math.sin(t * 3.1) * 0.12;
         innerLight.intensity = 4.6 + Math.sin(t * 5) * 0.6;
       }
 
