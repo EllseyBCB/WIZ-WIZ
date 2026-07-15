@@ -1125,6 +1125,30 @@ const wait = (ms) => new Promise(res => setTimeout(res, ms));
 const CHEST_FRAME = (r, n) => `lobby/chest-anim-${r}-${n}.png?v=1`;
 const RARITY_CHAIN = ['holz', 'silber', 'gold', 'diamant'];
 
+// Echte 3D-Truhe (Three.js, aus dem Truhen-Repo des Users). Wird erst beim
+// ersten Truhen-Oeffnen nachgeladen (~600 KB), danach gecacht. Schlaegt das
+// Laden fehl oder gibt es kein WebGL, laeuft der Bild-Frame-Fallback.
+let chest3dLoad = null;
+function loadChest3D() {
+  if (chest3dLoad) return chest3dLoad;
+  const add = (src) => new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  chest3dLoad = (async () => {
+    await add('3d/three.min.js?v=1');
+    await Promise.all([
+      add('3d/RoomEnvironment.js?v=1'),
+      add('3d/RoundedBoxGeometry.js?v=1'),
+      add('3d/chest-model.js?v=1'),
+    ]);
+    await add('3d/chest-scene.js?v=1');
+    return !!window.WizChest3D;
+  })().catch(() => { chest3dLoad = null; return false; });
+  return chest3dLoad;
+}
+
 async function openChestModal(chest) {
   let rarity = chest.rarity;
   const metaOf = (r) => CHEST_META[r] || {};
@@ -1140,6 +1164,7 @@ async function openChestModal(chest) {
           <div class="chest-flash" aria-hidden="true"></div>
           <div class="chest-shockwave" aria-hidden="true"></div>
           <div class="chest-ground" aria-hidden="true"></div>
+          <div class="chest-3d" id="chest-3d" hidden></div>
           <img class="chest-big-img" id="chest-anim-img" src="${CHEST_FRAME(rarity, 1)}" alt="">
           <div class="chest-sheen" aria-hidden="true"></div>
         </div>
@@ -1167,8 +1192,24 @@ async function openChestModal(chest) {
   const reveal = wrap.querySelector('#chest-reveal');
   const dotsEl = wrap.querySelector('#chest-dots');
   const hintEl = wrap.querySelector('#chest-hint');
-  const done = () => wrap.remove();
+  let three = null;   // 3D-Szene (null = Bild-Frame-Fallback)
+  const done = () => { try { three?.dispose(); } catch (_) {} wrap.remove(); };
   closeBtn.onclick = done;
+
+  // Echte 3D-Truhe laden und einwechseln (asynchron; bis dahin Bild-Frames).
+  if (!REDUCED_MOTION) {
+    loadChest3D().then(ok => {
+      if (!ok || !document.body.contains(wrap) || three) return;
+      const holder = wrap.querySelector('#chest-3d');
+      try { three = window.WizChest3D.create(holder, rarity); } catch (_) { three = null; }
+      if (three) {
+        holder.hidden = false;
+        animImg.hidden = true;
+        wrap.querySelector('.chest-ground').hidden = true;   // 3D hat echten Schatten
+        stage.classList.add('three');
+      }
+    }).catch(() => {});
+  }
 
   // Frames vorladen: aktuelle Sorte komplett + Frame 1 aller besseren Sorten
   // (fuer den Upgrade-Wechsel mitten in der Drehung).
@@ -1185,6 +1226,7 @@ async function openChestModal(chest) {
     rarity = r;
     card.style.setProperty('--r', metaOf(r).color || '#888');
     titleEl.textContent = metaOf(r).label || 'Truhe';
+    try { three?.setRarity(r); } catch (_) {}
   };
 
   const updateDots = () => {
@@ -1196,9 +1238,10 @@ async function openChestModal(chest) {
   const doSpin = async () => {
     busy = true;
     spins++;
-    anim.classList.remove('spin'); void animImg.offsetWidth; anim.classList.add('spin');
+    if (three) { three.spin(); }
+    else { anim.classList.remove('spin'); void animImg.offsetWidth; anim.classList.add('spin'); }
     sfxChestRumble(); haptic?.(15);
-    spawnChestParticles(stage, 4);
+    if (!three) spawnChestParticles(stage, 4);
     let up = null;
     try {
       if (!m) { m = await db(); await m.ensureAuth(); }
@@ -1211,7 +1254,7 @@ async function openChestModal(chest) {
       // Upgrade! Mitten in der Drehung Blitz + bessere Truhe einwechseln.
       whiteflash.classList.remove('go'); void whiteflash.offsetWidth; whiteflash.classList.add('go');
       applyRarity(up.rarity);
-      animImg.src = CHEST_FRAME(rarity, Math.min(1 + spins, 3));
+      if (!three) animImg.src = CHEST_FRAME(rarity, Math.min(1 + spins, 3));
       for (let n = 1; n <= 8; n++) { const i = new Image(); i.src = CHEST_FRAME(rarity, n); }
       upcap.textContent = `✨ Zu ${metaOf(rarity).label || 'besserer Truhe'} verbessert!`;
       upcap.hidden = false;
@@ -1219,8 +1262,8 @@ async function openChestModal(chest) {
       sfxItemReveal(); confetti(1600); haptic?.([30, 40, 80]);
     } else {
       if (up?.ok && up.rarity) applyRarity(up.rarity);
-      // Glow waechst mit jeder Drehung (Frame 2, dann 3).
-      animImg.src = CHEST_FRAME(rarity, Math.min(1 + spins, 3));
+      // Glow waechst mit jeder Drehung (Frame 2, dann 3 – nur Bild-Fallback).
+      if (!three) animImg.src = CHEST_FRAME(rarity, Math.min(1 + spins, 3));
     }
     if (!REDUCED_MOTION) await wait(430);   // Drehung zu Ende
     anim.classList.remove('spin');
@@ -1236,7 +1279,11 @@ async function openChestModal(chest) {
       catch (_) { toast('Nur online möglich.', 'err'); done(); return; }
     }
     const rp = m.openChest(chest.id).catch(() => ({ ok: false, rewards: [] }));
-    if (!REDUCED_MOTION) {
+    if (three) {
+      // 3D: Truhe wackelt heftig, waehrend der Server wuerfelt.
+      three.shake(600); sfxChestRumble();
+      if (!REDUCED_MOTION) await wait(600);
+    } else if (!REDUCED_MOTION) {
       anim.classList.add('shake2');
       sfxChestRumble();
       await wait(500);
@@ -1259,14 +1306,20 @@ async function openChestModal(chest) {
     whiteflash.classList.remove('go'); void whiteflash.offsetWidth; whiteflash.classList.add('go');
     sfxChestOpen();
     haptic?.([30, 40, 30, 40, 120]);
-    anim.classList.add('open-frames');
-    if (!REDUCED_MOTION) {
-      for (const f of [4, 5]) { animImg.src = CHEST_FRAME(rarity, f); await wait(130); }
+    if (three) {
+      // Echtes 3D-Oeffnen: Anticipation, Deckel mit Overshoot, Lichtsaeule,
+      // Funken-Burst, Muenzen mit Bounce-Physik, Kamera-Punch (~1,6s).
+      await three.open();
+    } else {
+      anim.classList.add('open-frames');
+      if (!REDUCED_MOTION) {
+        for (const f of [4, 5]) { animImg.src = CHEST_FRAME(rarity, f); await wait(130); }
+      }
+      animImg.src = CHEST_FRAME(rarity, 8);   // offene, ruhige Truhe
+      anim.classList.add('burst');
+      beam.classList.add('go');
     }
-    animImg.src = CHEST_FRAME(rarity, 8);   // offene, ruhige Truhe
-    anim.classList.add('burst');
-    beam.classList.add('go');
-    spawnChestParticles(stage, rarity === 'diamant' ? 26 : rarity === 'gold' ? 20 : 14);
+    if (!three) spawnChestParticles(stage, rarity === 'diamant' ? 26 : rarity === 'gold' ? 20 : 14);
     confetti(rarity === 'diamant' ? 3600 : 2200);
     walletCache.crystals = r.new_crystals ?? walletCache.crystals;
     walletCache.gold = r.new_gold ?? walletCache.gold;
