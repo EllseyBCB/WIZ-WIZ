@@ -897,18 +897,20 @@ function shopCatalogTile(it, owned) {
   //  - kaufbar: Preis-Button; im Besitz: grüner Hinweis (+ ggf. Auswählen); aktiv: ✓ Aktiv.
   let state = '', btn = '';
   const equip = EQUIP_ATTR[it.kind];
+  // Preis ist IMMER sichtbar - auch bei Besitz (kleiner, gedaempft).
+  const price = `<span class="tile-price${has ? ' mini' : ''}">${cur} ${nf(it.cost)}</span>`;
   if (!has) {
     // Wie im Design-Mockup: Preiszeile (Kristall-Icon + Betrag) UEBER dem Knopf.
-    state = `<span class="tile-price">${cur} ${nf(it.cost)}</span>`;
+    state = price;
     btn = `<button class="tile-buy" data-cbuy="${esc(it.id)}" type="button">Kaufen</button>`;
   } else if (active) {
-    state = `<span class="tile-state active">✓ Aktiv</span>`;
+    state = `${price}<span class="tile-state active">✓ Aktiv</span>`;
   } else if (equip) {
     // Im Besitz, aber nicht aktiv: Besitz-Hinweis + Auswählen-Knopf.
-    state = `<span class="tile-state owned">✓ Im Besitz</span>`;
+    state = `${price}<span class="tile-state owned">✓ Im Besitz</span>`;
     btn = `<button class="tile-buy" data-${equip}="${esc(it.id)}" type="button">Auswählen</button>`;
   } else {
-    state = `<span class="tile-state owned">✓ Im Besitz</span>`;
+    state = `${price}<span class="tile-state owned">✓ Im Besitz</span>`;
   }
 
   const thumb = `<img class="cat-img" src="${esc(it.img)}?v=7" alt="" loading="lazy">`;
@@ -943,9 +945,10 @@ function tokenPane(owned) {
     const active = t.slots === cur;
     const has = t.free || owned.has(t.id) || ownerUnlock() || isDevUnlock();
     let foot;
-    if (active) foot = `<span class="tile-state active">✓ Aktiv</span>`;
-    else if (has) foot = `<span class="tile-state owned">✓ Im Besitz</span>`;
-    else foot = `<span class="tile-price">${CRY} ${nf(t.cost)}</span>`
+    const slotPrice = t.free ? '' : `<span class="tile-price${has ? ' mini' : ''}">${CRY} ${nf(t.cost)}</span>`;
+    if (active) foot = `${slotPrice}<span class="tile-state active">✓ Aktiv</span>`;
+    else if (has) foot = `${slotPrice}<span class="tile-state owned">✓ Im Besitz</span>`;
+    else foot = slotPrice
       + `<button class="tile-buy" data-cbuy="${esc(t.id)}" type="button">Kaufen</button>`;
     return `<div class="cat-tile${active ? ' is-active' : ''}" data-rar="${t.rarity}" style="--r:${r.color}">
       <div class="slot-badge">${NOTE}×${t.slots}</div>
@@ -1223,9 +1226,9 @@ async function openChestModal(chest) {
           <div class="chest-beam" aria-hidden="true"></div>
           <div class="chest-flash" aria-hidden="true"></div>
           <div class="chest-shockwave" aria-hidden="true"></div>
-          <div class="chest-ground" aria-hidden="true"></div>
+          <div class="chest-ground" aria-hidden="true" hidden></div>
           <div class="chest-3d" id="chest-3d" hidden></div>
-          <img class="chest-big-img" id="chest-anim-img" src="${CHEST_FRAME(rarity, 1)}" alt="">
+          <img class="chest-big-img" id="chest-anim-img" src="${CHEST_FRAME(rarity, 1)}" alt="" hidden>
           <div class="chest-sheen" aria-hidden="true"></div>
         </div>
       </div>
@@ -1252,19 +1255,28 @@ async function openChestModal(chest) {
   let three = null;   // 3D-Szene (null = Bild-Frame-Fallback)
   const done = () => { try { three?.dispose(); } catch (_) {} wrap.remove(); };
 
-  // Echte 3D-Truhe laden und einwechseln (asynchron; bis dahin Bild-Frames).
-  if (!REDUCED_MOTION) {
+  // Echte 3D-Truhe laden und einwechseln. Das 2D-Bild startet VERSTECKT und
+  // erscheint nur, wenn 3D wirklich nicht verfuegbar ist (kein Aufblitzen mehr).
+  const showFallbackArt = () => {
+    animImg.hidden = false;
+    wrap.querySelector('.chest-ground').hidden = false;
+  };
+  if (REDUCED_MOTION) {
+    showFallbackArt();
+  } else {
     loadChest3D().then(ok => {
-      if (!ok || !document.body.contains(wrap) || three) return;
+      if (!document.body.contains(wrap) || three) return;
       const holder = wrap.querySelector('#chest-3d');
-      try { three = window.WizChest3D.create(holder, rarity); } catch (_) { three = null; }
+      if (ok) {
+        try { three = window.WizChest3D.create(holder, rarity); } catch (_) { three = null; }
+      }
       if (three) {
         holder.hidden = false;
-        animImg.hidden = true;
-        wrap.querySelector('.chest-ground').hidden = true;   // 3D hat echten Schatten
         stage.classList.add('three');
+      } else {
+        showFallbackArt();
       }
-    }).catch(() => {});
+    }).catch(showFallbackArt);
   }
 
   // Frames vorladen: aktuelle Sorte komplett + Frame 1 aller besseren Sorten
