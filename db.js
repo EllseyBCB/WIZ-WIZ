@@ -165,6 +165,9 @@ export const abortGame   = (gameId)          => rpc('wizard_abort_game',  { p_ga
 export const addBot      = (gameId)          => rpc('wizard_add_bot',     { p_game: gameId });
 export const removeBot   = (gameId, seat)    => rpc('wizard_remove_bot',  { p_game: gameId, p_seat: seat });
 export const botAct      = (gameId)          => rpc('wizard_bot_act',     { p_game: gameId });
+// Zug-Timer: Auto-Zug nach 20 s (Server prueft die Zeit selbst) + Pause an/aus.
+export const autoAct     = (gameId)          => rpc('wizard_auto_act',    { p_game: gameId });
+export const pauseGame   = (gameId, on)      => rpc('wizard_pause_game',  { p_game: gameId, p_on: !!on });
 
 // --- Wirtschaft (Kristalle/Gold, serverseitig) -----------------------------
 // Guthaben + Inventar holen. Liefert { crystals, gold, inventory:[item_id,...] }.

@@ -191,6 +191,14 @@
   .roster li { padding: 7px 4px; border-bottom: 1px solid var(--rand); }
   .roster .bot-x { margin-left: 8px; background: none; border: 1px solid var(--rand);
     color: #fff; border-radius: 8px; padding: 1px 8px; cursor: pointer; font-size: .8rem; }
+  /* 20-s-Zug-Timer (online): kleine Pille oben rechts */
+  #turn-timer { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: 12px;
+    z-index: 500; pointer-events: none; background: rgba(20,12,40,.85);
+    border: 1.5px solid var(--goldline); color: var(--gold); border-radius: 999px;
+    padding: 6px 12px; font-weight: 800; font-size: .95rem;
+    font-variant-numeric: tabular-nums; }
+  #turn-timer.urgent { color: #ff8585; border-color: #ff8585;
+    animation: hintPulse .8s ease-in-out infinite; }
   .you { color: var(--akzent); font-size: .8rem; }
 
   /* ===== Lobby (Startseite) ===== */
@@ -2571,6 +2579,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=159"></script>
+<script type="module" src="./app.js?v=160"></script>
 </body>
 </html>

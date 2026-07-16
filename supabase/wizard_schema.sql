@@ -1276,3 +1276,18 @@ end $$;
 --     wizard_grant_game_chest: Bots (uid NULL) bekommen keine Truhen.
 -- Die vollstaendigen Funktionskoerper liegen in der Migration wizard_bots
 -- (Supabase-Projekt mpvosmtsbvwasvnzjuwd).
+
+-- =============================================================================
+-- ZUG-TIMER (Migration wizard_turn_timer, live angewandt) - Kurzdoku
+-- =============================================================================
+--   * wizard_games.paused_by uuid: gesetzt = Spiel pausiert (Zug-Uhr steht).
+--   * wizard_ai_move(p_game): generalisierter KI-Zug fuer den faelligen Sitz
+--     (Mensch ODER Bot) - gleiche Heuristik wie die Bots (intern, kein Grant).
+--   * wizard_bot_step: prueft zusaetzlich paused_by und ruft wizard_ai_move.
+--   * wizard_auto_act(p_game): jedes menschliche Mitglied darf nach Ablauf
+--     der Zugzeit den Auto-Zug ausloesen; der SERVER prueft die 20 s selbst
+--     (now() - updated_at >= 20 s) und ob nicht pausiert ist.
+--   * wizard_pause_game(p_game, p_on): Mitglied pausiert; aufheben darf die
+--     pausierende Person oder der Host; updated_at wird dabei neu gesetzt
+--     (Zug-Uhr startet neu). Client: Pause-Knopf ruft das mit, "Weiter-
+--     spielen"/enterGame hebt die eigene Pause automatisch auf.
