@@ -160,6 +160,11 @@ export const chooseTrump = (gameId, color)   => rpc('wizard_choose_trump',{ p_ga
 export const placeBid    = (gameId, bid)     => rpc('wizard_place_bid',   { p_game: gameId, p_bid: bid });
 export const playCard    = (gameId, card)    => rpc('wizard_play_card',   { p_game: gameId, p_card: card });
 export const abortGame   = (gameId)          => rpc('wizard_abort_game',  { p_game: gameId });
+// Bots: Host fuegt in der Lobby Bot-Mitspieler hinzu; botAct stoesst den
+// naechsten Bot-Zug an (Server denkt und spielt selbst).
+export const addBot      = (gameId)          => rpc('wizard_add_bot',     { p_game: gameId });
+export const removeBot   = (gameId, seat)    => rpc('wizard_remove_bot',  { p_game: gameId, p_seat: seat });
+export const botAct      = (gameId)          => rpc('wizard_bot_act',     { p_game: gameId });
 
 // --- Wirtschaft (Kristalle/Gold, serverseitig) -----------------------------
 // Guthaben + Inventar holen. Liefert { crystals, gold, inventory:[item_id,...] }.

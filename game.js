@@ -194,9 +194,15 @@ function renderWaitingRoom(root, state, actions) {
     <div class="code-big">${esc(game.join_code)}</div>
     <p class="muted">${players.length} Spieler:innen (3–6 zum Starten)</p>
     <ul class="roster">${players.map(p => `
-      <li>${esc(p.name)}${p.is_host ? ' 👑' : ''}${p.uid === uid ? ' <span class="you">(du)</span>' : ''}</li>
+      <li>${p.is_bot ? '🤖 ' : ''}${esc(p.name)}${p.is_host ? ' 👑' : ''}${p.uid === uid ? ' <span class="you">(du)</span>' : ''}${
+        isHost && p.is_bot ? ` <button class="bot-x" data-botseat="${p.seat}" type="button" aria-label="Bot entfernen">✕</button>` : ''
+      }</li>
     `).join('')}</ul>
   `;
+  // Host: Bots wieder entfernen.
+  box.querySelectorAll('[data-botseat]').forEach(b => {
+    b.onclick = () => actions.onRemoveBot?.(parseInt(b.dataset.botseat, 10));
+  });
   // Einladungs-Link teilen (direkt unter dem Code).
   const shareRow = document.createElement('div');
   shareRow.className = 'row';
@@ -219,6 +225,14 @@ function renderWaitingRoom(root, state, actions) {
     start.disabled = players.length < 3 || players.length > 6;
     start.onclick = () => actions.onStart();
     btns.appendChild(start);
+    // Zu wenige Leute? Ein Bot fuellt den Tisch auf (z. B. zu zweit + Bot).
+    if (players.length < (game.max_players || 6)) {
+      const bot = document.createElement('button');
+      bot.className = 'btn sekundaer';
+      bot.textContent = '🤖 Bot hinzufügen';
+      bot.onclick = () => actions.onAddBot?.();
+      btns.appendChild(bot);
+    }
   } else {
     const wait = document.createElement('p');
     wait.className = 'muted';
