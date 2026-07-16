@@ -46,7 +46,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=10'));
+const db = async () => (DB ||= await import('./db.js?v=11'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -118,7 +118,7 @@ function stateSig(game, players, hand, trick, scores) {
     game.status, game.phase, game.current_seat, game.lead_seat, game.led_color,
     game.round_no, game.trick_no, game.trump_color, game.trump_card, game.trump_pending,
     game.num_players, game.total_rounds, game.dealer_seat, game.join_code,
-    game.is_quick, game.starts_at,
+    game.is_quick, game.starts_at, game.paused_by,
     players.map(p => [p.seat, p.name, p.bid, p.tricks_won, p.total_score, p.connected, p.is_host, p.is_bot]),
     hand.map(h => [h.card, h.played]),
     trick.map(t => [t.play_order, t.seat, t.card, t.is_winner]),
@@ -158,6 +158,7 @@ async function reloadAll() {
 
   maybeAnnounceHalfway(game);   // "Karten werden wieder weniger"-Ansage
   maybeDriveBot(game);          // Bot am Zug? -> Server-Zug anstossen
+  updateTurnTimer(game);        // 20-s-Zug-Timer anzeigen/antreiben
 
   prevSnap = { round: game.round_no, trick: game.trick_no, phase: game.phase };
   // Nur neu zeichnen, wenn sich wirklich etwas geaendert hat.
@@ -187,6 +188,58 @@ function maybeDriveBot(game) {
       if (await m.botAct(state.gameId)) await reloadAll();
     } catch (_) {}
   }, 1000 + Math.random() * 600);
+}
+
+// --- 20-s-Zug-Timer (online) -------------------------------------------------
+// Anzeige laeuft clientseitig ab dem letzten Zustandswechsel; die ECHTE
+// Pruefung macht der Server (updated_at >= 20 s), der Aufruf ist also
+// gefahrlos. Bei Pause (game.paused_by) steht die Uhr fuer alle.
+let turnDeadline = 0, turnTimerInt = null, lastTurnKey = null, autoActBusy = false;
+function hideTurnTimer() {
+  document.getElementById('turn-timer')?.remove();
+  lastTurnKey = null;
+  clearInterval(turnTimerInt); turnTimerInt = null;
+}
+function updateTurnTimer(game) {
+  const active = state.gameId && game && game.status === 'running'
+    && ['trumpselect', 'bidding', 'playing'].includes(game.phase);
+  if (!active) { hideTurnTimer(); return; }
+  let el = document.getElementById('turn-timer');
+  if (!el) { el = document.createElement('div'); el.id = 'turn-timer'; document.body.appendChild(el); }
+  if (game.paused_by) {
+    el.textContent = '⏸ Pausiert';
+    el.classList.remove('urgent');
+    lastTurnKey = 'paused';
+    clearInterval(turnTimerInt); turnTimerInt = null;
+    return;
+  }
+  const seat = game.phase === 'trumpselect' ? game.dealer_seat : game.current_seat;
+  const key = [game.round_no, game.trick_no, game.phase, seat, state.trick.length].join(':');
+  if (key !== lastTurnKey) { lastTurnKey = key; turnDeadline = Date.now() + 20000; }
+  if (!turnTimerInt) turnTimerInt = setInterval(tickTurnTimer, 250);
+  tickTurnTimer();
+}
+async function tickTurnTimer() {
+  const el = document.getElementById('turn-timer');
+  const game = state.game;
+  if (!el || !game || !state.gameId) { hideTurnTimer(); return; }
+  if (game.paused_by) return;
+  const left = Math.ceil((turnDeadline - Date.now()) / 1000);
+  if (left > 0) {
+    el.textContent = `⏱ ${left}`;
+    el.classList.toggle('urgent', left <= 5);
+  } else {
+    el.textContent = '⏱ 0';
+    el.classList.add('urgent');
+    if (!autoActBusy) {
+      autoActBusy = true;
+      try {
+        const m = await db();
+        if (await m.autoAct(state.gameId)) await reloadAll();
+      } catch (_) {}
+      setTimeout(() => { autoActBusy = false; }, 1500);   // sanft weiterprobieren
+    }
+  }
 }
 
 // Erkennt am Phasen-/Stich-Wechsel, dass der zuvor gezeigte Stich fertig ist.
@@ -271,6 +324,9 @@ async function enterGame(gameId) {
   state.gameId = gameId;
   lastRenderSig = null; prevSnap = null; holdingTrick = false;   // neues Spiel
   sfxTrickLen = 0; sfxRound = 0; myTurnPrev = false;
+  // Eigene Pause aufheben (Server ignoriert den Aufruf, wenn jemand anderes
+  // pausiert hat) - die Zug-Uhr startet dabei neu.
+  m.pauseGame(gameId, false).catch(() => {});
   hideBanner();                                                  // im Spiel kein Banner
   localStorage.setItem(LS_GAME, gameId);
   if (unsubscribe) unsubscribe();
@@ -299,6 +355,7 @@ function goHome() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   lastRenderSig = null; prevSnap = null; holdingTrick = false;
   hideTrickBanner();
+  hideTurnTimer();
   state.gameId = null; state.game = null;
   state.players = []; state.hand = []; state.trick = []; state.scores = [];
   localStorage.removeItem(LS_GAME);
@@ -311,6 +368,12 @@ function goHome() {
 // Pausieren (Online): Verbindung trennen, ABER den Spielplatz merken, damit man
 // ueber "Weiterspielen" zurueckkommt. Der Spielstand bleibt auf dem Server.
 function pauseOnline() {
+  // Serverseitig pausieren: haelt den 20-s-Zug-Timer fuer ALLE an.
+  if (state.gameId) {
+    const gid = state.gameId;
+    (async () => { try { (await db()).pauseGame(gid, true); } catch (_) {} })();
+  }
+  hideTurnTimer();
   clearInterval(pollTimer); pollTimer = null;
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   hideTrickBanner();
