@@ -21,8 +21,8 @@
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Welche Seltenheit nutzt welches KI-Modell aus window.__CHESTS?
-  // (gold hat noch kein KI-Modell -> handgebaute Truhe mit Gold-Faerbung)
-  var MODEL_BY_RARITY = { diamant: 'blau', silber: 'silber', holz: 'holz' };
+  // Alle vier Stufen sind jetzt echte Meshy-Modelle des Users.
+  var MODEL_BY_RARITY = { diamant: 'blau', silber: 'silber', holz: 'holz', gold: 'gold' };
 
   // Farbstufen fuer das handgebaute Modell + Effektfarben fuer alle.
   var TIERS = {
