@@ -767,15 +767,16 @@ function itemActive(it) {
   return false;
 }
 // Status-Rang: aktiv -> im Besitz -> kaufbar.
-function statusRank(it, owned) { return itemActive(it) ? 0 : itemHas(it, owned) ? 1 : 2; }
 // Nur Produkte mit echtem Bild zeigen (bildlose Platzhalter ausblenden).
 function visibleItems(items) { return items.filter(it => it.img || it.isDefault); }
 // Zentrale Sortierung: Seltenheit -> Status -> Preis aufsteigend.
-function sortItems(items, owned) {
+// FESTE Reihenfolge (Seltenheit, Preis, Name) - haengt bewusst NICHT vom
+// Aktiv-/Besitz-Status ab, damit beim Auswaehlen nichts umherspringt.
+function sortItems(items) {
   return [...items].sort((a, b) =>
     (RARITY_ORDER[a.rarity] ?? 9) - (RARITY_ORDER[b.rarity] ?? 9)
-    || statusRank(a, owned) - statusRank(b, owned)
-    || (a.cost || 0) - (b.cost || 0));
+    || (a.cost || 0) - (b.cost || 0)
+    || String(a.name || a.id).localeCompare(String(b.name || b.id)));
 }
 
 // Kristall-Währungs-Icon (echtes Artwork statt blauem 💎-Emoji). Inline-Bild,
