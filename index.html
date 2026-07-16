@@ -189,6 +189,8 @@
   }
   .roster { list-style: none; margin: 8px 0; }
   .roster li { padding: 7px 4px; border-bottom: 1px solid var(--rand); }
+  .roster .bot-x { margin-left: 8px; background: none; border: 1px solid var(--rand);
+    color: #fff; border-radius: 8px; padding: 1px 8px; cursor: pointer; font-size: .8rem; }
   .you { color: var(--akzent); font-size: .8rem; }
 
   /* ===== Lobby (Startseite) ===== */
@@ -2569,6 +2571,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=158"></script>
+<script type="module" src="./app.js?v=159"></script>
 </body>
 </html>

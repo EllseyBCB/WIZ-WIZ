@@ -1252,3 +1252,27 @@ begin
   execute 'revoke all on function public.wizard_member_avatars(uuid) from public, anon;';
   execute 'grant execute on function public.wizard_member_avatars(uuid) to authenticated;';
 end $$;
+
+-- =============================================================================
+-- BOTS (Migration wizard_bots, live angewandt) - Kurzdoku
+-- =============================================================================
+-- Der Host kann in der Lobby Bot-Mitspieler hinzufuegen (z. B. zu zweit + Bot).
+--   * wizard_players: uid ist NULLbar, neue Spalte is_bot boolean.
+--     (ebenso uid NULLbar in wizard_hands / wizard_plays / wizard_round_scores)
+--   * wizard_add_bot(p_game) / wizard_remove_bot(p_game, p_seat): nur Host,
+--     nur in der Lobby; Namen aus einem kleinen Pool (Bot Merlin, ...).
+--   * Kernlogik ist jetzt SITZ-basiert: wizard_bid_seat / wizard_play_seat
+--     (interne SECURITY-DEFINER-Funktionen, kein Grant fuer Clients);
+--     wizard_place_bid / wizard_play_card sind duenne Auth-Huellen darum.
+--   * wizard_bot_step(p_game): fuehrt genau EINEN Bot-Zug aus (Trumpfwahl:
+--     haeufigste Farbe; Gebot: Heuristik aus Zauberern/hohen Truempfen/hohen
+--     Farben inkl. Ausweichen vor der verbotenen Summe; Karte: staerkste
+--     legale Karte, wenn noch Stiche fehlen, sonst schwaechste).
+--   * wizard_bot_act(p_game): oeffentlicher Anstoss (jedes menschliche
+--     Mitglied; Doppel-Aufrufe durch Zeilensperre harmlos). Der Client ruft
+--     das nach kurzer Denkpause auf, wenn ein Bot am Zug ist.
+--   * wizard_start_game: Sitz-Umnummerierung ueber die Zeilen-ID (uid NULL);
+--     wizard_leave_game: Host-Wechsel nur auf Menschen, nur-Bots -> Spiel weg;
+--     wizard_grant_game_chest: Bots (uid NULL) bekommen keine Truhen.
+-- Die vollstaendigen Funktionskoerper liegen in der Migration wizard_bots
+-- (Supabase-Projekt mpvosmtsbvwasvnzjuwd).

@@ -1,9 +1,9 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=84';
+import { render } from './game.js?v=85';
 import { gameAssetUrls } from './table.js?v=79';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=72';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=73';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -46,7 +46,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=9'));
+const db = async () => (DB ||= await import('./db.js?v=10'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -67,6 +67,9 @@ const actions = {
     try { await (await db()).quickStart(state.gameId); await reloadAll(); } catch (_) {}
   },
   onLeave:  () => guarded(async (m) => { maybeRefundLobbyToken(); await m.leaveGame(state.gameId); goHome(); }),
+  // Warteraum: Bot-Mitspieler hinzufuegen/entfernen (nur Host).
+  onAddBot:    () => guarded(async (m) => m.addBot(state.gameId)),
+  onRemoveBot: (seat) => guarded(async (m) => m.removeBot(state.gameId, seat)),
   onAbort:  () => guarded(async (m) => { maybeRefundLobbyToken(); return m.abortGame(state.gameId); }),
   onTrump:  (c) => guarded(async (m) => m.chooseTrump(state.gameId, c)),
   onBid:    (n) => { sfxBid(); haptic(12); return guarded(async (m) => m.placeBid(state.gameId, n)); },
@@ -116,7 +119,7 @@ function stateSig(game, players, hand, trick, scores) {
     game.round_no, game.trick_no, game.trump_color, game.trump_card, game.trump_pending,
     game.num_players, game.total_rounds, game.dealer_seat, game.join_code,
     game.is_quick, game.starts_at,
-    players.map(p => [p.seat, p.name, p.bid, p.tricks_won, p.total_score, p.connected, p.is_host]),
+    players.map(p => [p.seat, p.name, p.bid, p.tricks_won, p.total_score, p.connected, p.is_host, p.is_bot]),
     hand.map(h => [h.card, h.played]),
     trick.map(t => [t.play_order, t.seat, t.card, t.is_winner]),
     scores.length
@@ -154,6 +157,7 @@ async function reloadAll() {
   if (done) { await showTrickResult(m, done); return; }
 
   maybeAnnounceHalfway(game);   // "Karten werden wieder weniger"-Ansage
+  maybeDriveBot(game);          // Bot am Zug? -> Server-Zug anstossen
 
   prevSnap = { round: game.round_no, trick: game.trick_no, phase: game.phase };
   // Nur neu zeichnen, wenn sich wirklich etwas geaendert hat.
@@ -161,6 +165,28 @@ async function reloadAll() {
   if (sig === lastRenderSig) return;
   lastRenderSig = sig;
   render(state, actions);
+}
+
+// Bot-Zuege anstossen: Ist ein Bot am Zug, ruft der Client nach kurzer
+// "Denkpause" wizard_bot_act - der Server waehlt und spielt den Zug selbst.
+// Jedes menschliche Mitglied darf anstossen; Doppel-Aufrufe sind durch die
+// serverseitige Zeilensperre + Zustandspruefung harmlos.
+let lastBotKey = null, botTimer = null;
+function maybeDriveBot(game) {
+  if (!game || game.status !== 'running') { lastBotKey = null; return; }
+  const seat = game.phase === 'trumpselect' ? game.dealer_seat : game.current_seat;
+  const p = state.players.find(x => x.seat === seat);
+  if (!p?.is_bot || !['trumpselect', 'bidding', 'playing'].includes(game.phase)) return;
+  const key = [game.round_no, game.trick_no, game.phase, seat, state.trick.length].join(':');
+  if (key === lastBotKey) return;
+  lastBotKey = key;
+  clearTimeout(botTimer);
+  botTimer = setTimeout(async () => {
+    try {
+      const m = await db();
+      if (await m.botAct(state.gameId)) await reloadAll();
+    } catch (_) {}
+  }, 1000 + Math.random() * 600);
 }
 
 // Erkennt am Phasen-/Stich-Wechsel, dass der zuvor gezeigte Stich fertig ist.
