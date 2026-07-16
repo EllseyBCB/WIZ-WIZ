@@ -60,10 +60,13 @@ export function legalCards(G, seat) {
 }
 
 // --- Spielaufbau -----------------------------------------------------------
-export function newGame(names) {
+// shortCards (3/5/7): Kurzspiel - Runden steigen nur 1..X (keine Pyramide).
+export function newGame(names, shortCards = null) {
   const np = names.length;
   const G = {
-    numPlayers: np, totalRounds: Math.floor(60 / np),
+    numPlayers: np,
+    shortCards: shortCards || null,
+    totalRounds: shortCards || Math.floor(60 / np),
     roundNo: 0, cardsThisRound: 0, dealerSeat: 0,
     trumpColor: null, trumpCard: null, trumpPending: false,
     phase: 'bidding', status: 'running',
@@ -84,8 +87,8 @@ export function dealRound(G) {
   const np = G.numPlayers;
   const n = G.roundNo + 1;
   // Pyramide: bis zur Haelfte des Spiels steigt die Kartenzahl (1,2,3,…),
-  // danach faellt sie wieder, bis am Ende nur noch 1 Karte gespielt wird.
-  const c = Math.min(n, G.totalRounds - n + 1);
+  // danach faellt sie wieder. Kurzspiel: nur aufsteigend 1..X.
+  const c = G.shortCards ? n : Math.min(n, G.totalRounds - n + 1);
   G.dealerSeat = G.roundNo === 0 ? G.dealerSeat : (G.dealerSeat + 1) % np;
   G.players.forEach(p => { p.bid = null; p.tricksWon = 0; });
 

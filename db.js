@@ -148,7 +148,8 @@ async function rpc(fn, args) {
   return data;
 }
 
-export const createGame  = (name, max = 6)   => rpc('wizard_create_game', { p_name: name, p_max: max });
+export const createGame  = (name, max = 6, cards = null) =>
+  rpc('wizard_create_game', { p_name: name, p_max: max, p_cards: cards });
 export const joinGame    = (code, name)      => rpc('wizard_join_game',   { p_code: code, p_name: name });
 // Schnelle Runde (Matchmaking): offener Lobby beitreten oder neue eroeffnen.
 export const quickMatch  = (name)            => rpc('wizard_quick_match', { p_name: name });
