@@ -1,9 +1,9 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=85';
+import { render } from './game.js?v=86';
 import { gameAssetUrls } from './table.js?v=79';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=73';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=74';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -46,7 +46,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=11'));
+const db = async () => (DB ||= await import('./db.js?v=12'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -305,6 +305,7 @@ const LS_HALF = 'wizard_halfseen';
 const firstDecreasingRound = (t) => Math.floor(t / 2) + 2;
 function maybeAnnounceHalfway(game) {
   if (!game || game.status !== 'running' || !game.total_rounds) return;
+  if (game.short_cards) return;   // Kurzspiel: nur aufsteigend -> keine Halbzeit
   if (game.round_no !== firstDecreasingRound(game.total_rounds)) return;
   try {
     if (localStorage.getItem(LS_HALF) === String(state.gameId)) return;
@@ -587,8 +588,9 @@ function wireHome() {
     const name = nameInput.value.trim() || 'Du';
     const bots = parseInt($('#bot-count').value, 10);
     const diff = $('#difficulty').value;
+    const shortCards = parseInt($('#solo-length')?.value, 10) || null;
     closeLobbyModals();
-    requireToken(() => startLocal(bots, name, diff));
+    requireToken(() => startLocal(bots, name, diff, shortCards));
   };
 
   $('#create-btn').onclick = async () => {
@@ -598,9 +600,10 @@ function wireHome() {
     if (!m) return;
     m.upsertProfile(name).catch(() => {});   // Profilname fuer die Freundesliste pflegen
     const max = parseInt($('#max-players').value, 10);
+    const shortCards = parseInt($('#game-length')?.value, 10) || null;
     requireToken(async () => {
       try {
-        const code = await m.createGame(name, max);
+        const code = await m.createGame(name, max, shortCards);
         const gameId = await m.joinGame(code, name);   // eigene Spiel-ID holen
         tokenPaidFor = gameId;
         closeLobbyModals();

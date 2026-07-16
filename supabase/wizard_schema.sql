@@ -1291,3 +1291,18 @@ end $$;
 --     pausierende Person oder der Host; updated_at wird dabei neu gesetzt
 --     (Zug-Uhr startet neu). Client: Pause-Knopf ruft das mit, "Weiter-
 --     spielen"/enterGame hebt die eigene Pause automatisch auf.
+
+-- =============================================================================
+-- KURZSPIEL (Migration wizard_short_games, live angewandt) - Kurzdoku
+-- =============================================================================
+--   * wizard_games.short_cards int (null = normal): Kurzspiel mit 3/5/7 Karten.
+--   * wizard_create_game(p_name, p_max, p_cards default null): validiert
+--     p_cards in (3,5,7); alte 2-Parameter-Signatur wurde ersetzt.
+--   * wizard_start_game: total_rounds = coalesce(short_cards, 60/np).
+--   * wizard_deal_round: Kurzspiel zaehlt nur AUFSTEIGEND (Kartenzahl = Runde),
+--     normales Spiel behaelt die Pyramide least(n, total-n+1).
+--   * wizard_grant_game_chest: Kurzspiele unter 5 Karten geben KEINE Truhe
+--     (kein Truhen-Farmen mit 3-Minuten-Spielen).
+--   * Client: Auswahl "Spiellaenge" im Online- und Solo-Startfenster
+--     (Blitz 3 / Kurz 5 / Mittel 7); Solo nutzt dieselbe Logik in engine.js;
+--     Halbzeit-Ansage/-Werbung entfaellt im Kurzspiel.

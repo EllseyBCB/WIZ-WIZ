@@ -1,8 +1,8 @@
 // Solo-Modus: lokales Spiel gegen Computer-Gegner.
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
-import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=4';
+import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=5';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=4';
-import { render } from './game.js?v=85';
+import { render } from './game.js?v=86';
 import { showScreen, toast, esc } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=5';
 import { showBanner, hideBanner, preGameAd, midGameAd } from './ads.js?v=8';
@@ -145,6 +145,7 @@ async function afterPlay(res) {
 // nach App-Neustart/Fortsetzen.
 async function maybeHalfway() {
   if (!G || G.status !== 'running' || G.halfSeen) return;
+  if (G.shortCards) return;   // Kurzspiel: nur aufsteigend -> keine Halbzeit
   if (G.roundNo !== Math.floor(G.totalRounds / 2) + 2) return;
   G.halfSeen = true; saveSolo();
   showTrickBannerHtml('🃏 <b>Ab jetzt werden die Karten wieder weniger!</b>');
@@ -205,10 +206,11 @@ function quit() {
 }
 
 // Solo-Spiel starten: numOpponents Bots (2–5) + Mensch, mit Schwierigkeitsgrad.
-export async function startLocal(numOpponents, humanName, difficulty = 'normal') {
+// shortCards (3/5/7): Kurzspiel - Runden steigen nur 1..X.
+export async function startLocal(numOpponents, humanName, difficulty = 'normal', shortCards = null) {
   DIFF = ['easy', 'normal', 'hard'].includes(difficulty) ? difficulty : 'normal';
   const bots = [...BOT_NAMES].sort(() => Math.random() - 0.5).slice(0, numOpponents);
-  G = newGame([humanName || 'Du', ...bots]);
+  G = newGame([humanName || 'Du', ...bots], shortCards);
   hideBanner();
   showScreen('game-view');
   await preGameAd();   // Vollbild-Werbung vor Runde 1 (Solo; Ausnahmen via adsBlocked)
