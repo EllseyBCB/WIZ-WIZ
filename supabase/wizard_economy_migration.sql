@@ -143,3 +143,12 @@ begin
     execute format('grant execute on function public.%s to authenticated;', fn);
   end loop;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Migration wizard_table_prices_up (live angewandt): Spielfelder etwas teurer.
+--   800 -> 1000, 1000 -> 1300, 1800 -> 2200, 2000 -> 2500 (kind='table')
+-- ---------------------------------------------------------------------------
+-- update public.wizard_catalog set cost = case cost
+--   when 800 then 1000 when 1000 then 1300
+--   when 1800 then 2200 when 2000 then 2500 else cost end
+-- where kind = 'table' and active;
