@@ -19,7 +19,7 @@ import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume,
          sfxChestRumble, sfxChestImpact, sfxChestOpen, sfxDropReveal, sfxItemReveal } from './audio.js?v=5';
 import { $, showScreen, toast, esc, confetti } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY, SLOT_TIERS, TOKEN_PACKS, CHEST_TIERS, CHEST_META } from './shop-catalog.js?v=17';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY, SLOT_TIERS, TOKEN_PACKS, CHEST_TIERS, CHEST_META } from './shop-catalog.js?v=18';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';

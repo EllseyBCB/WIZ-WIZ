@@ -56,17 +56,17 @@ export const SHOP_SECTIONS = [
   {
     key: 'table', title: 'Spielfelder', items: [
       // Der Original-Haupttisch als teuerstes, legendäres Flaggschiff.
-      I('table_waldlichtung',  'table', 'Waldlichtung',    2000, 'crystals', 'legendary', '🌌', 'lobby/table-bg.jpg'),
+      I('table_waldlichtung',  'table', 'Waldlichtung',    2500, 'crystals', 'legendary', '🌌', 'lobby/table-bg.jpg'),
       // Der selbst konfigurierte Mystische Tisch (aus dem alten System) – legendär.
-      I('table_mystic',        'table', 'Mystischer Tisch',1800, 'crystals', 'legendary', '🔮', 'lobby/themes/mystic.jpg'),
-      I('table_zauberwald',    'table', 'Zauberwald',      800,  'crystals', 'rare',      '🌲', TBL('table_zauberwald')),
-      I('table_magierturm',    'table', 'Magierturm',      800,  'crystals', 'rare',      '🗼', TBL('table_magierturm')),
-      I('table_bibliothek',    'table', 'Bibliothek',      800,  'crystals', 'rare',      '📚', TBL('table_bibliothek')),
-      I('table_kristallhoehle','table', 'Kristallhöhle',   1000, 'crystals', 'epic',      '💠', TBL('table_kristallhoehle')),
-      I('table_vulkan',        'table', 'Vulkan',          1000, 'crystals', 'epic',      '🌋', TBL('table_vulkan')),
-      I('table_eispalast',     'table', 'Eispalast',       1000, 'crystals', 'epic',      '🧊', TBL('table_eispalast')),
-      I('table_himmelsschloss','table', 'Himmelsschloss',  1000, 'crystals', 'legendary', '🏰', TBL('table_himmelsschloss')),
-      I('table_unterwasser',   'table', 'Unterwasser',     1000, 'crystals', 'legendary', '🌊', TBL('table_unterwasser')),
+      I('table_mystic',        'table', 'Mystischer Tisch',2200, 'crystals', 'legendary', '🔮', 'lobby/themes/mystic.jpg'),
+      I('table_zauberwald',    'table', 'Zauberwald',      1000,  'crystals', 'rare',      '🌲', TBL('table_zauberwald')),
+      I('table_magierturm',    'table', 'Magierturm',      1000,  'crystals', 'rare',      '🗼', TBL('table_magierturm')),
+      I('table_bibliothek',    'table', 'Bibliothek',      1000,  'crystals', 'rare',      '📚', TBL('table_bibliothek')),
+      I('table_kristallhoehle','table', 'Kristallhöhle',   1300, 'crystals', 'epic',      '💠', TBL('table_kristallhoehle')),
+      I('table_vulkan',        'table', 'Vulkan',          1300, 'crystals', 'epic',      '🌋', TBL('table_vulkan')),
+      I('table_eispalast',     'table', 'Eispalast',       1300, 'crystals', 'epic',      '🧊', TBL('table_eispalast')),
+      I('table_himmelsschloss','table', 'Himmelsschloss',  1300, 'crystals', 'legendary', '🏰', TBL('table_himmelsschloss')),
+      I('table_unterwasser',   'table', 'Unterwasser',     1300, 'crystals', 'legendary', '🌊', TBL('table_unterwasser')),
     ]
   },
   {
