@@ -1306,3 +1306,17 @@ end $$;
 --   * Client: Auswahl "Spiellaenge" im Online- und Solo-Startfenster
 --     (Blitz 3 / Kurz 5 / Mittel 7); Solo nutzt dieselbe Logik in engine.js;
 --     Halbzeit-Ansage/-Werbung entfaellt im Kurzspiel.
+
+-- =============================================================================
+-- IN-APP-KAEUFE Kristalle (Migration wizard_iap_packs_und_botnamen) - Kurzdoku
+-- =============================================================================
+--   * wizard_iap_tx (tx primary key, uid, product_id): jede StoreKit-
+--     Transaktion wird genau EINMAL verbucht (Dedupe).
+--   * wizard_grant_iap_pack(p_product_id, p_tx): schreibt Kristalle gut
+--     (de.alphablueprint.zaubertisch.kristalle.100/500/1200/2500/6000 ->
+--     100/550/1400/3000/7500 inkl. Bonus) + Ledger reason 'iap'.
+--     Vertrauensmodell v1 wie "Werbefrei" (kein Receipt-Validator).
+--     Die 5 Produkt-IDs muessen in App Store Connect als KONSUMIERBAR
+--     mit exakt diesen IDs angelegt sein.
+--   * wizard_add_bot: Namens-Pool jetzt Zilly/Runa/Fabius/Nyx/Ilvy
+--     (keine Doppelung mit den Solo-Bots Merlin/Morgana/...).

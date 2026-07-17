@@ -84,14 +84,16 @@ export const SHOP_SECTIONS = [
   },
 ];
 
-// Kristall-Pakete (Echtgeld). Werden in Phase 2 an echte IAP-Produkte gekoppelt;
-// bis dahin nur Anzeige. amount = Kristalle, priceEUR = Anzeigepreis.
+// Kristall-Pakete (Echtgeld, KONSUMIERBAR): productId muss in App Store Connect
+// als "Konsumierbar" mit exakt dieser ID angelegt sein. Die Gutschrift macht der
+// Server (wizard_grant_iap_pack) mit Transaktions-Dedupe; amount+bonus = Kristalle.
+const KRI = 'de.alphablueprint.zaubertisch.kristalle.';
 export const CRYSTAL_PACKS = [
-  { id: 'crystals_100',  amount: 100,  bonus: 0,    priceEUR: '1,09 €',  img: 'lobby/loot-kri-1.png' },
-  { id: 'crystals_500',  amount: 500,  bonus: 50,   priceEUR: '4,49 €',  img: 'lobby/loot-kri-2.png' },
-  { id: 'crystals_1200', amount: 1200, bonus: 200,  priceEUR: '9,99 €',  tag: 'Beliebt',      img: 'lobby/loot-kri-3.png' },
-  { id: 'crystals_2500', amount: 2500, bonus: 500,  priceEUR: '19,99 €', img: 'lobby/loot-kri-4.png' },
-  { id: 'crystals_6000', amount: 6000, bonus: 1500, priceEUR: '49,99 €', tag: 'Bester Preis', img: 'lobby/loot-kri-5.png' },
+  { id: 'crystals_100',  amount: 100,  bonus: 0,    priceEUR: '1,09 €',  img: 'lobby/loot-kri-1.png', productId: KRI + '100' },
+  { id: 'crystals_500',  amount: 500,  bonus: 50,   priceEUR: '4,49 €',  img: 'lobby/loot-kri-2.png', productId: KRI + '500' },
+  { id: 'crystals_1200', amount: 1200, bonus: 200,  priceEUR: '9,99 €',  tag: 'Beliebt',      img: 'lobby/loot-kri-3.png', productId: KRI + '1200' },
+  { id: 'crystals_2500', amount: 2500, bonus: 500,  priceEUR: '19,99 €', img: 'lobby/loot-kri-4.png', productId: KRI + '2500' },
+  { id: 'crystals_6000', amount: 6000, bonus: 1500, priceEUR: '49,99 €', tag: 'Bester Preis', img: 'lobby/loot-kri-5.png', productId: KRI + '6000' },
 ];
 
 // --- Notizblöcke (Spiel-Tokens) --------------------------------------------

@@ -522,7 +522,7 @@ function buildSeats(state) {
     const badges = (p.seat === game.dealer_seat ? ' 🂠' : '') + (p.is_host ? ' 👑' : '');
     el.innerHTML = `
       <div class="seat-av">${avHtml}</div>
-      <div class="seat-name">${esc(p.name)}${badges}${isMe ? ' <span class="you">(du)</span>' : ''}</div>
+      <div class="seat-name">${esc(isMe ? 'Du' : p.name)}${badges}</div>
       <div class="seat-stats">
         <span class="st-tb" title="Stiche gemacht / angesagt">${p.tricks_won}<span class="sep">/</span>${p.bid == null ? '–' : p.bid}</span>
         <span class="st-score" title="Punkte">${p.total_score} Pkt</span>
