@@ -14,6 +14,7 @@
 import { IAP_ENTITLEMENT, IAP_BUNDLE_ENTITLEMENT } from './config.js';
 import { setAdFree } from './ads.js';
 import { SHOP_ADFREE, SHOP_BUNDLE, AVATAR_ITEMS, TABLE_ITEMS } from './cosmetics.js?v=10';
+import { CRYSTAL_PACKS } from './shop-catalog.js?v=19';
 
 const cap = () => window.Capacitor;
 const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
@@ -26,6 +27,13 @@ const LS_OWNED = 'wizard_owned';
 // Alle kaufbaren Angebote (Gratis-Tische ausgenommen) -> {productId, entitlement}.
 const CATALOG = [SHOP_ADFREE, SHOP_BUNDLE, ...AVATAR_ITEMS, ...TABLE_ITEMS.filter(t => !t.free)]
   .filter(i => i && i.productId && i.entitlement);
+
+// Verbrauchsprodukte (Kristall-Pakete): mehrfach kaufbar, Gutschrift durch den
+// Server. Die Transaktion wird erst abgeschlossen, wenn die Gutschrift geklappt
+// hat - sonst liefert StoreKit sie beim naechsten Start erneut (nichts geht verloren).
+const CONSUMABLE_IDS = new Set(CRYSTAL_PACKS.map(p => p.productId).filter(Boolean));
+let consumableHandler = null;   // async (productId, txId) => void; wirft bei Fehler
+export function onConsumable(fn) { consumableHandler = fn; }
 
 let initialized = false;
 
@@ -69,16 +77,34 @@ export async function initIAP() {
   const { store, ProductType, Platform, LogLevel } = CDV();
   try {
     store.verbosity = LogLevel ? LogLevel.WARNING : 1;
-    store.register(CATALOG.map(it => ({
-      id: it.productId,
-      type: ProductType.NON_CONSUMABLE,
-      platform: Platform.APPLE_APPSTORE,
-    })));
+    store.register([
+      ...CATALOG.map(it => ({
+        id: it.productId,
+        type: ProductType.NON_CONSUMABLE,
+        platform: Platform.APPLE_APPSTORE,
+      })),
+      ...[...CONSUMABLE_IDS].map(id => ({
+        id, type: ProductType.CONSUMABLE, platform: Platform.APPLE_APPSTORE,
+      })),
+    ]);
     // Kein Server-Validator: genehmigte Transaktionen direkt abschliessen.
+    // AUSNAHME Verbrauchsprodukte: erst die Server-Gutschrift, DANN finish();
+    // schlaegt die Gutschrift fehl, bleibt die Transaktion offen (Retry).
     // .updated feuert, sobald StoreKit Produktinfos (Preise!) laedt ODER sich
     // der Besitz aendert -> Besitz spiegeln + Shop zum Neu-Rendern anstossen.
     store.when()
-      .approved(t => t.finish())
+      .approved(async t => {
+        const ids = (t.products || []).map(p => p && p.id).filter(Boolean);
+        const cons = ids.find(id => CONSUMABLE_IDS.has(id));
+        if (cons) {
+          try {
+            if (consumableHandler) await consumableHandler(cons, String(t.transactionId || ''));
+            t.finish();
+          } catch (_) { /* Gutschrift offline fehlgeschlagen -> spaeter erneut */ }
+        } else {
+          t.finish();
+        }
+      })
       .updated(() => {
         mirror(ownedEntitlements());
         try { window.dispatchEvent(new Event('iap-updated')); } catch (_) {}
@@ -136,6 +162,28 @@ export async function purchaseProduct(productId) {
     const keys = ownedEntitlements();
     mirror(keys);
     return { ok: storeOwned(productId), owned: keys };
+  } catch (e) {
+    const msg = String(e?.message || e?.code || e || '');
+    return { ok: false, cancelled: /cancel/i.test(msg), error: msg };
+  }
+}
+
+// Verbrauchsprodukt (Kristall-Paket) kaufen: nur bestellen - die Gutschrift
+// laeuft ueber den approved-Handler (onConsumable) und meldet sich per Toast.
+export async function purchaseConsumable(productId) {
+  if (!iapAvailable()) return { ok: false, error: 'unavailable' };
+  if (!initialized) await initIAP();
+  const { store, Platform, ErrorCode } = CDV();
+  const product = store.get(productId, Platform.APPLE_APPSTORE);
+  const offer = product && product.getOffer ? product.getOffer() : null;
+  if (!offer) return { ok: false, error: 'no-product' };   // ID fehlt in App Store Connect?
+  try {
+    const err = await offer.order();
+    if (err) {
+      const cancelled = ErrorCode && err.code === ErrorCode.PAYMENT_CANCELLED;
+      return { ok: false, cancelled: !!cancelled, error: err.message || String(err.code || err) };
+    }
+    return { ok: true };
   } catch (e) {
     const msg = String(e?.message || e?.code || e || '');
     return { ok: false, cancelled: /cancel/i.test(msg), error: msg };

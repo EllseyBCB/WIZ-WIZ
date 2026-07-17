@@ -1,14 +1,14 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=86';
-import { gameAssetUrls } from './table.js?v=79';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=74';
+import { render } from './game.js?v=87';
+import { gameAssetUrls } from './table.js?v=80';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=75';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
          getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=4';
-import { initIAP, purchaseAdFree, purchaseProduct, restorePurchases, iapAvailable, productPrice } from './iap.js?v=5';
+import { initIAP, purchaseAdFree, purchaseProduct, purchaseConsumable, onConsumable, restorePurchases, iapAvailable, productPrice } from './iap.js?v=6';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, myAvatar,
          getTableTheme, setTableTheme, applyTableTheme, setTableBg, getTableBg,
@@ -19,7 +19,7 @@ import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume,
          sfxChestRumble, sfxChestImpact, sfxChestOpen, sfxDropReveal, sfxItemReveal } from './audio.js?v=5';
 import { $, showScreen, toast, esc, confetti } from './ui.js?v=2';
-import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY, SLOT_TIERS, TOKEN_PACKS, CHEST_TIERS, CHEST_META } from './shop-catalog.js?v=18';
+import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY, SLOT_TIERS, TOKEN_PACKS, CHEST_TIERS, CHEST_META } from './shop-catalog.js?v=19';
 
 const LS_GAME = 'wizard_gameId';
 const LS_NAME = 'wizard_name';
@@ -46,7 +46,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=12'));
+const db = async () => (DB ||= await import('./db.js?v=13'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -281,7 +281,7 @@ async function showTrickResult(m, done) {
 function showTrickBanner(name) {
   let el = document.getElementById('trick-banner');
   if (!el) { el = document.createElement('div'); el.id = 'trick-banner'; document.body.appendChild(el); }
-  el.innerHTML = '🏆 <b>' + esc(name) + '</b><br>gewinnt den Stich';
+  el.innerHTML = '🏆 <b>' + esc(name) + '</b><br>' + (name === 'Du' ? 'gewinnst' : 'gewinnt') + ' den Stich';
   el.classList.add('show');
 }
 function hideTrickBanner() { const el = document.getElementById('trick-banner'); if (el) el.classList.remove('show'); }
@@ -478,6 +478,15 @@ function wireHome() {
   if (helpBtn && helpModal) helpBtn.onclick = () => helpModal.hidden = false;
   if (helpClose && helpModal) helpClose.onclick = () => helpModal.hidden = true;
   if (helpModal) helpModal.addEventListener('click', e => { if (e.target === helpModal) helpModal.hidden = true; });
+  // Beim allerersten Start (nachdem der Datenschutz-Hinweis bestaetigt wurde)
+  // einmalig die Kurzregeln zeigen - Neulinge kennen Wizard sonst nicht.
+  try {
+    if (helpModal && localStorage.getItem('wizard_consent')
+        && !localStorage.getItem('wizard_help_seen')) {
+      localStorage.setItem('wizard_help_seen', '1');
+      helpModal.hidden = false;
+    }
+  } catch (_) {}
   // Escape schliesst offene statische Modals (nicht das Consent – das muss
   // aktiv bestaetigt werden). Fuer Desktop-/Tastatur-Nutzung.
   document.addEventListener('keydown', (e) => {
@@ -814,8 +823,22 @@ function renderShop() {
   grid.querySelectorAll('[data-cdeck]').forEach(b => { b.onclick = () => equipCatalogDeck(b.dataset.cdeck); });
   grid.querySelectorAll('[data-cback]').forEach(b => { b.onclick = () => equipCatalogBack(b.dataset.cback); });
   grid.querySelectorAll('[data-cavatar]').forEach(b => { b.onclick = () => equipCatalogAvatar(b.dataset.cavatar); });
+  // Kristall-Pakete: echter StoreKit-Kauf (Konsumierbar). Die Gutschrift kommt
+  // asynchron ueber den onConsumable-Handler (Server, mit Transaktions-Dedupe).
   grid.querySelectorAll('[data-pack]').forEach(b => {
-    b.onclick = () => toast('Kristall-Pakete gibt es, sobald die App im Store freigeschaltet ist.', 'info');
+    b.onclick = async () => {
+      const id = b.dataset.pack;
+      if (id === 'open') { shopCat = 'crystals'; renderShop(); return; }
+      const pack = CRYSTAL_PACKS.find(p => p.id === id);
+      if (!pack || !pack.productId) return;
+      if (!iapAvailable()) { toast(iapUnavailableHint(), 'info'); return; }
+      const r = await purchaseConsumable(pack.productId);
+      if (!r.ok && !r.cancelled) {
+        toast(r.error === 'no-product'
+          ? 'Paket ist im App Store noch nicht freigegeben.'
+          : 'Kauf fehlgeschlagen – bitte später erneut versuchen.', 'err');
+      }
+    };
   });
   // Notizblöcke: Paket kaufen / Video ansehen.
   grid.querySelectorAll('[data-tbuy]').forEach(b => { b.onclick = () => buyTokenPack(b.dataset.tbuy); });
@@ -1276,33 +1299,40 @@ const RARITY_CHAIN = ['holz', 'silber', 'gold', 'diamant'];
 // ersten Truhen-Oeffnen nachgeladen (~600 KB), danach gecacht. Schlaegt das
 // Laden fehl oder gibt es kein WebGL, laeuft der Bild-Frame-Fallback.
 let chest3dLoad = null;
+const add3dScript = (src) => new Promise((res, rej) => {
+  const s = document.createElement('script');
+  s.src = src; s.onload = res; s.onerror = rej;
+  document.head.appendChild(s);
+});
 function loadChest3D() {
   if (chest3dLoad) return chest3dLoad;
-  const add = (src) => new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = src; s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
   chest3dLoad = (async () => {
-    await add('3d/three.min.js?v=1');
+    await add3dScript('3d/three.min.js?v=1');
     await Promise.all([
-      add('3d/RoomEnvironment.js?v=1'),
-      add('3d/RoundedBoxGeometry.js?v=1'),
-      add('3d/chest-model.js?v=1'),
-      add('3d/GLTFLoader.js?v=1'),
+      add3dScript('3d/RoomEnvironment.js?v=1'),
+      add3dScript('3d/RoundedBoxGeometry.js?v=1'),
+      add3dScript('3d/chest-model.js?v=1'),
+      add3dScript('3d/GLTFLoader.js?v=1'),
     ]);
-    // KI-Truhen des Users (Meshy, Base64-GLB in window.__CHESTS). Optional:
-    // schlaegt ein Register fehl, laufen die betroffenen Stufen handgebaut.
-    await Promise.all([
-      add('3d/chest-blau.js?v=1').catch(() => {}),
-      add('3d/chest-silber.js?v=1').catch(() => {}),
-      add('3d/chest-holz.js?v=1').catch(() => {}),
-      add('3d/chest-gold.js?v=1').catch(() => {}),
-    ]);
-    await add('3d/chest-scene.js?v=8');
+    await add3dScript('3d/chest-scene.js?v=8');
     return !!window.WizChest3D;
   })().catch(() => { chest3dLoad = null; return false; });
   return chest3dLoad;
+}
+// KI-Truhen des Users (Meshy, Base64-GLB in window.__CHESTS): je ~3,5 MB -
+// deshalb wird NUR das Modell der jeweiligen Seltenheit geladen (nicht alle
+// vier). Schlaegt ein Register fehl, laeuft die Stufe handgebaut weiter.
+const CHEST_MODEL_SRC = {
+  blau: '3d/chest-blau.js?v=1', silber: '3d/chest-silber.js?v=1',
+  holz: '3d/chest-holz.js?v=1', gold: '3d/chest-gold.js?v=1',
+};
+const CHEST_MODEL_BY_RARITY = { diamant: 'blau', silber: 'silber', holz: 'holz', gold: 'gold' };
+const chestModelLoads = {};
+function loadChestModel(rarity) {
+  const id = CHEST_MODEL_BY_RARITY[rarity];
+  if (!id || (window.__CHESTS && window.__CHESTS[id])) return Promise.resolve();
+  chestModelLoads[id] ||= add3dScript(CHEST_MODEL_SRC[id]).catch(() => {});
+  return chestModelLoads[id];
 }
 
 async function openChestModal(chest) {
@@ -1357,7 +1387,9 @@ async function openChestModal(chest) {
   if (REDUCED_MOTION) {
     showFallbackArt();
   } else {
-    loadChest3D().then(ok => {
+    loadChest3D().then(async ok => {
+      if (!document.body.contains(wrap) || three) return;
+      if (ok) await loadChestModel(rarity);   // nur das benoetigte Modell (~3,5 MB)
       if (!document.body.contains(wrap) || three) return;
       const holder = wrap.querySelector('#chest-3d');
       if (ok) {
@@ -1387,7 +1419,9 @@ async function openChestModal(chest) {
     rarity = r;
     card.style.setProperty('--r', metaOf(r).color || '#888');
     titleEl.textContent = metaOf(r).label || 'Truhe';
-    try { three?.setRarity(r); } catch (_) {}
+    // Upgrade-Modell bei Bedarf nachladen; bis dahin zeigt die Szene die
+    // handgebaute Truhe in der neuen Farbe (chest-scene faengt das ab).
+    loadChestModel(r).then(() => { try { three?.setRarity(r); } catch (_) {} });
   };
 
   // Gesammelte Belohnungen unter der Truhe: MINI-Ausgaben derselben Karten,
@@ -2698,6 +2732,19 @@ async function init() {
   const warm = () => preloadCards();
   if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 3000 });
   else setTimeout(warm, 1500);
+
+  // Kristall-Paket gekauft (StoreKit approved) -> Server schreibt gut (mit
+  // Transaktions-Dedupe). Wirft die Gutschrift einen Fehler, bleibt die
+  // Transaktion offen und StoreKit versucht es beim naechsten Start erneut.
+  onConsumable(async (productId, txId) => {
+    const m = await db();
+    await m.ensureAuth();
+    const r = await m.grantIapPack(productId, txId);
+    if (!r?.ok) throw new Error(r?.message || 'Gutschrift fehlgeschlagen');
+    walletCache.crystals = r.crystals ?? walletCache.crystals;
+    if (!r.duplicate) toast(`+${nf(r.granted)} Kristalle 💎 Danke!`, 'ok');
+    if (document.getElementById('pane-shop')?.classList.contains('active')) renderShop();
+  });
 
   // In-App-Kauf (StoreKit) initialisieren – erkennt einen frueheren Werbefrei-
   // Kauf, BEVOR Werbung geladen wird. Danach Werbung + Banner (nur native App).

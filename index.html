@@ -1221,6 +1221,12 @@
   @media (prefers-reduced-motion: reduce) { .bid-open-btn { animation: none; } }
   /* Gebots-Modal */
   /* Gebots-Modal */
+  /* Gebots-Fenster OBEN andocken + Overlay unten durchsichtiger:
+     die eigene Hand bleibt beim Reizen sichtbar. */
+  .bid-modal { align-items: flex-start;
+    background: linear-gradient(180deg, rgba(8,5,18,.62) 0%, rgba(8,5,18,.5) 55%, rgba(8,5,18,.12) 100%);
+    -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .bid-modal .bid-modal-card { margin-top: calc(9vh + env(safe-area-inset-top)); }
   .bid-modal-card { max-width: 360px; text-align: center; }
   .bid-modal-card h3 { margin: 0 0 4px; color: #3a280f; }
   .bid-sub { color: #6b5836; font-size: .9rem; margin: 0 0 14px; }
@@ -2593,6 +2599,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=161"></script>
+<script type="module" src="./app.js?v=162"></script>
 </body>
 </html>

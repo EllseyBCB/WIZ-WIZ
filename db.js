@@ -169,6 +169,8 @@ export const botAct      = (gameId)          => rpc('wizard_bot_act',     { p_ga
 // Zug-Timer: Auto-Zug nach 20 s (Server prueft die Zeit selbst) + Pause an/aus.
 export const autoAct     = (gameId)          => rpc('wizard_auto_act',    { p_game: gameId });
 export const pauseGame   = (gameId, on)      => rpc('wizard_pause_game',  { p_game: gameId, p_on: !!on });
+// Kristall-Paket nach StoreKit-Kauf gutschreiben (Transaktions-Dedupe im Server).
+export const grantIapPack = (productId, tx)  => rpc('wizard_grant_iap_pack', { p_product_id: productId, p_tx: tx });
 
 // --- Wirtschaft (Kristalle/Gold, serverseitig) -----------------------------
 // Guthaben + Inventar holen. Liefert { crystals, gold, inventory:[item_id,...] }.
