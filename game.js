@@ -194,6 +194,7 @@ function renderWaitingRoom(root, state, actions) {
     <div class="code-big">${esc(game.join_code)}</div>
     <p class="muted">${players.length} Spieler:innen (3–6 zum Starten)</p>
     ${game.short_cards ? `<p class="muted">⚡ Kurzspiel: Runden 1–${game.short_cards}${game.short_cards < 5 ? ' · keine Truhe' : ''}</p>` : ''}
+    <p class="muted">⏱ Zugzeit: ${game.turn_seconds || 20} s – danach spielt die App automatisch</p>
     <ul class="roster">${players.map(p => `
       <li>${p.is_bot ? '🤖 ' : ''}${esc(p.name)}${p.is_host ? ' 👑' : ''}${p.uid === uid ? ' <span class="you">(du)</span>' : ''}${
         isHost && p.is_bot ? ` <button class="bot-x" data-botseat="${p.seat}" type="button" aria-label="Bot entfernen">✕</button>` : ''

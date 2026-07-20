@@ -1320,3 +1320,12 @@ end $$;
 --     mit exakt diesen IDs angelegt sein.
 --   * wizard_add_bot: Namens-Pool jetzt Zilly/Runa/Fabius/Nyx/Ilvy
 --     (keine Doppelung mit den Solo-Bots Merlin/Morgana/...).
+
+-- =============================================================================
+-- ZUGZEIT EINSTELLBAR (Migration wizard_turn_seconds) - Kurzdoku
+-- =============================================================================
+--   * wizard_games.turn_seconds (10/20/30/60, Default 20): beim Erstellen
+--     waehlbar (wizard_create_game hat jetzt p_turn; alte 3er-Signatur weg).
+--   * wizard_auto_act prueft now()-updated_at gegen turn_seconds statt fix 20 s.
+--   * Client: Auswahl im "Neues Spiel"-Fenster, Anzeige im Warteraum,
+--     Countdown-Pille oben rechts nutzt die eingestellte Zeit.

@@ -1,9 +1,9 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=87';
+import { render } from './game.js?v=88';
 import { gameAssetUrls } from './table.js?v=80';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=75';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=76';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -46,7 +46,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=13'));
+const db = async () => (DB ||= await import('./db.js?v=14'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -215,7 +215,10 @@ function updateTurnTimer(game) {
   }
   const seat = game.phase === 'trumpselect' ? game.dealer_seat : game.current_seat;
   const key = [game.round_no, game.trick_no, game.phase, seat, state.trick.length].join(':');
-  if (key !== lastTurnKey) { lastTurnKey = key; turnDeadline = Date.now() + 20000; }
+  if (key !== lastTurnKey) {
+    lastTurnKey = key;
+    turnDeadline = Date.now() + (game.turn_seconds || 20) * 1000;   // eingestellte Zugzeit
+  }
   if (!turnTimerInt) turnTimerInt = setInterval(tickTurnTimer, 250);
   tickTurnTimer();
 }
@@ -610,9 +613,10 @@ function wireHome() {
     m.upsertProfile(name).catch(() => {});   // Profilname fuer die Freundesliste pflegen
     const max = parseInt($('#max-players').value, 10);
     const shortCards = parseInt($('#game-length')?.value, 10) || null;
+    const turnSecs = parseInt($('#turn-seconds')?.value, 10) || 20;
     requireToken(async () => {
       try {
-        const code = await m.createGame(name, max, shortCards);
+        const code = await m.createGame(name, max, shortCards, turnSecs);
         const gameId = await m.joinGame(code, name);   // eigene Spiel-ID holen
         tokenPaidFor = gameId;
         closeLobbyModals();
