@@ -19,14 +19,66 @@ function myAvatar() {
 
 let G = null;
 let DIFF = 'normal';
+let TURN = 20;   // Zugzeit in Sekunden fuer den Menschen (0 = ohne Zeitlimit)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const LS_SOLO = 'wizard_solo_save';
+
+// --- Solo-Zug-Timer ---------------------------------------------------------
+// Gleiche Countdown-Pille wie online (#turn-timer). Laeuft nur, wenn der
+// MENSCH am Zug ist; nach Ablauf reizt/spielt die Bot-KI fuer ihn. Beim
+// Pausieren/Verlassen verschwindet die Pille, die Zeit startet danach neu.
+let turnInt = null, turnDeadline = 0, turnKey = null, autoBusy = false;
+function hideSoloTimer() {
+  document.getElementById('turn-timer')?.remove();
+  clearInterval(turnInt); turnInt = null; turnKey = null;
+}
+function watchSoloTimer() {
+  if (!TURN) return;
+  if (!turnInt) turnInt = setInterval(soloTimerTick, 250);
+}
+async function soloTimerTick() {
+  const gv = document.getElementById('game-view');
+  const active = G && G.status === 'running' && gv && gv.classList.contains('active');
+  const actor = active ? (G.phase === 'trumpselect' ? G.dealerSeat : G.currentSeat) : -1;
+  if (!active || actor !== 0 || !['trumpselect', 'bidding', 'playing'].includes(G.phase)) {
+    document.getElementById('turn-timer')?.remove();
+    turnKey = null;
+    return;
+  }
+  const key = [G.roundNo, G.trickNo, G.phase, G.trick.length].join(':');
+  if (key !== turnKey) { turnKey = key; turnDeadline = Date.now() + TURN * 1000; }
+  let el = document.getElementById('turn-timer');
+  if (!el) { el = document.createElement('div'); el.id = 'turn-timer'; document.body.appendChild(el); }
+  const left = Math.ceil((turnDeadline - Date.now()) / 1000);
+  if (left > 0) {
+    el.textContent = `⏱ ${left}`;
+    el.classList.toggle('urgent', left <= 5);
+    return;
+  }
+  el.textContent = '⏱ 0';
+  el.classList.add('urgent');
+  if (autoBusy) return;
+  autoBusy = true;
+  try {
+    document.getElementById('bid-modal')?.remove();   // offenes Gebots-Fenster zu
+    if (G.phase === 'trumpselect') {
+      chooseTrump(G, botChooseTrump(G, 0)); paint(); await drive();
+    } else if (G.phase === 'bidding') {
+      placeBid(G, 0, botBid(G, 0, DIFF)); sfxBid(); paint(); await drive();
+    } else if (G.phase === 'playing') {
+      sfxCard();
+      await afterPlay(playCard(G, 0, botCard(G, 0, DIFF)));
+      if (G) await drive();
+    }
+  } catch (_) {}
+  autoBusy = false;
+}
 
 // Solo-Spielstand sichern (laeuft) bzw. loeschen (beendet) – so kann man die
 // App schliessen und spaeter weiterspielen.
 function saveSolo() {
   try {
-    if (G && G.status === 'running') localStorage.setItem(LS_SOLO, JSON.stringify({ G, DIFF }));
+    if (G && G.status === 'running') localStorage.setItem(LS_SOLO, JSON.stringify({ G, DIFF, TURN }));
     else localStorage.removeItem(LS_SOLO);
   } catch (_) {}
 }
@@ -77,6 +129,7 @@ function paint(overrideTrick) { if (!G) return; saveSolo(); render(buildState(ov
 // Pausieren: Stand ist gesichert, zurueck zur Startseite ("Solo fortsetzen").
 function pauseSolo() {
   saveSolo();
+  hideSoloTimer();
   showScreen('home-view');
   showBanner();
   window.dispatchEvent(new Event('wiz-resume-refresh'));
@@ -89,10 +142,12 @@ export async function resumeLocal() {
   try {
     const data = JSON.parse(raw);
     G = data.G; DIFF = data.DIFF || 'normal';
+    TURN = Number.isFinite(data.TURN) ? data.TURN : 20;
   } catch (_) { localStorage.removeItem(LS_SOLO); return false; }
   if (!G || G.status !== 'running') { localStorage.removeItem(LS_SOLO); return false; }
   hideBanner();
   showScreen('game-view');
+  watchSoloTimer();
   paint();
   await drive();   // falls gerade Bots dran sind
   return true;
@@ -199,6 +254,7 @@ async function humanPlay(card) {
 function quit() {
   G = null;
   localStorage.removeItem(LS_SOLO);
+  hideSoloTimer();
   hideTrickBanner();
   showScreen('home-view');
   showBanner();
@@ -207,8 +263,10 @@ function quit() {
 
 // Solo-Spiel starten: numOpponents Bots (2–5) + Mensch, mit Schwierigkeitsgrad.
 // shortCards (3/5/7): Kurzspiel - Runden steigen nur 1..X.
-export async function startLocal(numOpponents, humanName, difficulty = 'normal', shortCards = null) {
+// turnSecs: Zugzeit fuer den Menschen (10/20/30/60; 0 = ohne Zeitlimit).
+export async function startLocal(numOpponents, humanName, difficulty = 'normal', shortCards = null, turnSecs = 20) {
   DIFF = ['easy', 'normal', 'hard'].includes(difficulty) ? difficulty : 'normal';
+  TURN = [0, 10, 20, 30, 60].includes(turnSecs) ? turnSecs : 20;
   const bots = [...BOT_NAMES].sort(() => Math.random() - 0.5).slice(0, numOpponents);
   G = newGame([humanName || 'Du', ...bots], shortCards);
   hideBanner();
@@ -216,6 +274,7 @@ export async function startLocal(numOpponents, humanName, difficulty = 'normal',
   await preGameAd();   // Vollbild-Werbung vor Runde 1 (Solo; Ausnahmen via adsBlocked)
   if (!G) return;      // waehrend der Werbung verlassen
   sfxDeal();
+  watchSoloTimer();
   paint();
   await drive();
 }
