@@ -193,10 +193,10 @@
     color: #fff; border-radius: 8px; padding: 1px 8px; cursor: pointer; font-size: .8rem; }
   /* 20-s-Zug-Timer (online): kleine Pille oben rechts */
   #turn-timer { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: 12px;
-    z-index: 500; pointer-events: none; background: rgba(20,12,40,.85);
+    z-index: 500; pointer-events: none; background: rgba(20,12,40,.88);
     border: 1.5px solid var(--goldline); color: var(--gold); border-radius: 999px;
-    padding: 6px 12px; font-weight: 800; font-size: .95rem;
-    font-variant-numeric: tabular-nums; }
+    padding: 7px 14px; font-weight: 800; font-size: 1.05rem;
+    font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgba(0,0,0,.45); }
   #turn-timer.urgent { color: #ff8585; border-color: #ff8585;
     animation: hintPulse .8s ease-in-out infinite; }
   .you { color: var(--akzent); font-size: .8rem; }
@@ -2179,6 +2179,13 @@
             <option value="5">5</option>
             <option value="6" selected>6</option>
           </select>
+          <label for="turn-seconds">Zugzeit pro Zug (danach spielt die App automatisch)</label>
+          <select id="turn-seconds">
+            <option value="10">⏱ 10 Sekunden – rasant</option>
+            <option value="20" selected>⏱ 20 Sekunden – normal</option>
+            <option value="30">⏱ 30 Sekunden – entspannt</option>
+            <option value="60">⏱ 60 Sekunden – gemütlich</option>
+          </select>
           <label for="game-length">Spiellänge</label>
           <select id="game-length">
             <option value="" selected>Normal (volles Spiel)</option>
@@ -2599,6 +2606,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=162"></script>
+<script type="module" src="./app.js?v=163"></script>
 </body>
 </html>
