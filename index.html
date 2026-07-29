@@ -2190,6 +2190,14 @@
             <option value="5">⚡ Kurz – Runden 1–5 (~8 Min)</option>
             <option value="7">⚡ Mittel – Runden 1–7 (~12 Min)</option>
           </select>
+          <label for="solo-turn">Zugzeit (danach spielt die App automatisch)</label>
+          <select id="solo-turn">
+            <option value="0">∞ Ohne Zeitlimit</option>
+            <option value="10">⏱ 10 Sekunden – rasant</option>
+            <option value="20" selected>⏱ 20 Sekunden – normal</option>
+            <option value="30">⏱ 30 Sekunden – entspannt</option>
+            <option value="60">⏱ 60 Sekunden – gemütlich</option>
+          </select>
           <button id="local-btn" class="btn" style="width:100%;margin-top:16px"><span class="b-ic" aria-hidden="true">▶</span>Solo starten</button>
         </div>
       </div>
@@ -2632,6 +2640,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=163"></script>
+<script type="module" src="./app.js?v=164"></script>
 </body>
 </html>

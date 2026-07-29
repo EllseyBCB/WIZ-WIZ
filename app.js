@@ -3,7 +3,7 @@
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
 import { render } from './game.js?v=88';
 import { gameAssetUrls } from './table.js?v=80';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=76';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=77';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -601,8 +601,9 @@ function wireHome() {
     const bots = parseInt($('#bot-count').value, 10);
     const diff = $('#difficulty').value;
     const shortCards = parseInt($('#solo-length')?.value, 10) || null;
+    const soloTurn = parseInt($('#solo-turn')?.value, 10) || 0;
     closeLobbyModals();
-    requireToken(() => startLocal(bots, name, diff, shortCards));
+    requireToken(() => startLocal(bots, name, diff, shortCards, soloTurn));
   };
 
   $('#create-btn').onclick = async () => {
