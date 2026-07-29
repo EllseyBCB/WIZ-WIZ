@@ -28,6 +28,26 @@ export function toast(msg, kind = 'info') {
 
 export function clearChildren(el) { while (el.firstChild) el.removeChild(el.firstChild); }
 
+// "Du bist dran"-Banner: mittig auf dem Bildschirm, blendet sich nach kurzer
+// Zeit von selbst aus. Sound/Haptik loest der Aufrufer aus (wie bei sfxTurn).
+let yourTurnTimer = null;
+export function showYourTurn() {
+  let el = document.getElementById('your-turn-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'your-turn-banner';
+    el.textContent = '✨ Du bist dran';
+    document.body.appendChild(el);
+  }
+  // Klasse kurz entfernen, damit die Einblend-Animation auch bei schnell
+  // aufeinanderfolgenden Zuegen neu startet (Reflow erzwingt den Neustart).
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(yourTurnTimer);
+  yourTurnTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
 // Konfetti-Regen (leichtgewichtig, ohne Bibliothek) – z. B. zum Spielende.
 export function confetti(durationMs = 2600) {
   if (document.getElementById('confetti-cv')) return;   // schon aktiv

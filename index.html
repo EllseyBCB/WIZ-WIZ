@@ -1554,6 +1554,32 @@
   #trick-banner.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
   #trick-banner b { color: #fff; }
 
+  /* "Du bist dran"-Banner: mittig, blendet sich von selbst wieder aus,
+     blockiert keine Klicks auf Karten/Buttons darunter */
+  #your-turn-banner {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(.7);
+    z-index: 85; pointer-events: none; text-align: center; max-width: 88%;
+    background: linear-gradient(180deg, rgba(44,31,86,.97), rgba(26,18,54,.97));
+    border: 2px solid var(--gold); border-radius: 20px; padding: 20px 34px;
+    color: var(--gold); font-family: var(--font-myth); font-size: 1.7rem;
+    letter-spacing: .5px; text-shadow: 0 1px 2px rgba(0,0,0,.5); white-space: nowrap;
+    box-shadow: 0 14px 40px rgba(0,0,0,.6), 0 0 30px rgba(233,200,115,.35);
+    opacity: 0; transition: opacity .2s ease, transform .2s ease;
+  }
+  #your-turn-banner.show {
+    opacity: 1;
+    animation: yourTurnPop .3s cubic-bezier(.2,1.6,.4,1) forwards,
+               yourTurnPulse 1s ease-in-out .3s infinite;
+  }
+  @keyframes yourTurnPop {
+    from { transform: translate(-50%,-50%) scale(.7); }
+    to   { transform: translate(-50%,-50%) scale(1); }
+  }
+  @keyframes yourTurnPulse {
+    0%, 100% { box-shadow: 0 14px 40px rgba(0,0,0,.6), 0 0 30px rgba(233,200,115,.35); }
+    50%      { box-shadow: 0 14px 40px rgba(0,0,0,.6), 0 0 50px rgba(233,200,115,.6); }
+  }
+
   /* Spielsteine-Pille auf der Startseite + Punkte im Token-Fenster */
   .token-pill {
     display: flex; align-items: center; justify-content: center; gap: 6px;

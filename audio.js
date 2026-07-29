@@ -88,9 +88,11 @@ export function sfxTrick() {           // Stich gewonnen: kleines Glocken-Motiv
   if (!sfxOn || !ready()) return; const t = ctx.currentTime;
   [[660, 0], [880, 0.10], [1320, 0.20]].forEach(([f, dt]) => tone(f, t + dt, 0.55, { type: 'sine', vol: 0.20 }));
 }
-export function sfxTurn() {            // Du bist dran: zarter Zweiklang
+export function sfxTurn() {            // Du bist dran: steigender Dreiklang + Funkeln
   if (!sfxOn || !ready()) return; const t = ctx.currentTime;
-  tone(784, t, 0.18, { type: 'sine', vol: 0.20 }); tone(1046, t + 0.14, 0.30, { type: 'sine', vol: 0.18 });
+  noiseBurst(t, 0.28, { type: 'highpass', freq: 1400, vol: 0.10 });   // sanftes "Anwehen"
+  [[587, 0], [880, 0.11], [1175, 0.22]].forEach(([f, dt]) => tone(f, t + dt, 0.42, { type: 'sine', vol: 0.24 }));
+  tone(1760, t + 0.34, 0.55, { type: 'sine', vol: 0.13 });            // Funkel-Ausklang
 }
 export function sfxDeal() {            // Austeilen: schnelle Folge leiser Ticks
   if (!sfxOn || !ready()) return; const t = ctx.currentTime;

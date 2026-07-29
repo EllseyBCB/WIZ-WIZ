@@ -3,8 +3,8 @@
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=5';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=4';
 import { render } from './game.js?v=88';
-import { showScreen, toast, esc } from './ui.js?v=2';
-import { sfxCard, sfxBid, sfxTrick, sfxDeal, haptic } from './audio.js?v=5';
+import { showScreen, toast, esc, showYourTurn } from './ui.js?v=2';
+import { sfxCard, sfxBid, sfxTrick, sfxTurn, sfxDeal, haptic } from './audio.js?v=5';
 import { showBanner, hideBanner, preGameAd, midGameAd } from './ads.js?v=8';
 
 const BOT_DELAY = 750;     // ms zwischen Bot-Aktionen
@@ -155,6 +155,20 @@ async function maybeHalfway() {
   await midGameAd();
 }
 
+// "Du bist dran"-Hinweis wie im Online-Modus – aber nur EINMAL je Zug:
+// drive()/paint() laufen mehrfach, waehrend der Mensch schon dran ist, darum
+// wird der Zug ueber einen Schluessel (Runde/Stich/Phase) wiedererkannt.
+let humanTurnKey = null;
+function announceHumanTurn() {
+  if (!G || G.status !== 'running') return;
+  const actor = G.phase === 'trumpselect' ? G.dealerSeat : G.currentSeat;
+  if (actor !== 0) return;
+  const key = [G.roundNo, G.trickNo, G.phase].join(':');
+  if (key === humanTurnKey) return;
+  humanTurnKey = key;
+  showYourTurn(); sfxTurn(); haptic(20);
+}
+
 // Bots ziehen lassen, bis der Mensch (Sitz 0) an der Reihe ist.
 async function drive() {
   while (G && G.status === 'running') {
@@ -172,6 +186,7 @@ async function drive() {
     }
   }
   paint();
+  announceHumanTurn();
 }
 
 async function humanTrump(c) {
@@ -211,6 +226,7 @@ export async function startLocal(numOpponents, humanName, difficulty = 'normal',
   DIFF = ['easy', 'normal', 'hard'].includes(difficulty) ? difficulty : 'normal';
   const bots = [...BOT_NAMES].sort(() => Math.random() - 0.5).slice(0, numOpponents);
   G = newGame([humanName || 'Du', ...bots], shortCards);
+  humanTurnKey = null;   // Zug-Erkennung frisch fuers neue Spiel
   hideBanner();
   showScreen('game-view');
   await preGameAd();   // Vollbild-Werbung vor Runde 1 (Solo; Ausnahmen via adsBlocked)

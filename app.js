@@ -18,7 +18,7 @@ import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarIte
 import { startMusic, setEnabled as setMusicEnabled, setVolume as setMusicVolume, isEnabled as musicEnabled, getVolume as musicVolume,
          sfxCard, sfxBid, sfxTrick, sfxDeal, sfxTurn, sfxTap, haptic, setSfx, sfxEnabled, setSfxVolume, getSfxVolume,
          sfxChestRumble, sfxChestImpact, sfxChestOpen, sfxDropReveal, sfxItemReveal } from './audio.js?v=5';
-import { $, showScreen, toast, esc, confetti } from './ui.js?v=2';
+import { $, showScreen, toast, esc, confetti, showYourTurn } from './ui.js?v=2';
 import { SHOP_SECTIONS, CRYSTAL_PACKS, RARITY, SLOT_TIERS, TOKEN_PACKS, CHEST_TIERS, CHEST_META } from './shop-catalog.js?v=19';
 
 const LS_GAME = 'wizard_gameId';
@@ -109,7 +109,7 @@ function soundForUpdate(game) {
   const myTurn = game.status === 'running' &&
     ((game.phase === 'playing' || game.phase === 'bidding') && game.current_seat === mySeat
      || game.phase === 'trumpselect' && game.dealer_seat === mySeat);
-  if (myTurn && !myTurnPrev) { sfxTurn(); haptic(20); notifyYourTurn(); }
+  if (myTurn && !myTurnPrev) { showYourTurn(); sfxTurn(); haptic(20); notifyYourTurn(); }
   myTurnPrev = myTurn;
 }
 
