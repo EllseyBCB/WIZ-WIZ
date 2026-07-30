@@ -1130,14 +1130,11 @@
   /* Sitzplaetze rund um den Tisch (per Inline-Style top/left positioniert) */
   /* Sitz-Groesse skaliert mit der Spielerzahl (--sw); bei 5/6 kleiner, damit
      sich nichts ueberschneidet. Alles im Kaertchen rechnet von --sw ab. */
-  /* Groesse waechst mit der Bildschirmbreite UND -hoehe (grosszuegig wie im
-     Design-Entwurf), mit Unter-/Obergrenze. Wichtig: min(...vw, ...vh) statt
-     nur vw – sonst werden die Sitzkarten bei breiten, aber niedrigen Fenstern
-     (z.B. Desktop-Fenster im Querformat) zu gross fuer den verfuegbaren Platz
-     im Filz und ueberlappen Knoepfe/Text (siehe Bug-Report 30.7.2026). */
-  .seats { position: absolute; inset: 0; --sw: clamp(70px, min(18vw, 22vh), 114px); }
-  .seats.np5 { --sw: clamp(64px, min(16.2vw, 20vh), 103px); }
-  .seats.np6 { --sw: clamp(58px, min(14.5vw, 18vh), 92px); }
+  /* Groesse waechst mit der Bildschirmbreite (grosszuegig wie im Design-Entwurf),
+     mit Unter-/Obergrenze. */
+  .seats { position: absolute; inset: 0; --sw: clamp(70px, 18vw, 114px); }
+  .seats.np5 { --sw: clamp(64px, 16.2vw, 103px); }
+  .seats.np6 { --sw: clamp(58px, 14.5vw, 92px); }
   /* Spieler-Kaertchen = gemalter Rahmen (avatar-Fenster oben, Inhalt darunter) */
   /* Hoehe FEST aus dem Bildverhaeltnis (432/248) – NICHT via aspect-ratio,
      das ist in der iOS-WebView fehlerhaft und verschob den Avatar. So sitzt
@@ -1194,14 +1191,12 @@
      Overlays unten auf dem Filz und flankieren den eigenen Platz – genau ueber
      dem Handfaecher, wie im Design-Entwurf. */
   .tl-left  {
-    /* min(...vh, ...vmin) statt festem 168px-Boden – sonst rutscht die Box bei
-       niedrigen/breiten Fenstern in die Sitzkarten (Bug-Report 30.7.2026). */
-    position: absolute; left: 8px; bottom: clamp(110px, min(18vh, 24vmin), 205px); z-index: 4;
+    position: absolute; left: 8px; bottom: clamp(168px, 18vh, 205px); z-index: 4;
     display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
     max-width: clamp(118px, 31vw, 210px);
   }
   .tl-right {
-    position: absolute; right: 8px; bottom: clamp(110px, min(18vh, 24vmin), 205px); z-index: 4;
+    position: absolute; right: 8px; bottom: clamp(168px, 18vh, 205px); z-index: 4;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
   }
   /* alte Klassen (unbenutzt, Kompatibilitaet) */
