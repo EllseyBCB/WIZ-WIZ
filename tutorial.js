@@ -291,12 +291,46 @@ async function run(startGame) {
   if (!active || curState.status !== 'running') return;
   currentTarget = null;
   bubbleAnchor = 'bottom';   // Blase nach unten – das Ansage-Fenster liegt mittig
+  const bidBase = 'Wie viele Stiche holst du? Tippe im Fenster eine Zahl – bei nur einer '
+      + 'Karte meist <b>0</b> (du willst keinen Stich) oder <b>1</b>.';
+  const bidTitle = 'Deine Ansage';
+  const bidWait = 'Sag deine Stichzahl an …';
+  // Wizard-Regel „darf nicht aufgehen": Wer als Letzte:r ansagt, darf nicht die
+  // Zahl wählen, bei der alle Ansagen zusammen die Stichzahl der Runde ergeben
+  // (engine.forbiddenBid). Das Ansage-Fenster graut sie dann aus. Zunaechst der
+  // allgemeine Hinweis; ist der Tutorial-Spieler tatsaechlich letzte:r Ansager:in
+  // (eine Zahl ausgegraut), formulieren wir es gleich konkret an dieser Zahl.
   showHint({
-    title: 'Deine Ansage',
-    text: 'Wie viele Stiche holst du? Tippe im Fenster eine Zahl – bei nur einer Karte '
-        + 'meist <b>0</b> (du willst keinen Stich) oder <b>1</b>.',
-    waitHint: 'Sag deine Stichzahl an …'
+    title: bidTitle,
+    text: bidBase + ' Übrigens: Wer als Letzte:r ansagt, darf nicht die Zahl wählen, bei der '
+        + 'alle Ansagen zusammen genau aufgehen – die ist dann ausgegraut.',
+    waitHint: bidWait
   });
+  // Die gesperrte Zahl erscheint evtl. einen Tick nach dem Oeffnen -> kurz
+  // nachfassen und den Text dann konkret machen (laeuft nebenher zur Wartephase).
+  (async () => {
+    // Solange der Mensch ansagt, das Bid-Fenster beobachten: das Fenster (und
+    // damit die gesperrte Zahl) kann etwas nach dem Coachmark aufgehen.
+    for (let i = 0; i < 300; i++) {
+      if (!active || !bubble || curState.phase !== 'bidding' || !curState.myTurn) return;
+      // Die gesperrte Zahl steht im Hinweis-Absatz des Fensters (.bid-forbidden,
+      // nur beim letzten Ansager vorhanden); die Zahl ist ausserdem als Knopf
+      // mit Klasse .bid-num.disabled ausgegraut (kein disabled-Attribut!).
+      const lockEl = document.querySelector('#bid-modal .bid-forbidden b')
+                  || document.querySelector('#bid-modal .bid-num.disabled');
+      if (lockEl) {
+        showHint({
+          title: bidTitle,
+          text: bidBase + ` Siehst du, dass die <b>${lockEl.textContent.trim()}</b> ausgegraut ist? `
+              + 'Wer als Letzte:r ansagt, darf nicht so tippen, dass alle Ansagen zusammen '
+              + 'genau die Stichzahl der Runde ergeben.',
+          waitHint: bidWait
+        });
+        return;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+  })();
   await waitFor(s => !(s.phase === 'bidding' && s.myTurn) || s.status !== 'running');
   bubbleAnchor = 'center';   // fuer folgende ankerlose Schritte wieder mittig
   if (!active || curState.status !== 'running') return;

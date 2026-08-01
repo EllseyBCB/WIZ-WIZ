@@ -5,7 +5,7 @@ import { render } from './game.js?v=90';
 import { isNameBlocked, NAME_REJECTED_MSG } from './moderation.js?v=1';
 import { gameAssetUrls, timerMarkup, setTimerFace, flashTurnSecond, hideTurnFlash } from './table.js?v=83';
 import { startLocal, resumeLocal, hasSoloSave, startTutorial, setTutorialHold } from './local.js?v=80';
-import { beginTutorial, tutorialDone, installSettingsButton as installTutorialButton } from './tutorial.js?v=3';
+import { beginTutorial, tutorialDone, installSettingsButton as installTutorialButton } from './tutorial.js?v=4';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
