@@ -542,7 +542,11 @@
     position: sticky; top: 0; z-index: 6;
     background: linear-gradient(180deg, rgba(20,12,38,.96) 70%, rgba(20,12,38,0));
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; -ms-overflow-style: none;
   }
+  .shopcat-row::-webkit-scrollbar { display: none; }
+  .shopcat-row, .rar-row, .pack-row { cursor: grab; }
+  .shopcat-row.dragscroll, .rar-row.dragscroll, .pack-row.dragscroll { cursor: grabbing; scroll-snap-type: none; user-select: none; }
   /* Kategorie-Chip im Mockup-Stil: rundes Icon mit Goldring, Label darunter;
      die aktive Kategorie bekommt einen violett leuchtenden Rundeck-Rahmen. */
   .shopcat {
@@ -585,7 +589,8 @@
 
   /* Seltenheits-Filterleiste: Pillen in der jeweiligen Seltenheitsfarbe (--rc),
      die aktive Pille ist gefuellt und leuchtet. */
-  .rar-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; -webkit-overflow-scrolling: touch; }
+  .rar-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+  .rar-row::-webkit-scrollbar { display: none; }
   .rar-pill {
     flex: none; padding: 7px 13px; border-radius: 12px; cursor: pointer;
     font-family: var(--font-myth); font-size: .74rem; letter-spacing: 1px; text-transform: uppercase;
@@ -601,7 +606,8 @@
 
   /* padding-top schafft Platz fuer die -9px hochstehenden Tags (sonst schneidet
      der overflow der Scroll-Reihe "Beliebt"/"Bester Preis" oben ab). */
-  .pack-row { display: flex; gap: 10px; overflow-x: auto; padding: 16px 2px 8px; scroll-snap-type: x mandatory; }
+  .pack-row { display: flex; gap: 10px; overflow-x: auto; padding: 16px 2px 8px; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; }
+  .pack-row::-webkit-scrollbar { display: none; }
   .pack-card {
     position: relative; flex: 0 0 108px; scroll-snap-align: start; text-align: center;
     padding: 14px 8px 12px; border-radius: 14px; cursor: pointer; color: var(--text);
@@ -1202,6 +1208,28 @@
     -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); cursor: pointer;
   }
 
+  /* Hilfe/Einstellungen IM laufenden Spiel: der grosse Banner mit "?"/"⚙" ist
+     in der Spielansicht (und erst recht table-locked) ausgeblendet -> kleines,
+     dezentes Icon-Paar oben links. Reicht den Klick nur an die echten
+     #help-btn/#settings-btn weiter, die komplette Modal-Logik bleibt unveraendert.
+     Nur sichtbar solange die Spielansicht aktiv ist; der Ladebildschirm
+     (#round-loader, z-index 1200) deckt es waehrend des Ladens komplett ab.
+     Oben links bleibt bei 3-6 Spielern frei: Seiten-Sitze liegen bei t>=40%,
+     obere Sitze mittig, und der Zug-Timer sitzt mittig/rechts – nie links. */
+  #game-tools {
+    position: fixed; z-index: 60; display: none; gap: 8px;
+    top: calc(58px + env(safe-area-inset-top));
+    left: calc(8px + env(safe-area-inset-left));
+  }
+  body:has(#game-view.active) #game-tools { display: flex; }
+  #game-tools .icon-btn {
+    width: 34px; height: 34px; font-size: 1rem;
+    background: rgba(20,13,44,.72); border: 1px solid var(--goldline, #c9a24a);
+    color: #ffd66b; box-shadow: 0 2px 10px rgba(0,0,0,.5);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  }
+  #game-tools .icon-btn:hover { background: rgba(40,26,80,.9); }
+
   /* Sitzplaetze rund um den Tisch (per Inline-Style top/left positioniert) */
   /* Sitz-Groesse skaliert mit der Spielerzahl (--sw); bei 5/6 kleiner, damit
      sich nichts ueberschneidet. Alles im Kaertchen rechnet von --sw ab. */
@@ -1732,21 +1760,75 @@
 
   /* Tages-Truhen-Button */
   .chest-daily-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .chest-daily-icon { width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
-
-  /* Truhen kaufen */
-  .chest-buyrow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  @media (min-width: 560px) { .chest-buyrow { grid-template-columns: repeat(4, 1fr); } }
-  .chest-buy {
-    display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
-    padding: 12px 6px; border-radius: 14px; color: #fff;
-    background: linear-gradient(180deg, rgba(42,27,78,.7), rgba(20,12,40,.7));
-    border: 1.5px solid color-mix(in srgb, var(--r) 70%, transparent);
+  /* Silbertruhe auf hellem Lila-Button: dunkler Kontrast-Chip mit Goldrand
+     hinter dem Icon, damit die Grafik klar/solide wirkt statt verwaschen. */
+  .chest-daily-icon {
+    width: 32px; height: 32px; object-fit: contain; padding: 3px; box-sizing: border-box;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 42%, rgba(40,26,80,.96), rgba(16,9,36,.98) 78%);
+    box-shadow: 0 0 0 1.5px rgba(201,162,74,.7), 0 2px 8px rgba(0,0,0,.55);
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,.6));
   }
+
+  /* Truhen kaufen – gestaffeltes Layout: drei einfache Truhen in einer Reihe,
+     die seltenste als grosse Hero-Karte darunter. Rarity-Glow je Truhe (--r). */
+  .chest-shop { display: flex; flex-direction: column; gap: 12px; }
+  .chest-buyrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .chest-buy {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+    padding: 14px 8px 12px; border-radius: 16px; color: #fff;
+    background: linear-gradient(180deg, rgba(42,27,78,.75), rgba(20,12,40,.85));
+    border: 1.5px solid color-mix(in srgb, var(--r) 65%, transparent);
+    box-shadow: inset 0 0 16px color-mix(in srgb, var(--r) 12%, transparent),
+                0 4px 14px rgba(0,0,0,.35);
+    transition: transform .12s ease, box-shadow .2s ease, filter .12s ease;
+  }
+  /* weicher Rarity-Schein, der von unten hinter der Truhe aufsteigt */
+  .chest-buy-glow {
+    position: absolute; inset: auto 0 -40% 0; height: 120%; pointer-events: none; z-index: 0;
+    background: radial-gradient(60% 55% at 50% 100%,
+                color-mix(in srgb, var(--r) 55%, transparent), transparent 70%);
+    opacity: .55;
+  }
+  .chest-buy > * { position: relative; z-index: 1; }
+  .chest-buy:hover { transform: translateY(-2px);
+    box-shadow: inset 0 0 20px color-mix(in srgb, var(--r) 20%, transparent),
+                0 6px 20px color-mix(in srgb, var(--r) 30%, transparent); }
   .chest-buy:active { filter: brightness(1.12); transform: translateY(1px); }
   .chest-buy .chest-emoji { font-size: 1.9rem; }
-  .chest-buy .chest-lbl { font-size: .78rem; }
-  .chest-cost { font-weight: 800; font-variant-numeric: tabular-nums; font-size: .85rem; }
+  .chest-buy .chest-lbl { font-size: .82rem; }
+  .chest-img.lg { width: 108px; height: 108px; object-fit: contain;
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,.6)); }
+  .chest-cost { font-weight: 800; font-variant-numeric: tabular-nums; font-size: .9rem; color: var(--gold); }
+
+  /* Hero-Karte für die seltenste Truhe: quer, grösseres Bild, Badge, stärkerer Glow */
+  .chest-buy-hero {
+    flex-direction: row; align-items: center; gap: 14px; text-align: left;
+    padding: 16px 18px; border-width: 2px;
+    border-color: color-mix(in srgb, var(--r) 85%, transparent);
+    background: linear-gradient(110deg, rgba(30,20,58,.85), rgba(18,11,38,.9));
+    box-shadow: inset 0 0 26px color-mix(in srgb, var(--r) 18%, transparent),
+                0 6px 22px color-mix(in srgb, var(--r) 28%, transparent);
+    animation: chestGlow 3.2s ease-in-out infinite;
+  }
+  .chest-buy-hero .chest-buy-glow {
+    inset: 0; height: 100%;
+    background: radial-gradient(50% 80% at 22% 50%,
+                color-mix(in srgb, var(--r) 55%, transparent), transparent 68%);
+    opacity: .6;
+  }
+  .chest-buy-hero .chest-img.lg { flex: 0 0 auto; width: 96px; height: 96px; }
+  .chest-buy-body { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .chest-buy-hero .chest-lbl { font-size: 1.15rem; }
+  .chest-hero-desc { color: rgba(255,255,255,.6); font-size: .74rem; line-height: 1.25; }
+  .chest-buy-hero .chest-cost { font-size: 1.05rem; margin-top: 2px; }
+  .chest-buy-tag {
+    position: absolute; top: 10px; right: 12px; z-index: 2;
+    background: color-mix(in srgb, var(--r) 88%, #fff 12%); color: #1a1033;
+    font-size: .62rem; font-weight: 800; letter-spacing: .4px; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  }
 
   /* Truhen-Öffnen-Modal: VOLLBILD-Erlebnis (Wackeln -> Sprung -> Frames -> Drops) */
   #chest-modal { padding: 0; }
@@ -2116,7 +2198,7 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
   @media (prefers-reduced-motion: reduce) {
-    .chest-tile, .chest-anim.shake .chest-big-img, .chest-anim.shake2 .chest-big-img,
+    .chest-tile, .chest-buy-hero, .chest-anim.shake .chest-big-img, .chest-anim.shake2 .chest-big-img,
     .chest-anim.burst .chest-big-img, .chest-anim.burst .chest-rays,
     .chest-anim.shake2 .chest-rays, .chest-anim.burst .chest-flash,
     .chest-part, .reveal-crystals, .drop-big, .drop-hint, .drop-sum,
@@ -2176,6 +2258,13 @@
     <button class="icon-btn" id="settings-btn" type="button" aria-label="Einstellungen">⚙</button>
   </div>
 </header>
+
+<!-- Hilfe/Einstellungen waehrend des Spiels (fixiert, nur bei aktiver
+     Spielansicht sichtbar; leiten an die echten Kopf-Buttons weiter). -->
+<div id="game-tools">
+  <button class="icon-btn" id="game-help" type="button" aria-label="Hilfe / Regeln">?</button>
+  <button class="icon-btn" id="game-settings" type="button" aria-label="Einstellungen">⚙</button>
+</div>
 
 <main>
   <!-- HOME: erstellen / beitreten -->
@@ -2732,6 +2821,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=167"></script>
+<script type="module" src="./app.js?v=168"></script>
 </body>
 </html>

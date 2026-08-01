@@ -526,6 +526,10 @@ function wireHome() {
   // --- Neue Startseite: Hero-Tippflächen, Aktionskarten, Weiterspielen -----
   const heroHelp = $('#hero-help'); if (heroHelp) heroHelp.onclick = () => $('#help-btn')?.click();
   const heroSet = $('#hero-settings'); if (heroSet) heroSet.onclick = () => $('#settings-btn')?.click();
+  // Gleiches Prinzip im laufenden Spiel: die kleinen Icons reichen den Klick an
+  // die echten Kopf-Buttons weiter, damit Hilfe/Einstellungen (Musik!) erreichbar bleiben.
+  const gameHelp = $('#game-help'); if (gameHelp) gameHelp.onclick = () => $('#help-btn')?.click();
+  const gameSet = $('#game-settings'); if (gameSet) gameSet.onclick = () => $('#settings-btn')?.click();
   $('#act-comp').onclick = () => openLobbyModal('solo-modal');
   $('#act-online').onclick = () => openLobbyModal('online-modal');
   $('#act-join').onclick = () => openLobbyModal('join-modal');
@@ -1144,20 +1148,41 @@ function chestTile(c) {
   </button>`;
 }
 function chestPane() {
-  const daily = `<button class="btn chest-daily-btn" data-claimdaily="1" type="button" style="width:100%"><img class="chest-daily-icon" src="lobby/chest-holz.png?v=2" alt="" loading="lazy"><span>Tägliche Gratis-Truhe holen</span></button>`;
+  const daily = `<button class="btn chest-daily-btn" data-claimdaily="1" type="button" style="width:100%"><img class="chest-daily-icon" src="lobby/chest-silber.png?v=1" alt="" loading="lazy"><span>Tägliche Gratis-Truhe holen</span></button>`;
   const list = chestCache.length
     ? `<div class="chest-grid">${chestCache.map(chestTile).join('')}</div>`
     : `<p class="muted" style="text-align:center;margin:14px 0">Noch keine Truhen. Hol die Tagestruhe oder spiel eine Online-Runde!</p>`;
-  const buy = CHEST_TIERS.map(t => `
+  // Layout mit Hierarchie: die drei einfacheren Truhen als kompakte Karten-Reihe,
+  // die seltenste (letzter Eintrag, diamant) als grosse, hervorgehobene Hero-Karte.
+  const tiers = CHEST_TIERS;
+  const hero = tiers[tiers.length - 1];
+  const rest = tiers.slice(0, -1);
+  const restCards = rest.map(t => `
     <button class="chest-buy" data-buychest="${t.rarity}" type="button" style="--r:${t.color}">
+      <span class="chest-buy-glow" aria-hidden="true"></span>
       <img class="chest-img sm" src="lobby/chest-${t.rarity}.png?v=2" alt="" loading="lazy">
       <span class="chest-lbl">${esc(t.label)}</span>
       <span class="chest-cost">${CRY} ${nf(t.price)}</span>
     </button>`).join('');
+  const heroCard = `
+    <button class="chest-buy chest-buy-hero" data-buychest="${hero.rarity}" type="button" style="--r:${hero.color}">
+      <span class="chest-buy-glow" aria-hidden="true"></span>
+      <span class="chest-buy-tag">Seltenste Truhe</span>
+      <img class="chest-img lg" src="lobby/chest-${hero.rarity}.png?v=2" alt="" loading="lazy">
+      <span class="chest-buy-body">
+        <span class="chest-lbl">${esc(hero.label)}</span>
+        <span class="chest-hero-desc">Beste Chance auf seltene Kosmetik</span>
+        <span class="chest-cost">${CRY} ${nf(hero.price)}</span>
+      </span>
+    </button>`;
   return `<div class="tok-shopstatus">Öffne Truhen für Kristalle – mit Glück ist auch neue Kosmetik drin!</div>
     ${daily}
     <div class="tok-subhead">Deine Truhen</div>${list}
-    <div class="tok-subhead">Truhe kaufen</div><div class="chest-buyrow">${buy}</div>`;
+    <div class="tok-subhead">Truhe kaufen</div>
+    <div class="chest-shop">
+      <div class="chest-buyrow">${restCards}</div>
+      ${heroCard}
+    </div>`;
 }
 
 async function refreshChestList() {
@@ -2825,5 +2850,38 @@ async function init() {
   window.addEventListener('pointerdown', kick, { once: false });
   window.addEventListener('keydown', kick, { once: false });
 }
+
+// Klick-und-Zieh-Scrollen mit der Maus fuer die horizontalen Shop-Reihen
+// (Kategorie-Tabs, Seltenheits-Filter, Paket-Reihen). Der native Scrollbalken
+// ist optisch ausgeblendet (siehe CSS); per Touch wird weiterhin ganz normal
+// nativ gewischt, das hier greift nur bei echter Maus.
+(() => {
+  let dragEl = null, startX = 0, startScroll = 0, moved = false;
+  document.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    const row = e.target.closest('.shopcat-row, .rar-row, .pack-row');
+    if (!row) return;
+    dragEl = row; startX = e.clientX; startScroll = row.scrollLeft; moved = false;
+    row.classList.add('dragscroll');
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!dragEl) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 3) moved = true;
+    dragEl.scrollLeft = startScroll - dx;
+  });
+  const endDrag = () => {
+    if (!dragEl) return;
+    dragEl.classList.remove('dragscroll');
+    if (moved) {
+      const row = dragEl;
+      const suppress = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      row.addEventListener('click', suppress, { capture: true, once: true });
+    }
+    dragEl = null;
+  };
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+})();
 
 init();
