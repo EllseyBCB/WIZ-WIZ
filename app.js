@@ -8,7 +8,7 @@ import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=79';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
-         getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=4';
+         getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=5';
 import { initIAP, purchaseAdFree, purchaseProduct, purchaseConsumable, onConsumable, restorePurchases, iapAvailable, productPrice } from './iap.js?v=6';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, ownedSet, myAvatar,

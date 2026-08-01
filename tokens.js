@@ -56,9 +56,19 @@ export function deriveDailySlots(inventory) {
   return s;
 }
 
+// In-Memory-Spiegel: haelt den Stand auch, wenn localStorage nicht schreibbar
+// ist (Safari-Privatmodus / WKWebView ohne persistenten Speicher / ITP-Loeschung).
+// Ohne diesen Spiegel schluckt save() den Schreibfehler und load() rechnet bei
+// JEDEM Lesen wieder den Tages-Default (1) aus -> ein gekauftes Notizblock-Paket
+// zieht serverseitig Kristalle ab, die Zahl auf der Startseite bleibt aber bei 1.
+let mem = null;
+
 function load() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(LS_TOKENS)); } catch (_) {}
+  // localStorage leer/kaputt -> auf den In-Memory-Spiegel zurueckgreifen, damit
+  // ein fehlgeschlagener Schreibversuch nicht jede Gutschrift wieder verwirft.
+  if ((!s || typeof s.n !== 'number') && mem && typeof mem.n === 'number') s = mem;
   if (!s || typeof s.n !== 'number' || s.day !== today()) {
     // Neuer Tag: mind. auf die Tages-Slots auffuellen, gekaufte Extra-Pakete
     // aber NICHT wegwerfen (max), und der Gratis-Grant ueberfuellt nicht.
@@ -66,9 +76,13 @@ function load() {
     s = { n: Math.max(prev, getDailySlots()), day: today() };
     save(s);
   }
+  mem = s;
   return s;
 }
-function save(s) { try { localStorage.setItem(LS_TOKENS, JSON.stringify(s)); } catch (_) {} }
+function save(s) {
+  mem = s;   // Spiegel immer aktuell halten, auch wenn das Schreiben scheitert.
+  try { localStorage.setItem(LS_TOKENS, JSON.stringify(s)); } catch (_) {}
+}
 function notify() { try { window.dispatchEvent(new Event('wiz-tokens-changed')); } catch (_) {} }
 
 export function getTokens() { return load().n; }
