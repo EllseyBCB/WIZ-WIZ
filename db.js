@@ -3,6 +3,14 @@
 // Update durch den CDN). Bei Bedarf bewusst hochziehen und testen.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
+import { isNameBlocked, NAME_REJECTED_MSG } from './moderation.js?v=1';
+
+// Wirft, wenn ein Spielername einen gesperrten Begriff enthaelt. Zentrale
+// Sperre: alle Namens-schreibenden RPCs laufen hier durch, damit der Filter
+// nicht ueber die UI umgangen werden kann.
+function assertNameOk(name) {
+  if (name != null && isNameBlocked(name)) throw new Error(NAME_REJECTED_MSG);
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
@@ -149,10 +157,10 @@ async function rpc(fn, args) {
 }
 
 export const createGame  = (name, max = 6, cards = null, turn = 20) =>
-  rpc('wizard_create_game', { p_name: name, p_max: max, p_cards: cards, p_turn: turn });
-export const joinGame    = (code, name)      => rpc('wizard_join_game',   { p_code: code, p_name: name });
+  (assertNameOk(name), rpc('wizard_create_game', { p_name: name, p_max: max, p_cards: cards, p_turn: turn }));
+export const joinGame    = (code, name)      => (assertNameOk(name), rpc('wizard_join_game',   { p_code: code, p_name: name }));
 // Schnelle Runde (Matchmaking): offener Lobby beitreten oder neue eroeffnen.
-export const quickMatch  = (name)            => rpc('wizard_quick_match', { p_name: name });
+export const quickMatch  = (name)            => (assertNameOk(name), rpc('wizard_quick_match', { p_name: name }));
 export const quickStart  = (gameId)          => rpc('wizard_quick_start', { p_game: gameId });
 export const quickPing   = (gameId)          => rpc('wizard_quick_ping',  { p_game: gameId });
 export const leaveGame   = (gameId)          => rpc('wizard_leave_game',  { p_game: gameId });
@@ -171,6 +179,13 @@ export const autoAct     = (gameId)          => rpc('wizard_auto_act',    { p_ga
 export const pauseGame   = (gameId, on)      => rpc('wizard_pause_game',  { p_game: gameId, p_on: !!on });
 // Kristall-Paket nach StoreKit-Kauf gutschreiben (Transaktions-Dedupe im Server).
 export const grantIapPack = (productId, tx)  => rpc('wizard_grant_iap_pack', { p_product_id: productId, p_tx: tx });
+// Magier-Bundle: nach dem Kauf (oder beim Wiederherstellen) die Bundle-Kosmetik
+// ins Server-Inventar eintragen. Idempotent -> gefahrlos mehrfach aufrufbar.
+// Liefert { ok, granted, items, message }.
+export async function grantBundle(bundle = 'magier') {
+  const rows = await rpc('wizard_grant_bundle', { p_bundle: bundle });
+  return rows?.[0] || { ok: false, granted: 0, items: [], message: 'Fehler' };
+}
 
 // --- Wirtschaft (Kristalle/Gold, serverseitig) -----------------------------
 // Guthaben + Inventar holen. Liefert { crystals, gold, inventory:[item_id,...] }.
@@ -218,7 +233,7 @@ export async function buyChest(rarity) {
 
 // --- Profil / Freunde / Verlauf -------------------------------------------
 export const upsertProfile = (name, avatar) =>
-  rpc('wizard_upsert_profile', { p_name: name ?? null, p_avatar: avatar ?? null });
+  (assertNameOk(name), rpc('wizard_upsert_profile', { p_name: name ?? null, p_avatar: avatar ?? null }));
 
 // Eigenes Profilbild hochladen (in den eigenen uid-Ordner) und oeffentliche
 // URL zurueckgeben. blob = bereits zugeschnittenes JPEG.

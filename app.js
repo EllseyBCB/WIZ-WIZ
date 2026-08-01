@@ -2,6 +2,7 @@
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
 import { render } from './game.js?v=90';
+import { isNameBlocked, NAME_REJECTED_MSG } from './moderation.js?v=1';
 import { gameAssetUrls, timerMarkup, setTimerFace, flashTurnSecond, hideTurnFlash } from './table.js?v=83';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=79';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
@@ -10,7 +11,7 @@ import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest
          getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=4';
 import { initIAP, purchaseAdFree, purchaseProduct, purchaseConsumable, onConsumable, restorePurchases, iapAvailable, productPrice } from './iap.js?v=6';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
-         isDevUnlock, grantOwned, myAvatar,
+         isDevUnlock, grantOwned, ownedSet, myAvatar,
          getTableTheme, setTableTheme, applyTableTheme, setTableBg, getTableBg,
          setCardDeck, getCardDeck,
          setCardBack, getCardBack, applyCardBack,
@@ -46,7 +47,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=14'));
+const db = async () => (DB ||= await import('./db.js?v=15'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -65,6 +66,31 @@ const actions = {
   // rufen gleichzeitig; der Server behandelt Doppel-Aufrufe als stille No-Ops.
   onQuickStart: async () => {
     try { await (await db()).quickStart(state.gameId); await reloadAll(); } catch (_) {}
+  },
+  // Schnelle Runde: nach Ablauf der Wartezeit ohne genug echte Mitspieler die
+  // freien Plaetze mit Bots auffuellen und starten. Nur der Host darf Bots setzen
+  // und starten (Server erzwingt das); auf anderen Clients laufen die Aufrufe ins
+  // Leere (guarded faengt die Exception) – der Host treibt es voran. Nutzt die
+  // bestehende Bot-Infrastruktur (wizard_add_bot / wizard_start_game).
+  onBotFill: async () => {
+    const g = state.game;
+    if (!g || g.status !== 'lobby' || !g.is_quick) return;
+    if (g.host_uid !== state.uid) return;      // nur der Host fuellt auf
+    try {
+      const m = await db();
+      const target = g.max_players || 4;       // volles Tisch (1 Mensch + Bots)
+      let have = state.players.length;
+      while (have < target) {
+        await m.addBot(state.gameId);          // host-only, nur Lobby (Server prueft)
+        have++;
+      }
+      toast('Kein Mitspieler gefunden – du spielst gegen Computer-Gegner.', 'info');
+      await m.startGame(state.gameId);          // 3–6 Spieler -> startet die Runde
+      await reloadAll();
+    } catch (e) {
+      // Rennen mit echten Beitritten / Doppelaufrufen ist unschaedlich: bei
+      // Fehlern still bleiben, der naechste Reload zeigt den echten Stand.
+    }
   },
   onLeave:  () => guarded(async (m) => { maybeRefundLobbyToken(); await m.leaveGame(state.gameId); goHome(); }),
   // Warteraum: Bot-Mitspieler hinzufuegen/entfernen (nur Host).
@@ -486,11 +512,35 @@ async function loadHomeStats() {
   } catch (_) { g.textContent = '0'; w.textContent = '0'; r.textContent = '0%'; }
 }
 
+// Ein Namensfeld sichtbar als (un)zulaessig markieren – sofortiges Feedback.
+function markNameField(el, blocked) {
+  if (!el) return;
+  el.style.outline = blocked ? '2px solid #e23' : '';
+  el.title = blocked ? NAME_REJECTED_MSG : '';
+  el.setAttribute('aria-invalid', blocked ? 'true' : 'false');
+}
+
+// Vor Erstellen/Beitreten/Schneller Runde: gesperrten Namen client-seitig
+// abfangen, statt erst per Server-Fehler nach einem sinnlosen Roundtrip.
+function blockIfNameInvalid(name, el) {
+  if (!isNameBlocked(name)) return false;
+  markNameField(el, true);
+  toast(NAME_REJECTED_MSG, 'err');
+  return true;
+}
+
 // --- Home-Formular ---------------------------------------------------------
 function wireHome() {
   const nameInput = $('#name-input');
   nameInput.value = localStorage.getItem(LS_NAME) || '';
-  nameInput.addEventListener('input', () => localStorage.setItem(LS_NAME, nameInput.value.trim()));
+  nameInput.addEventListener('input', () => {
+    const v = nameInput.value.trim();
+    if (isNameBlocked(v)) { markNameField(nameInput, true); return; }  // gesperrten Namen nicht speichern
+    markNameField(nameInput, false);
+    localStorage.setItem(LS_NAME, v);
+  });
+  const unameLive = $('#username-input');
+  if (unameLive) unameLive.addEventListener('input', () => markNameField(unameLive, isNameBlocked(unameLive.value.trim())));
 
   // Kopf-Icons + Tab-Leiste (rein gestalterisch / Hilfe-Overlay).
   const helpModal = document.getElementById('help-modal');
@@ -537,6 +587,7 @@ function wireHome() {
   $('#act-quick').onclick = async () => {
     const name = nameInput.value.trim();
     if (!name) { toast('Bitte Namen eingeben', 'err'); return; }
+    if (blockIfNameInvalid(name, nameInput)) return;
     const m = await ensureOnline();
     if (!m) return;
     m.upsertProfile(name).catch(() => {});
@@ -631,6 +682,7 @@ function wireHome() {
   $('#create-btn').onclick = async () => {
     const name = nameInput.value.trim();
     if (!name) { toast('Bitte Namen eingeben', 'err'); return; }
+    if (blockIfNameInvalid(name, nameInput)) return;
     const m = await ensureOnline();
     if (!m) return;
     m.upsertProfile(name).catch(() => {});   // Profilname fuer die Freundesliste pflegen
@@ -657,6 +709,7 @@ function wireHome() {
     const code = $('#code-input').value.trim().toUpperCase();
     if (!name) { toast('Bitte Namen eingeben', 'err'); return; }
     if (!code) { toast('Bitte Code eingeben', 'err'); return; }
+    if (blockIfNameInvalid(name, nameInput)) return;
     const m = await ensureOnline();
     if (!m) return;
     m.upsertProfile(name).catch(() => {});   // Profilname fuer die Freundesliste pflegen
@@ -1156,7 +1209,7 @@ function chestTile(c) {
 //   * public.wizard_open_chest  -> Anzahl Belohnungen (Drops) je Truhe:
 //        holz 2, silber 3, gold 4, diamant 5   (max. 2 Kosmetik-Items je Truhe)
 //   * public._wiz_roll_drop     -> je Belohnung:
-//        Item-Chance: holz 2,5% · silber 5% · gold 9% · diamant 15%
+//        Item-Chance: holz 4% · silber 9% · gold 15% · diamant 24%
 //        Kein Item -> 60% Kristalle / 40% Gold
 //        Kristallmengen je Belohnung (Spanne über alle Stufen):
 //           holz 6–160 · silber 12–350 · gold 20–700 · diamant 40–1200
@@ -1167,11 +1220,19 @@ function chestTile(c) {
 // Wird eine dieser Funktionen serverseitig geändert, MÜSSEN die Werte hier
 // (CHEST_ODDS) mitgezogen werden – sonst zeigt der Store falsche Chancen an.
 // Die "Chance auf ≥1 Kosmetik je Truhe" ist rechnerisch 1-(1-itemPct)^drops.
+//
+// ⚠️ NEUE, VERBESSERTE WERTE (Aug 2026): die Item-Chancen wurden angehoben,
+// damit sich ein Truhen-Kauf lohnender anfuehlt (v. a. die Diamanttruhe: ~74,6 %
+// statt 55,6 % Chance auf ≥1 Kosmetik). Diese Zahlen stimmen ERST, wenn die neue
+// Migration supabase/wizard_chest_odds_boost.sql live deployed ist. Bis dahin
+// zeigt der Store die neuen Chancen, der Server wuerfelt aber noch die alten
+// (holz 2,5 / silber 5 / gold 9 / diamant 15). Also: Migration deployen, dann
+// stimmen Anzeige und Server wieder ueberein.
 const CHEST_ODDS = [
-  { rarity: 'holz',    drops: 2, itemPct: 2.5, cosmeticChest: 4.9,  cr: '6 – 160',   go: '10 – 30'  },
-  { rarity: 'silber',  drops: 3, itemPct: 5,   cosmeticChest: 14.3, cr: '12 – 350',  go: '20 – 60'  },
-  { rarity: 'gold',    drops: 4, itemPct: 9,   cosmeticChest: 31.4, cr: '20 – 700',  go: '40 – 120' },
-  { rarity: 'diamant', drops: 5, itemPct: 15,  cosmeticChest: 55.6, cr: '40 – 1200', go: '80 – 240' },
+  { rarity: 'holz',    drops: 2, itemPct: 4,  cosmeticChest: 7.8,  cr: '6 – 160',   go: '10 – 30'  },
+  { rarity: 'silber',  drops: 3, itemPct: 9,  cosmeticChest: 24.6, cr: '12 – 350',  go: '20 – 60'  },
+  { rarity: 'gold',    drops: 4, itemPct: 15, cosmeticChest: 47.8, cr: '20 – 700',  go: '40 – 120' },
+  { rarity: 'diamant', drops: 5, itemPct: 24, cosmeticChest: 74.6, cr: '40 – 1200', go: '80 – 240' },
 ];
 // Prozent hübsch formatieren (max. 1 Nachkommastelle, deutsches Komma).
 function pctFmt(n) { return (Math.round(n * 10) / 10).toString().replace('.', ',') + ' %'; }
@@ -1825,6 +1886,29 @@ function shopTableCard(item, current) {
   </div>`;
 }
 
+// Magier-Bundle: die im Kristall-Shop verkauften NEUEN Kosmetika (SHOP_SECTIONS)
+// haengen am Server-Inventar (wizard_inventory). Der Bundle-Kauf laeuft aber rein
+// lokal ueber StoreKit -> ohne diesen Server-Call bekaeme der Kaeufer die neuen
+// Kosmetika nicht. wizard_grant_bundle ist idempotent, darum pro Sitzung nur
+// einmal noetig (force=true erzwingt es direkt nach dem Kauf). Braucht die neue
+// Migration supabase/wizard_grant_bundle.sql (sonst RPC unbekannt -> stiller
+// Fehler, kein Absturz).
+let bundleSynced = false;
+async function syncBundleGrant(force = false) {
+  if (bundleSynced && !force) return;
+  if (!ownedSet().has(SHOP_BUNDLE.entitlement)) return;   // Bundle nicht im Besitz
+  try {
+    const m = await ensureOnline();
+    if (!m || typeof m.grantBundle !== 'function') return;
+    const r = await m.grantBundle('magier');
+    if (r?.ok) {
+      bundleSynced = true;
+      if (document.getElementById('pane-shop')?.classList.contains('active')) loadShop();
+      refreshAvatarPicker();
+    }
+  } catch (_) { /* offline / RPC noch nicht deployed -> beim naechsten Start erneut */ }
+}
+
 async function buyShopItem(id) {
   const item = id === SHOP_ADFREE.id ? SHOP_ADFREE
             : id === SHOP_BUNDLE.id ? SHOP_BUNDLE
@@ -1843,6 +1927,9 @@ async function buyShopItem(id) {
   const r = await purchaseProduct(item.productId);
   if (r.ok) {
     if (item.type === 'adfree' || item.type === 'bundle') hideBanner();
+    // Magier-Bundle: die neuen Kristall-Shop-Kosmetika haengen am Server-Inventar,
+    // nicht am lokalen StoreKit-Entitlement -> nach dem Kauf serverseitig eintragen.
+    if (item.type === 'bundle') await syncBundleGrant(true);
     loadShop(); refreshAvatarPicker();
     toast('Freigeschaltet – danke! 🎉', 'ok');
   } else if (!r.cancelled) {
@@ -2881,6 +2968,10 @@ async function init() {
   // den Shop neu rendern (falls gerade offen) -> echte Preise erscheinen live.
   window.addEventListener('iap-updated', () => {
     if (document.getElementById('pane-shop')?.classList.contains('active')) loadShop();
+    // Besitzt der Nutzer das Magier-Bundle (z. B. nach "Kauf wiederherstellen"
+    // oder auf einem neuen Geraet), die Bundle-Kosmetik ins Server-Inventar
+    // spiegeln. Idempotent, pro Sitzung nur einmal (siehe syncBundleGrant).
+    syncBundleGrant();
   });
 
   // Inhaber-Konto (eingeloggt) ggf. komplett freischalten.
