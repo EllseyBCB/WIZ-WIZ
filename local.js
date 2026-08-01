@@ -2,7 +2,8 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=5';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=4';
-import { render } from './game.js?v=88';
+import { render } from './game.js?v=89';
+import { timerMarkup, setTimerFace } from './table.js?v=81';
 import { showScreen, toast, esc, showYourTurn } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxTurn, sfxDeal, haptic } from './audio.js?v=5';
 import { showBanner, hideBanner, preGameAd, midGameAd } from './ads.js?v=8';
@@ -48,14 +49,19 @@ async function soloTimerTick() {
   const key = [G.roundNo, G.trickNo, G.phase, G.trick.length].join(':');
   if (key !== turnKey) { turnKey = key; turnDeadline = Date.now() + TURN * 1000; }
   let el = document.getElementById('turn-timer');
-  if (!el) { el = document.createElement('div'); el.id = 'turn-timer'; document.body.appendChild(el); }
-  const left = Math.ceil((turnDeadline - Date.now()) / 1000);
+  if (!el) {
+    el = document.createElement('div'); el.id = 'turn-timer';
+    el.innerHTML = timerMarkup();                       // magischer Ring (SVG)
+    document.body.appendChild(el);
+  }
+  const leftMs = turnDeadline - Date.now();
+  const left = Math.ceil(leftMs / 1000);
   if (left > 0) {
-    el.textContent = `⏱ ${left}`;
+    setTimerFace(el, left, leftMs / (TURN * 1000));
     el.classList.toggle('urgent', left <= 5);
     return;
   }
-  el.textContent = '⏱ 0';
+  setTimerFace(el, 0, 0);
   el.classList.add('urgent');
   if (autoBusy) return;
   autoBusy = true;

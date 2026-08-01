@@ -187,6 +187,37 @@ function computeSeatLayout(players, mySeat) {
   others.forEach((p, i) => layout.push({ player: p, pos: slots[i] || { t: 9, l: 50 }, isMe: false }));
   return layout;
 }
+// --- Zug-Timer-Optik (magischer Ring) ---------------------------------------
+// Gemeinsame "Uhr" fuer Online (app.js) und Solo (local.js): ein schrumpfender
+// Zauberkreis (SVG) mit der Restzeit in der Mitte. Die Show/Hide-Logik bleibt
+// in den Aufrufern – hier gibt es nur Aufbau + Aktualisierung des Gesichts.
+const TT_R = 26;                          // Radius des Fortschritts-Rings
+const TT_CIRC = 2 * Math.PI * TT_R;       // sein Umfang (fuer stroke-dashoffset)
+export function timerMarkup() {
+  return `
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="tt-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#a78bfa"/>
+          <stop offset="1" stop-color="#e9c873"/>
+        </linearGradient>
+      </defs>
+      <circle class="tt-orbit" cx="32" cy="32" r="30"/>
+      <circle class="tt-track" cx="32" cy="32" r="${TT_R}"/>
+      <circle class="tt-ring" cx="32" cy="32" r="${TT_R}"
+        stroke-dasharray="${TT_CIRC.toFixed(2)}" stroke-dashoffset="0"/>
+    </svg>
+    <span class="tt-num">–</span>`;
+}
+// Ziffer + Ringfuellung setzen (frac = Restanteil 0..1).
+export function setTimerFace(el, text, frac) {
+  if (!el.querySelector('.tt-ring')) el.innerHTML = timerMarkup();
+  const num = el.querySelector('.tt-num');
+  if (num.textContent !== String(text)) num.textContent = text;
+  const f = Math.max(0, Math.min(1, frac));
+  el.querySelector('.tt-ring').style.strokeDashoffset = (TT_CIRC * (1 - f)).toFixed(1);
+}
+
 function bindResize() {
   if (resizeBound) return;
   resizeBound = true;
@@ -237,6 +268,7 @@ function bindLockCleanup() {
       // Merker zuruecksetzen: Ein NEUES Spiel (Solo hat denselben Schluessel
       // 'solo|1|…') soll wieder mit Ladebildschirm + Austeil-Animation starten.
       lastDealKey = null; loaderDoneKey = null;
+      lastAutoBidKey = null;   // neues Spiel -> Ansage-Fenster wieder automatisch oeffnen
       lastFanEl = null; lastFanItems = []; lastFanCodes = [];   // keinen alten Faecher behalten
       document.getElementById('gameover-modal')?.remove();   // Endstand-Overlay weg
     }
@@ -356,6 +388,10 @@ export function renderTable(root, state, actions) {
   if (dealCoverActive && Date.now() >= dealRevealStart + 6000) {
     dealCoverActive = false; stripCovers();
   }
+
+  // Bin ich mit Reizen dran? -> Ansage-Fenster automatisch oeffnen (einmal je
+  // eigener Bieterunde; ein manuell geschlossenes Fenster bleibt zu).
+  maybeAutoOpenBid(state, actions, mySeat);
 
   // Waehrend der Austeil-Animation: noch nicht abgeflogene Handkarten an der
   // Tischmitte platzieren (die Karten selbst fliegen -> Landeplatz exakt).
@@ -879,7 +915,7 @@ function buildAction(state, actions, mySeat) {
     return mySeat === game.dealer_seat ? trumpPicker(actions) : hint('Der Geber wählt den Trumpf …');
   }
   if (game.phase === 'bidding') {
-    return myTurn ? bidOpenButton(game, players, actions)
+    return myTurn ? bidOpenButton(game, players, actions, mySeat)
                   : hint('Warte auf das Gebot von ' + nameOfSeat(players, game.current_seat) + ' …');
   }
   if (game.phase === 'playing') {
@@ -916,19 +952,53 @@ function forbiddenBidUI(game, players) {
 }
 
 // Schmaler, themengerechter Button -> oeffnet das Gebots-Modal.
-function bidOpenButton(game, players, actions) {
+// Bleibt als Fallback, falls das automatisch geoeffnete Fenster wieder
+// geschlossen wurde.
+function bidOpenButton(game, players, actions, mySeat) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn bid-open-btn';
   btn.setAttribute('aria-label', 'Stiche ansagen');   // Text ist Teil der Grafik
-  btn.onclick = () => openBidModal(game, players, actions);
+  btn.onclick = () => openBidModal(game, players, actions, mySeat);
   return btn;
+}
+
+// Laeuft gerade Ladebildschirm oder Austeil-Animation? Dann das automatische
+// Ansage-Fenster noch zurueckhalten.
+function dealBusy() {
+  return !!(loaderKey || dealPendingKey || dealFlight || dealCoverActive || Date.now() < dealEndsAt);
+}
+
+// Ansage-Fenster automatisch oeffnen, sobald man selbst mit Reizen dran ist.
+// Gleiches Dedupe-Prinzip wie Zug-Timer/Bot-Trigger: bei jedem Render erneut
+// aufgerufen, reagiert aber nur EINMAL je neuer eigener Bieterunde – ein von
+// Hand geschlossenes Fenster reisst ein Re-Render also nicht wieder auf.
+// (Liegt hier statt in app.js, damit es auch im Solo-Modus greift, der nicht
+// ueber reloadAll laeuft, sondern direkt rendert.)
+let lastAutoBidKey = null;
+function maybeAutoOpenBid(state, actions, mySeat) {
+  const { game } = state;
+  if (!game || game.status !== 'running' || game.phase !== 'bidding') { lastAutoBidKey = null; return; }
+  if (mySeat < 0 || game.current_seat !== mySeat || game.paused_by) return;
+  const key = [game.join_code || 'solo', game.round_no, mySeat].join(':');
+  if (key === lastAutoBidKey) return;
+  lastAutoBidKey = key;
+  if (document.getElementById('bid-modal')) return;   // schon (manuell) offen
+  const tryOpen = () => {
+    // Zustand kann sich inzwischen geaendert haben (Zeitablauf-Autozug o. Ae.).
+    const s = lastState;
+    const g = s?.game;
+    if (!g || g.status !== 'running' || g.phase !== 'bidding' || g.current_seat !== mySeat || g.paused_by) return;
+    if (dealBusy()) { setTimeout(tryOpen, 300); return; }   // erst NACH dem Austeilen
+    if (!document.getElementById('bid-modal')) openBidModal(g, s.players, actions, mySeat);
+  };
+  tryOpen();
 }
 
 function closeBidModal() { const e = document.getElementById('bid-modal'); if (e) e.remove(); }
 
 // Gebots-Fenster im Pergament-Design (zentriert, ueberlagert nichts dauerhaft).
-function openBidModal(game, players, actions) {
+export function openBidModal(game, players, actions, mySeat = -1) {
   closeBidModal();
   const ov = document.createElement('div');
   ov.className = 'modal bid-modal';
@@ -951,6 +1021,25 @@ function openBidModal(game, players, actions) {
     card.insertAdjacentHTML('beforeend',
       `<p class="bid-forbidden">Als letzte:r Bietende:r nicht <b>${forbidden}</b> – die Summe der Ansagen darf nicht der Stichzahl entsprechen.</p>`);
   }
+
+  // Uebersicht "Stiche": wer hat schon wie viel angesagt (– = noch offen),
+  // jeweils im Verhaeltnis zur Kartenzahl dieser Runde. Reihenfolge = Ansage-
+  // Reihenfolge (links vom Geber beginnend).
+  const n = game.num_players || players.length;
+  const over = document.createElement('div');
+  over.className = 'bid-over';
+  for (let i = 0; i < n; i++) {
+    const seat = ((game.dealer_seat ?? 0) + 1 + i) % n;
+    const p = players.find(x => x.seat === seat);
+    if (!p) continue;
+    const chip = document.createElement('span');
+    chip.className = 'bid-over-chip' + (seat === mySeat ? ' me' : '');
+    chip.innerHTML = `<b>${esc(seat === mySeat ? 'Du' : p.name)}:</b> ` +
+      `${p.bid == null ? '–' : p.bid}&nbsp;/&nbsp;${game.cards_this_round}`;
+    over.appendChild(chip);
+  }
+  card.insertAdjacentHTML('beforeend', '<p class="bid-over-title">Angesagte Stiche</p>');
+  card.appendChild(over);
 
   const row = document.createElement('div');
   row.className = 'row bid-row';

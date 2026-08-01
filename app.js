@@ -1,9 +1,9 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=88';
-import { gameAssetUrls } from './table.js?v=80';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=77';
+import { render } from './game.js?v=89';
+import { gameAssetUrls, timerMarkup, setTimerFace } from './table.js?v=81';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=78';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -205,14 +205,20 @@ function updateTurnTimer(game) {
     && ['trumpselect', 'bidding', 'playing'].includes(game.phase);
   if (!active) { hideTurnTimer(); return; }
   let el = document.getElementById('turn-timer');
-  if (!el) { el = document.createElement('div'); el.id = 'turn-timer'; document.body.appendChild(el); }
+  if (!el) {
+    el = document.createElement('div'); el.id = 'turn-timer';
+    el.innerHTML = timerMarkup();                       // magischer Ring (SVG)
+    document.body.appendChild(el);
+  }
   if (game.paused_by) {
-    el.textContent = '⏸ Pausiert';
+    setTimerFace(el, '⏸', 1);
+    el.classList.add('paused');
     el.classList.remove('urgent');
     lastTurnKey = 'paused';
     clearInterval(turnTimerInt); turnTimerInt = null;
     return;
   }
+  el.classList.remove('paused');
   const seat = game.phase === 'trumpselect' ? game.dealer_seat : game.current_seat;
   const key = [game.round_no, game.trick_no, game.phase, seat, state.trick.length].join(':');
   if (key !== lastTurnKey) {
@@ -227,12 +233,14 @@ async function tickTurnTimer() {
   const game = state.game;
   if (!el || !game || !state.gameId) { hideTurnTimer(); return; }
   if (game.paused_by) return;
-  const left = Math.ceil((turnDeadline - Date.now()) / 1000);
+  const totalMs = (game.turn_seconds || 20) * 1000;
+  const leftMs = turnDeadline - Date.now();
+  const left = Math.ceil(leftMs / 1000);
   if (left > 0) {
-    el.textContent = `⏱ ${left}`;
+    setTimerFace(el, left, leftMs / totalMs);
     el.classList.toggle('urgent', left <= 5);
   } else {
-    el.textContent = '⏱ 0';
+    setTimerFace(el, 0, 0);
     el.classList.add('urgent');
     if (!autoActBusy) {
       autoActBusy = true;
