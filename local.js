@@ -2,8 +2,8 @@
 // Verbindet engine.js + ai.js mit der vorhandenen Render-Logik (game.js).
 import { newGame, chooseTrump, placeBid, playCard, legalCards, forbiddenBid } from './engine.js?v=5';
 import { botBid, botChooseTrump, botCard } from './ai.js?v=4';
-import { render } from './game.js?v=89';
-import { timerMarkup, setTimerFace } from './table.js?v=81';
+import { render } from './game.js?v=90';
+import { timerMarkup, setTimerFace, flashTurnSecond, hideTurnFlash } from './table.js?v=83';
 import { showScreen, toast, esc, showYourTurn } from './ui.js?v=2';
 import { sfxCard, sfxBid, sfxTrick, sfxTurn, sfxDeal, haptic } from './audio.js?v=5';
 import { showBanner, hideBanner, preGameAd, midGameAd } from './ads.js?v=8';
@@ -29,9 +29,11 @@ const LS_SOLO = 'wizard_solo_save';
 // MENSCH am Zug ist; nach Ablauf reizt/spielt die Bot-KI fuer ihn. Beim
 // Pausieren/Verlassen verschwindet die Pille, die Zeit startet danach neu.
 let turnInt = null, turnDeadline = 0, turnKey = null, autoBusy = false;
+let lastFlashedSecond = 0;    // welche Endsekunde (3/2/1) schon gross geblitzt hat
 function hideSoloTimer() {
   document.getElementById('turn-timer')?.remove();
-  clearInterval(turnInt); turnInt = null; turnKey = null;
+  hideTurnFlash();
+  clearInterval(turnInt); turnInt = null; turnKey = null; lastFlashedSecond = 0;
 }
 function watchSoloTimer() {
   if (!TURN) return;
@@ -43,11 +45,13 @@ async function soloTimerTick() {
   const actor = active ? (G.phase === 'trumpselect' ? G.dealerSeat : G.currentSeat) : -1;
   if (!active || actor !== 0 || !['trumpselect', 'bidding', 'playing'].includes(G.phase)) {
     document.getElementById('turn-timer')?.remove();
+    hideTurnFlash();
     turnKey = null;
+    lastFlashedSecond = 0;
     return;
   }
   const key = [G.roundNo, G.trickNo, G.phase, G.trick.length].join(':');
-  if (key !== turnKey) { turnKey = key; turnDeadline = Date.now() + TURN * 1000; }
+  if (key !== turnKey) { turnKey = key; turnDeadline = Date.now() + TURN * 1000; lastFlashedSecond = 0; }
   let el = document.getElementById('turn-timer');
   if (!el) {
     el = document.createElement('div'); el.id = 'turn-timer';
@@ -59,6 +63,12 @@ async function soloTimerTick() {
   if (left > 0) {
     setTimerFace(el, left, leftMs / (TURN * 1000));
     el.classList.toggle('urgent', left <= 5);
+    // Letzte 3 Sekunden: grosse rote Zahl in der Bildschirmmitte – genau
+    // einmal pro Sekundenwechsel, nicht bei jedem 250-ms-Tick.
+    if (left <= 3 && left !== lastFlashedSecond) {
+      lastFlashedSecond = left;
+      flashTurnSecond(left);
+    }
     return;
   }
   setTimerFace(el, 0, 0);

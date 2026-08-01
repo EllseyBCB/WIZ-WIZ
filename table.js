@@ -217,6 +217,26 @@ export function setTimerFace(el, text, frac) {
   const f = Math.max(0, Math.min(1, frac));
   el.querySelector('.tt-ring').style.strokeDashoffset = (TT_CIRC * (1 - f)).toFixed(1);
 }
+// Grosse rote Blitz-Zahl in der Bildschirmmitte fuer die letzten Sekunden
+// (3, 2, 1) – damit der Ablauf der Zugzeit unmoeglich zu uebersehen ist.
+// Eigenes Element #turn-flash (NICHT #trick-banner, das ist fuer Stich-/
+// "Du bist dran"-Meldungen reserviert). Jeder Aufruf ersetzt den Knoten
+// komplett, damit die CSS-Animation pro Sekunde sauber neu startet; nach
+// ~0,7 s raeumt ein Timer von selbst auf (kuerzer als eine Sekunde, also
+// kein Dauerbild). Aufrufer: app.js (online) und local.js (solo).
+let turnFlashTimer = null;
+export function flashTurnSecond(sec) {
+  hideTurnFlash();
+  const el = document.createElement('div');
+  el.id = 'turn-flash';
+  el.textContent = String(sec);
+  document.body.appendChild(el);
+  turnFlashTimer = setTimeout(hideTurnFlash, 700);
+}
+export function hideTurnFlash() {
+  clearTimeout(turnFlashTimer); turnFlashTimer = null;
+  document.getElementById('turn-flash')?.remove();
+}
 
 function bindResize() {
   if (resizeBound) return;

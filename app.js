@@ -1,9 +1,9 @@
 // Einstieg: Routing, Solo-Modus, Online-Aktionen -> RPCs, Realtime -> Re-Render.
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
-import { render } from './game.js?v=89';
-import { gameAssetUrls, timerMarkup, setTimerFace } from './table.js?v=82';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=78';
+import { render } from './game.js?v=90';
+import { gameAssetUrls, timerMarkup, setTimerFace, flashTurnSecond, hideTurnFlash } from './table.js?v=83';
+import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=79';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -195,9 +195,12 @@ function maybeDriveBot(game) {
 // Pruefung macht der Server (updated_at >= 20 s), der Aufruf ist also
 // gefahrlos. Bei Pause (game.paused_by) steht die Uhr fuer alle.
 let turnDeadline = 0, turnTimerInt = null, lastTurnKey = null, autoActBusy = false;
+let lastFlashedSecond = 0;    // welche Endsekunde (3/2/1) schon gross geblitzt hat
 function hideTurnTimer() {
   document.getElementById('turn-timer')?.remove();
   lastTurnKey = null;
+  lastFlashedSecond = 0;
+  hideTurnFlash();
   clearInterval(turnTimerInt); turnTimerInt = null;
 }
 function updateTurnTimer(game) {
@@ -224,6 +227,7 @@ function updateTurnTimer(game) {
   if (key !== lastTurnKey) {
     lastTurnKey = key;
     turnDeadline = Date.now() + (game.turn_seconds || 20) * 1000;   // eingestellte Zugzeit
+    lastFlashedSecond = 0;                                          // neuer Zug -> Blitz frisch
   }
   if (!turnTimerInt) turnTimerInt = setInterval(tickTurnTimer, 250);
   tickTurnTimer();
@@ -239,6 +243,12 @@ async function tickTurnTimer() {
   if (left > 0) {
     setTimerFace(el, left, leftMs / totalMs);
     el.classList.toggle('urgent', left <= 5);
+    // Letzte 3 Sekunden: grosse rote Zahl in der Bildschirmmitte – genau
+    // einmal pro Sekundenwechsel, nicht bei jedem 250-ms-Tick.
+    if (left <= 3 && left !== lastFlashedSecond) {
+      lastFlashedSecond = left;
+      flashTurnSecond(left);
+    }
   } else {
     setTimerFace(el, 0, 0);
     el.classList.add('urgent');
@@ -1134,7 +1144,7 @@ function chestTile(c) {
   </button>`;
 }
 function chestPane() {
-  const daily = `<button class="btn" data-claimdaily="1" type="button" style="width:100%">🎁 Tägliche Gratis-Truhe holen</button>`;
+  const daily = `<button class="btn chest-daily-btn" data-claimdaily="1" type="button" style="width:100%"><img class="chest-daily-icon" src="lobby/chest-holz.png?v=2" alt="" loading="lazy"><span>Tägliche Gratis-Truhe holen</span></button>`;
   const list = chestCache.length
     ? `<div class="chest-grid">${chestCache.map(chestTile).join('')}</div>`
     : `<p class="muted" style="text-align:center;margin:14px 0">Noch keine Truhen. Hol die Tagestruhe oder spiel eine Online-Runde!</p>`;
@@ -1171,7 +1181,7 @@ async function claimDailyFlow() {
   try { m = await db(); await m.ensureAuth(); } catch (_) { toast('Nur online möglich.', 'err'); return; }
   try {
     const r = await m.claimDailyChest();
-    if (r.ok) { await refreshChestList(); renderShop(); toast('Tägliche Truhe erhalten! 🎁', 'ok'); }
+    if (r.ok) { await refreshChestList(); renderShop(); toast('Tägliche Truhe erhalten! 📦', 'ok'); }
     else toast(r.message || 'Nicht möglich', 'info');
   } catch (_) { toast('Fehler.', 'err'); }
 }

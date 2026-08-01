@@ -251,6 +251,29 @@
     50%     { box-shadow: 0 2px 12px rgba(0,0,0,.55), 0 0 26px rgba(255,90,90,.75); transform: scale(1.07); }
   }
   body:has(.seats.np6) #turn-timer { left: calc(50% + var(--feltw) * .20); }
+  /* Letzte 3 Sekunden: riesige rote Zahl blitzt in der Bildschirmmitte auf
+     (Element wird von table.js/flashTurnSecond pro Sekunde neu erzeugt und
+     nach ~0,7 s wieder entfernt – daher hier nur EIN Durchlauf, kein Loop). */
+  #turn-flash {
+    position: fixed; inset: 0; z-index: 950; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-myth); font-weight: 800; line-height: 1;
+    font-size: clamp(120px, 42vmin, 260px);
+    color: #ff5a5a; font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 22px rgba(255,90,90,.95), 0 0 70px rgba(255,60,60,.55),
+                 0 0 130px rgba(167,139,250,.35), 0 2px 6px rgba(0,0,0,.85);
+    animation: turnFlash .7s ease-out forwards;
+  }
+  @keyframes turnFlash {
+    0%   { opacity: 0; transform: scale(.55); }
+    14%  { opacity: 1; transform: scale(1.12); }
+    34%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.28); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #turn-flash { animation: turnFlashCalm .7s ease-out forwards; }
+  }
+  @keyframes turnFlashCalm { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
   .you { color: var(--akzent); font-size: .8rem; }
 
   /* ===== Lobby (Startseite) ===== */
@@ -1707,6 +1730,10 @@
   .chest-open { margin-top: 4px; color: var(--gold); font-weight: 700; font-size: .82rem;
     font-family: var(--font-myth); letter-spacing: 1px; text-transform: uppercase; }
 
+  /* Tages-Truhen-Button */
+  .chest-daily-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .chest-daily-icon { width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+
   /* Truhen kaufen */
   .chest-buyrow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   @media (min-width: 560px) { .chest-buyrow { grid-template-columns: repeat(4, 1fr); } }
@@ -2705,6 +2732,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=165"></script>
+<script type="module" src="./app.js?v=167"></script>
 </body>
 </html>
