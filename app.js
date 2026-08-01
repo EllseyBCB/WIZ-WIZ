@@ -670,7 +670,10 @@ function wireHome() {
   $('#local-btn').onclick = () => {
     clearInterval(pollTimer); pollTimer = null;
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-    const name = nameInput.value.trim() || 'Du';
+    const typed = nameInput.value.trim();
+    // Leeres Feld ist erlaubt (-> 'Du'); ein getippter Schimpfwort-Name blockt (auch Solo, sonst kein Schutz).
+    if (typed && blockIfNameInvalid(typed, nameInput)) return;
+    const name = typed || 'Du';
     const bots = parseInt($('#bot-count').value, 10);
     const diff = $('#difficulty').value;
     const shortCards = parseInt($('#solo-length')?.value, 10) || null;
@@ -2428,6 +2431,7 @@ function currentName() {
 async function inviteFromList(f, btn) {
   const name = currentName();
   if (!name) { toast('Bitte zuerst oben einen Benutzernamen speichern.', 'err'); return; }
+  if (blockIfNameInvalid(name, $('#name-input'))) return;
   if (btn) btn.disabled = true;
   const m = await ensureOnline();
   if (!m) { if (btn) btn.disabled = false; return; }
@@ -2503,11 +2507,13 @@ function showInviteBanner(inv) {
 
 async function acceptInvite(inv) {
   $('#invite-banner').hidden = true;
+  const name = currentName();
+  if (name && blockIfNameInvalid(name, $('#name-input'))) return;
   const m = await ensureOnline();
   if (!m) return;
   requireToken(async () => {
     try {
-      const gid = await m.joinGame(inv.code, currentName() || 'Spieler');
+      const gid = await m.joinGame(inv.code, name || 'Spieler');
       tokenPaidFor = gid;
       await enterGame(gid);
     } catch (e) {
