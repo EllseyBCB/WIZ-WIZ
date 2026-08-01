@@ -4,7 +4,8 @@
 import { render } from './game.js?v=90';
 import { isNameBlocked, NAME_REJECTED_MSG } from './moderation.js?v=1';
 import { gameAssetUrls, timerMarkup, setTimerFace, flashTurnSecond, hideTurnFlash } from './table.js?v=83';
-import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=79';
+import { startLocal, resumeLocal, hasSoloSave, startTutorial } from './local.js?v=79';
+import { beginTutorial, tutorialDone, installSettingsButton as installTutorialButton } from './tutorial.js?v=1';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
@@ -552,7 +553,10 @@ function wireHome() {
   // Beim allerersten Start (nachdem der Datenschutz-Hinweis bestaetigt wurde)
   // einmalig die Kurzregeln zeigen - Neulinge kennen Wizard sonst nicht.
   try {
+    // Neulinge bekommen beim ersten Start das gefuehrte Tutorial (siehe
+    // maybeStartTutorial) – das statische Kurzregeln-Fenster nur noch danach.
     if (helpModal && localStorage.getItem('wizard_consent')
+        && localStorage.getItem('wizard_tutorial_done')
         && !localStorage.getItem('wizard_help_seen')) {
       localStorage.setItem('wizard_help_seen', '1');
       helpModal.hidden = false;
@@ -2615,6 +2619,9 @@ function wireSettings() {
 
   btn.onclick = () => { modal.hidden = false; };
   if (close) close.onclick = () => { modal.hidden = true; };
+
+  // "Tutorial erneut anzeigen" in die Einstellungen einhaengen.
+  installTutorialButton(() => { modal.hidden = true; startTutorialFlow(); });
   const xBtn = document.getElementById('settings-x');
   if (xBtn) xBtn.onclick = () => { modal.hidden = true; };
   modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
@@ -2855,6 +2862,25 @@ function wireLegal() {
   };
 }
 
+// --- Onboarding / Tutorial -------------------------------------------------
+// Startet die gefuehrte Proberunde (Coachmarks in tutorial.js, Spiel in
+// local.js). Wird sowohl beim ersten Start als auch aus den Einstellungen
+// ("Tutorial erneut anzeigen") aufgerufen.
+function startTutorialFlow() {
+  const name = $('#name-input')?.value.trim() || localStorage.getItem(LS_NAME) || 'Du';
+  beginTutorial(() => { startTutorial(name); });
+}
+// Beim allerersten Start (nach der Einwilligung) automatisch anbieten – aber
+// kein laufendes/pausiertes Spiel kapern.
+function maybeStartTutorial() {
+  try {
+    if (tutorialDone()) return;
+    if (localStorage.getItem(LS_GAME) || hasSoloSave()) return;
+    if (document.getElementById('game-view')?.classList.contains('active')) return;
+    startTutorialFlow();
+  } catch (_) {}
+}
+
 // Einwilligung (Datenschutz/Nutzung) beim ersten Start einholen.
 function showConsentIfNeeded() {
   if (localStorage.getItem('wizard_consent') === '1') return;
@@ -2862,7 +2888,10 @@ function showConsentIfNeeded() {
   if (!m) return;
   m.hidden = false;
   const accept = document.getElementById('consent-accept');
-  if (accept) accept.onclick = () => { localStorage.setItem('wizard_consent', '1'); m.hidden = true; };
+  if (accept) accept.onclick = () => {
+    localStorage.setItem('wizard_consent', '1'); m.hidden = true;
+    maybeStartTutorial();   // direkt nach dem Zustimmen ins Tutorial
+  };
   const ct = document.getElementById('consent-terms');
   const cp = document.getElementById('consent-privacy');
   if (ct) ct.onclick = () => openModal('terms-modal');
@@ -2932,6 +2961,9 @@ async function init() {
   wireLegal();
   showConsentIfNeeded();
   showScreen('home-view');
+  // Einwilligung liegt schon vor -> Tutorial ggf. direkt anbieten (bei fehlender
+  // Einwilligung uebernimmt das der Zustimmen-Knopf).
+  if (localStorage.getItem('wizard_consent') === '1') maybeStartTutorial();
   await handleAuthRedirect();   // ggf. E-Mail-Bestätigung aus der URL verarbeiten
   await handleJoinLink();       // ggf. Einladungs-Link (?join=CODE) verarbeiten
   // Wer den Online-Modus schon genutzt hat, empfaengt Einladungen auch ohne

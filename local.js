@@ -21,6 +21,27 @@ function myAvatar() {
 let G = null;
 let DIFF = 'normal';
 let TURN = 20;   // Zugzeit in Sekunden fuer den Menschen (0 = ohne Zeitlimit)
+let tutorialMode = false;   // Proberunde des Onboardings: keine Vollbild-Werbung, kein Zeitlimit
+
+// Das Onboarding (tutorial.js) haengt sich an dieses Ereignis, um seine
+// Coachmarks mit dem echten Spielstand zu synchronisieren (Phase/am-Zug). Rein
+// additiv – ohne Zuhoerer passiert nichts.
+function emitSoloState(override) {
+  try {
+    let detail;
+    if (!G) {
+      detail = { status: 'gone' };
+    } else {
+      const actor = G.phase === 'trumpselect' ? G.dealerSeat : G.currentSeat;
+      detail = {
+        status: G.status, phase: G.phase, myTurn: actor === 0,
+        roundNo: G.roundNo, trickNo: G.trickNo, trickLen: G.trick.length
+      };
+    }
+    if (override) detail = { ...detail, ...override };
+    window.dispatchEvent(new CustomEvent('wiz-solo-state', { detail }));
+  } catch (_) {}
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const LS_SOLO = 'wizard_solo_save';
 
@@ -140,7 +161,7 @@ const actions = {
 
 // Null-sicher: Nach quit() (G=null) koennen noch schlafende Ablaeufe
 // (Stich-Banner-Pause, Bot-Schleife) aufwachen und zeichnen wollen.
-function paint(overrideTrick) { if (!G) return; saveSolo(); render(buildState(overrideTrick), actions); }
+function paint(overrideTrick) { if (!G) return; saveSolo(); render(buildState(overrideTrick), actions); emitSoloState(); }
 
 // Pausieren: Stand ist gesichert, zurueck zur Startseite ("Solo fortsetzen").
 function pauseSolo() {
@@ -179,6 +200,7 @@ function paintTrickEnd(resolvedTrick) {
   // sie werden direkt danach mit Animation ausgeteilt.
   if (G.phase === 'bidding' || G.phase === 'trumpselect') st.hand = [];
   render(st, actions);
+  emitSoloState({ phase: 'trickend', myTurn: false });   // Onboarding: Stich-Schritt
 }
 
 // Mittiges Banner (nutzt #trick-banner aus index.html) – fuer Stich-Gewinner
@@ -284,6 +306,8 @@ async function humanPlay(card) {
 
 function quit() {
   G = null;
+  tutorialMode = false;
+  emitSoloState();   // status: 'gone' -> Onboarding kann aufraeumen
   localStorage.removeItem(LS_SOLO);
   hideSoloTimer();
   hideTrickBanner();
@@ -303,10 +327,20 @@ export async function startLocal(numOpponents, humanName, difficulty = 'normal',
   humanTurnKey = null;   // Zug-Erkennung frisch fuers neue Spiel
   hideBanner();
   showScreen('game-view');
-  await preGameAd();   // Vollbild-Werbung vor Runde 1 (Solo; Ausnahmen via adsBlocked)
-  if (!G) return;      // waehrend der Werbung verlassen
+  if (!tutorialMode) {
+    await preGameAd();   // Vollbild-Werbung vor Runde 1 (Solo; Ausnahmen via adsBlocked)
+    if (!G) return;      // waehrend der Werbung verlassen
+  }
   sfxDeal();
   watchSoloTimer();
   paint();
   await drive();
+}
+
+// Geführte Proberunde fürs Onboarding: kurzes Spiel (Runden 1–3) gegen zwei
+// leichte Bots, ohne Zeitlimit und ohne Vorab-Werbung. Die Coachmarks liegen in
+// tutorial.js und synchronisieren sich ueber das 'wiz-solo-state'-Ereignis.
+export async function startTutorial(humanName) {
+  tutorialMode = true;
+  await startLocal(2, humanName || 'Du', 'easy', 3, 0);
 }
