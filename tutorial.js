@@ -29,6 +29,9 @@ function markDone() {
 let active = false;
 let curState = { status: 'none' };
 let currentTarget = null;      // CSS-Selektor des aktuell hervorgehobenen Elements (oder null = mittig)
+let bubbleAnchor = 'center';   // Lage der ankerlosen Blase: 'center' oder 'bottom'
+                               // ('bottom' fuer den Ansage-Schritt, damit die
+                               //  Blase das mittige Bid-Fenster nicht verdeckt)
 let rafId = 0;
 let root = null, ring = null, arrow = null, bubble = null;
 const waiters = new Set();      // offene waitFor-/Weiter-Aufloeser (fuer Abbruch)
@@ -133,10 +136,18 @@ function place() {
   if (!r) {
     ring.className = 'hidden';
     arrow.style.display = 'none';
-    // mittig
     const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
     bubble.style.left = Math.round((innerWidth - bw) / 2) + 'px';
-    bubble.style.top = Math.round((innerHeight - bh) / 2) + 'px';
+    if (bubbleAnchor === 'bottom') {
+      // Unten am Bildschirmrand (mit Safe-Area-Reserve) – so bleibt das mittige
+      // Ansage-Fenster mit seinen Zahlen-Knoepfen frei sichtbar.
+      const safe = 24 + (parseFloat(getComputedStyle(document.documentElement)
+        .getPropertyValue('--sat-bottom')) || 0);
+      bubble.style.top = Math.round(innerHeight - bh - safe) + 'px';
+    } else {
+      // mittig
+      bubble.style.top = Math.round((innerHeight - bh) / 2) + 'px';
+    }
     rafId = requestAnimationFrame(place);
     return;
   }
@@ -224,6 +235,7 @@ export function beginTutorial(startGame, opts = {}) {
   if (active) return;
   holdFn = typeof opts.setHold === 'function' ? opts.setHold : () => {};
   active = true;
+  bubbleAnchor = 'center';
   curState = { status: 'none' };
   injectStyles();
   mountNodes();
@@ -278,6 +290,7 @@ async function run(startGame) {
   await waitFor(s => (s.phase === 'bidding' && s.myTurn) || s.status !== 'running');
   if (!active || curState.status !== 'running') return;
   currentTarget = null;
+  bubbleAnchor = 'bottom';   // Blase nach unten – das Ansage-Fenster liegt mittig
   showHint({
     title: 'Deine Ansage',
     text: 'Wie viele Stiche holst du? Tippe im Fenster eine Zahl – bei nur einer Karte '
@@ -285,6 +298,7 @@ async function run(startGame) {
     waitHint: 'Sag deine Stichzahl an …'
   });
   await waitFor(s => !(s.phase === 'bidding' && s.myTurn) || s.status !== 'running');
+  bubbleAnchor = 'center';   // fuer folgende ankerlose Schritte wieder mittig
   if (!active || curState.status !== 'running') return;
 
   // 5) Ausspielen.
