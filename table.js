@@ -1039,6 +1039,11 @@ export function openBidModal(game, players, actions, mySeat = -1) {
     over.appendChild(chip);
   }
   card.insertAdjacentHTML('beforeend', '<p class="bid-over-title">Angesagte Stiche</p>');
+  // Gesamtsumme der schon platzierten Gebote auf einen Blick – erspart das
+  // Zusammenzaehlen der Chips (besonders als letzte:r Bietende:r wichtig).
+  const bidSum = players.filter(p => p.bid != null).reduce((a, p) => a + p.bid, 0);
+  card.insertAdjacentHTML('beforeend',
+    `<p class="bid-over-sum">Bereits angesagt: <b>${bidSum}</b> von <b>${game.cards_this_round}</b></p>`);
   card.appendChild(over);
 
   const row = document.createElement('div');

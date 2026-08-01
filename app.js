@@ -2,7 +2,7 @@
 // Wichtig: db.js (laedt Supabase aus dem Netz) wird NUR bei Bedarf dynamisch
 // importiert. So bleibt der Solo-Modus auch ohne Netz/Supabase voll spielbar.
 import { render } from './game.js?v=89';
-import { gameAssetUrls, timerMarkup, setTimerFace } from './table.js?v=81';
+import { gameAssetUrls, timerMarkup, setTimerFace } from './table.js?v=82';
 import { startLocal, resumeLocal, hasSoloSave } from './local.js?v=78';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
