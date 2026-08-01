@@ -873,6 +873,7 @@ function renderShop() {
   // Truhen: tägliche holen / kaufen / öffnen.
   grid.querySelectorAll('[data-claimdaily]').forEach(b => { b.onclick = () => claimDailyFlow(); });
   grid.querySelectorAll('[data-buychest]').forEach(b => { b.onclick = () => buyChestFlow(b.dataset.buychest); });
+  grid.querySelectorAll('[data-chestodds]').forEach(b => { b.onclick = () => openChestOddsModal(); });
   grid.querySelectorAll('[data-openchest]').forEach(b => {
     b.onclick = () => { const c = chestCache.find(x => x.id === b.dataset.openchest); if (c) openChestModal(c); };
   });
@@ -1147,6 +1148,84 @@ function chestTile(c) {
     <span class="chest-open">Öffnen</span>
   </button>`;
 }
+// --- Truhen: Gewinnchancen (Apple-Richtlinie 3.1.1) -------------------------
+// ⚠️ WICHTIG – MANUELL SYNCHRON HALTEN MIT DER SERVER-WAHRHEIT ⚠️
+// Diese Zahlen sind 1:1 aus den LIVE-Datenbankfunktionen abgeleitet
+// (Supabase-Projekt mpvosmtsbvwasvnzjuwd), nicht aus der evtl. veralteten
+// .sql-Datei im Repo. Maßgeblich sind die tatsächlich installierten Funktionen:
+//   * public.wizard_open_chest  -> Anzahl Belohnungen (Drops) je Truhe:
+//        holz 2, silber 3, gold 4, diamant 5   (max. 2 Kosmetik-Items je Truhe)
+//   * public._wiz_roll_drop     -> je Belohnung:
+//        Item-Chance: holz 2,5% · silber 5% · gold 9% · diamant 15%
+//        Kein Item -> 60% Kristalle / 40% Gold
+//        Kristallmengen je Belohnung (Spanne über alle Stufen):
+//           holz 6–160 · silber 12–350 · gold 20–700 · diamant 40–1200
+//        Goldmengen je Belohnung:
+//           holz 10–30 · silber 20–60 · gold 40–120 · diamant 80–240
+//   * public.wizard_spin_chest  -> Aufwerten (max. 3 Drehungen je Truhe):
+//        holz->silber 6% · silber->gold 4% · gold->diamant 2,5%
+// Wird eine dieser Funktionen serverseitig geändert, MÜSSEN die Werte hier
+// (CHEST_ODDS) mitgezogen werden – sonst zeigt der Store falsche Chancen an.
+// Die "Chance auf ≥1 Kosmetik je Truhe" ist rechnerisch 1-(1-itemPct)^drops.
+const CHEST_ODDS = [
+  { rarity: 'holz',    drops: 2, itemPct: 2.5, cosmeticChest: 4.9,  cr: '6 – 160',   go: '10 – 30'  },
+  { rarity: 'silber',  drops: 3, itemPct: 5,   cosmeticChest: 14.3, cr: '12 – 350',  go: '20 – 60'  },
+  { rarity: 'gold',    drops: 4, itemPct: 9,   cosmeticChest: 31.4, cr: '20 – 700',  go: '40 – 120' },
+  { rarity: 'diamant', drops: 5, itemPct: 15,  cosmeticChest: 55.6, cr: '40 – 1200', go: '80 – 240' },
+];
+// Prozent hübsch formatieren (max. 1 Nachkommastelle, deutsches Komma).
+function pctFmt(n) { return (Math.round(n * 10) / 10).toString().replace('.', ',') + ' %'; }
+
+function chestOddsCard(o) {
+  const m = CHEST_META[o.rarity] || {};
+  const rest = 100 - o.itemPct;              // Rest verteilt sich auf Währung
+  const crPct = pctFmt(rest * 0.60);
+  const goPct = pctFmt(rest * 0.40);
+  return `<div class="odds-card" style="--r:${m.color || '#888'}">
+    <div class="odds-head"><span class="odds-dot"></span>${esc(m.label || o.rarity)}</div>
+    <div class="odds-row"><span>Belohnungen je Truhe</span><b>${o.drops}</b></div>
+    <div class="odds-row"><span>Chance auf ≥ 1 Kosmetik</span><b>${pctFmt(o.cosmeticChest)}</b></div>
+    <div class="odds-sub">Pro Belohnung:</div>
+    <div class="odds-row"><span>Kosmetik-Gegenstand</span><b>${pctFmt(o.itemPct)}</b></div>
+    <div class="odds-row"><span>Kristalle</span><b>${crPct}</b></div>
+    <div class="odds-row"><span>Gold</span><b>${goPct}</b></div>
+    <div class="odds-row small"><span>Kristalle je Belohnung</span><b>${o.cr}</b></div>
+    <div class="odds-row small"><span>Gold je Belohnung</span><b>${o.go}</b></div>
+  </div>`;
+}
+
+// Chancen-Modal: zeigt die Drop-Wahrscheinlichkeiten VOR dem Kauf (Pflicht nach
+// Apple App Store Review Guideline 3.1.1). Wird über den ⓘ-Knopf im Truhen-Tab
+// geöffnet. Eigenes Overlay mit eigenem Schließen-Handler (wie openChestModal).
+function openChestOddsModal() {
+  document.getElementById('chest-odds-modal')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'modal'; wrap.id = 'chest-odds-modal';
+  wrap.innerHTML = `
+    <div class="modal-card legal-card">
+      <h2>Gewinnchancen der Truhen</h2>
+      <div class="legal-body">
+        <p>Jede Truhe enthält mehrere Belohnungen. Pro Belohnung gibt es entweder
+        einen Kosmetik-Gegenstand, Kristalle oder Gold – mit den folgenden
+        Wahrscheinlichkeiten:</p>
+        <div class="odds-grid">${CHEST_ODDS.map(chestOddsCard).join('')}</div>
+        <p class="muted set-note">Welche Kosmetik du bei einem Kosmetik-Fund
+        erhältst, wird zufällig unter den noch nicht besessenen Gegenständen
+        gezogen; seltenere Truhen bevorzugen dabei seltenere Kosmetik. Bereits
+        besessene Gegenstände können nicht erneut fallen.</p>
+        <p class="muted set-note">Ungeöffnete Truhen lassen sich bis zu dreimal
+        „drehen", mit Chance auf eine bessere Stufe: Holz→Silber 6 %,
+        Silber→Gold 4 %, Gold→Diamant 2,5 %.</p>
+      </div>
+      <button class="btn" data-odds-close type="button">Schließen</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.hidden = false;
+  const close = () => wrap.remove();
+  wrap.querySelector('[data-odds-close]').onclick = close;
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+}
+
 function chestPane() {
   const daily = `<button class="btn chest-daily-btn" data-claimdaily="1" type="button" style="width:100%"><img class="chest-daily-icon" src="lobby/chest-silber.png?v=1" alt="" loading="lazy"><span>Tägliche Gratis-Truhe holen</span></button>`;
   const list = chestCache.length
@@ -1178,7 +1257,7 @@ function chestPane() {
   return `<div class="tok-shopstatus">Öffne Truhen für Kristalle – mit Glück ist auch neue Kosmetik drin!</div>
     ${daily}
     <div class="tok-subhead">Deine Truhen</div>${list}
-    <div class="tok-subhead">Truhe kaufen</div>
+    <div class="tok-subhead">Truhe kaufen <button class="chest-odds-btn" data-chestodds="1" type="button" aria-label="Gewinnchancen anzeigen">ⓘ&nbsp;Chancen</button></div>
     <div class="chest-shop">
       <div class="chest-buyrow">${restCards}</div>
       ${heroCard}
