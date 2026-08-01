@@ -21,6 +21,48 @@ const ADS_PER_UNLOCK = 2;             // so viele Videos schalten 1 Notizblock f
 const LS_TOKENS = 'wizard_tokens';    // JSON {n, day}   day = 'YYYY-MM-DD' Lokalzeit
 const LS_UNLOCK = 'wizard_adunlock';  // JSON {c, day}   Teilfortschritt (1/2) ueberlebt Neustart
 const LS_SLOTS  = 'wizard_dailyslots';// Zahl: freigeschaltete Gratis-Slots pro Tag
+const LS_FREE   = 'wizard_free_until';// ISO-Zeit: Ende des Gratismonats (server-abgeleitet)
+
+// --- Gratismonat: erste 30 Tage nach Kontoerstellung komplett frei ----------
+// Das Enddatum leiten wir aus dem SERVER-Erstellungsdatum ab (RPC
+// wizard_free_period -> auth.users.created_at). Der Cache im localStorage ist
+// nur eine Beschleunigung/Offline-Reserve: bei jedem Start holt app.js den Wert
+// neu vom Server, ein Zuruecksetzen des localStorage verschafft also keinen
+// neuen Gratismonat (der Server liefert dasselbe created_at). Fehlt jede Info
+// (offline + kein Cache), gilt sicherheitshalber die normale Sperre.
+const FREE_DAYS = 30;
+let freeUntilMem = null;   // In-Memory-Spiegel (localStorage evtl. nicht schreibbar)
+
+// Serverantwort von db.freePeriod() uebernehmen ({ free, created_at, days_left }).
+export function applyFreePeriod(info) {
+  let untilMs = null;
+  if (info && info.created_at) {
+    const t = Date.parse(info.created_at);
+    if (!isNaN(t)) untilMs = t + FREE_DAYS * 86400000;
+  } else if (info && info.free === false) {
+    untilMs = 0;   // Server sagt eindeutig: kein Gratismonat mehr
+  }
+  if (untilMs === null) return;   // keine verwertbare Antwort -> Cache unveraendert
+  freeUntilMem = untilMs;
+  try {
+    if (untilMs > 0) localStorage.setItem(LS_FREE, new Date(untilMs).toISOString());
+    else localStorage.removeItem(LS_FREE);
+  } catch (_) {}
+  notify();
+}
+
+function freeUntilMs() {
+  if (typeof freeUntilMem === 'number') return freeUntilMem;
+  try {
+    const s = localStorage.getItem(LS_FREE);
+    if (s) { const t = Date.parse(s); if (!isNaN(t)) return t; }
+  } catch (_) {}
+  return null;
+}
+export function freeMonthActive() {
+  const t = freeUntilMs();
+  return t != null && t > 0 && Date.now() < t;
+}
 
 function today() {
   const d = new Date();
@@ -33,6 +75,7 @@ export function tokenGateActive() {
   // damit der komplette Ablauf auf dem Geraet testbar ist (wie adsBlocked()).
   if (isForceTest()) return isNative() || isPreview();
   if (isAdFree() || isDevUnlock() || ownerUnlock()) return false;   // unbegrenzt
+  if (freeMonthActive()) return false;   // erster Monat nach Kontoerstellung: alles frei
   return isNative() || isPreview();   // Browser ohne Vorschau: frei
 }
 

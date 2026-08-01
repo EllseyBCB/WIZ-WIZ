@@ -4,12 +4,13 @@
 import { render } from './game.js?v=90';
 import { isNameBlocked, NAME_REJECTED_MSG } from './moderation.js?v=1';
 import { gameAssetUrls, timerMarkup, setTimerFace, flashTurnSecond, hideTurnFlash } from './table.js?v=83';
-import { startLocal, resumeLocal, hasSoloSave, startTutorial } from './local.js?v=79';
-import { beginTutorial, tutorialDone, installSettingsButton as installTutorialButton } from './tutorial.js?v=1';
+import { startLocal, resumeLocal, hasSoloSave, startTutorial, setTutorialHold } from './local.js?v=80';
+import { beginTutorial, tutorialDone, installSettingsButton as installTutorialButton } from './tutorial.js?v=2';
 import { preloadCards, allCardImageUrls } from './cards.js?v=20';
 import { initAds, showBanner, hideBanner, isAdFree, setAdFree, isPreview, setPreview, isForceTest, setForceTest, adsStatus, onAdsStatus } from './ads.js?v=8';
 import { requireToken, refundToken, getTokens, tokenGateActive, setTokensForTest,
-         getDailySlots, deriveDailySlots, grantTokens, watchAdForToken } from './tokens.js?v=5';
+         getDailySlots, deriveDailySlots, grantTokens, watchAdForToken,
+         applyFreePeriod } from './tokens.js?v=6';
 import { initIAP, purchaseAdFree, purchaseProduct, purchaseConsumable, onConsumable, restorePurchases, iapAvailable, productPrice } from './iap.js?v=6';
 import { AVATAR_ITEMS, TABLE_ITEMS, SHOP_ADFREE, SHOP_BUNDLE, isOwned, avatarItem, avatarOwned,
          isDevUnlock, grantOwned, ownedSet, myAvatar,
@@ -48,7 +49,7 @@ async function ensureAvatars(m, gameId, players) {
 
 // db.js erst beim ersten Online-Zugriff laden und zwischenspeichern.
 let DB = null;
-const db = async () => (DB ||= await import('./db.js?v=15'));
+const db = async () => (DB ||= await import('./db.js?v=16'));
 
 // --- Aktionen (an game.js uebergeben) --------------------------------------
 // Spiel-ID, fuer die DIESE Sitzung einen Spielstein bezahlt hat. Verlaesst man
@@ -493,6 +494,20 @@ function refreshTokenPill() {
     const n = document.getElementById('token-n');
     if (n) n.textContent = String(getTokens());
   }
+}
+
+// Gratismonat (erste 30 Tage) serverseitig ermitteln und die Notizblock-Sperre
+// entsprechend frei-/festschalten. Server-authoritativ (auth.users.created_at)
+// -> nicht durch localStorage-Reset umgehbar. Best-effort: bei offline/Fehler
+// bleibt der zuletzt gecachte Stand.
+async function refreshFreePeriod() {
+  try {
+    const m = await db();
+    await m.ensureAuth();
+    const info = await m.freePeriod();
+    applyFreePeriod(info);
+    refreshTokenPill();
+  } catch (_) {}
 }
 
 // Lobby-Modals (Gegen Computer / Online / Beitreten) öffnen/schliessen.
@@ -2868,7 +2883,7 @@ function wireLegal() {
 // ("Tutorial erneut anzeigen") aufgerufen.
 function startTutorialFlow() {
   const name = $('#name-input')?.value.trim() || localStorage.getItem(LS_NAME) || 'Du';
-  beginTutorial(() => { startTutorial(name); });
+  beginTutorial(() => { startTutorial(name); }, { setHold: setTutorialHold });
 }
 // Beim allerersten Start (nach der Einwilligung) automatisch anbieten – aber
 // kein laufendes/pausiertes Spiel kapern.
@@ -3018,6 +3033,10 @@ async function init() {
   // Spielsteine-Pille aktuell halten (Verbrauch/Erstattung/Tageswechsel).
   window.addEventListener('wiz-tokens-changed', refreshTokenPill);
   refreshTokenPill();
+  // Gratismonat serverseitig pruefen (Konto-Alter). Best-effort im Hintergrund:
+  // legt beim allerersten Start leise die anonyme Sitzung an und schaltet die
+  // Notizblock-Sperre fuer die ersten 30 Tage frei. Blockiert den Start nicht.
+  refreshFreePeriod();
   refreshChestList();   // Truhen-Badge in der unteren Leiste (best-effort)
 
   // E-Mail-Bestaetigung: klickt der Nutzer den Link, kehrt er per Deep-Link

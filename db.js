@@ -149,6 +149,18 @@ export async function getMyData() {
   return { ...(data || {}), email: info.email, gast: info.isAnonymous };
 }
 
+// Gratismonat: fragt serverseitig das Konto-Alter ab (auth.users.created_at).
+// Liefert { free, created_at, days_left }. Nicht durch localStorage-Reset
+// umgehbar, weil das Erstellungsdatum vom Server kommt (siehe
+// supabase/wizard_free_period.sql). Bei Fehler/offline: null.
+export async function freePeriod() {
+  try {
+    const { data, error } = await supabase.rpc('wizard_free_period');
+    if (error) return null;
+    return data || null;
+  } catch (_) { return null; }
+}
+
 // --- RPC-Wrapper (alle Aktionen laufen serverseitig) -----------------------
 async function rpc(fn, args) {
   const { data, error } = await supabase.rpc(fn, args);

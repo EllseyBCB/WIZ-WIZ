@@ -32,6 +32,11 @@ let currentTarget = null;      // CSS-Selektor des aktuell hervorgehobenen Eleme
 let rafId = 0;
 let root = null, ring = null, arrow = null, bubble = null;
 const waiters = new Set();      // offene waitFor-/Weiter-Aufloeser (fuer Abbruch)
+// Halt-Steuerung fuer die Proberunde (local.setTutorialHold). Reicht app.js
+// durch; ohne sie passiert nichts (Fallback = No-op), damit tutorial.js nicht
+// hart an local.js gekoppelt ist.
+let holdFn = () => {};
+function hold(on) { try { holdFn(!!on); } catch (_) {} }
 
 // local.js meldet den Spielstand.
 window.addEventListener('wiz-solo-state', (e) => {
@@ -93,6 +98,7 @@ function mountNodes() {
 function teardown() {
   active = false;
   currentTarget = null;
+  hold(false);   // etwaigen Bot-Halt in local.js sicher loesen
   if (rafId) cancelAnimationFrame(rafId), rafId = 0;
   root?.remove(); arrow?.remove(); bubble?.remove();
   root = ring = arrow = bubble = null;
@@ -212,8 +218,11 @@ function waitFor(pred) {
 
 // --- Ablauf -----------------------------------------------------------------
 // startGame: Callback aus app.js, startet die Proberunde (local.startTutorial).
-export function beginTutorial(startGame) {
+// opts.setHold: local.setTutorialHold – haelt die Bots an, solange eine
+// Erklaerblase offen ist (siehe Stich-/Wertung-Schritt).
+export function beginTutorial(startGame, opts = {}) {
   if (active) return;
+  holdFn = typeof opts.setHold === 'function' ? opts.setHold : () => {};
   active = true;
   curState = { status: 'none' };
   injectStyles();
@@ -289,10 +298,14 @@ async function run(startGame) {
   await waitFor(s => !(s.phase === 'playing' && s.myTurn) || s.status !== 'running');
   if (!active || curState.status !== 'running') return;
 
-  // 6) Stich.
+  // 6) Stich. Sobald der Stich fertig ist (Ereignis 'trickend'), halten wir die
+  //    Bots an: so friert local.js das Board auf dem gerade gespielten Stich ein
+  //    (Stich-Stapel bleibt gefuellt) und Runde 2 startet NICHT im Hintergrund,
+  //    solange die beiden Erklaerblasen offen sind.
   await waitFor(s => s.phase === 'trickend' || s.roundNo > 1 || s.status !== 'running');
   if (!active) return;
   if (curState.status === 'running') {
+    hold(true);
     currentTarget = '.trick-pile';
     await waitNext({
       text: 'Das ist ein <b>Stich</b>. Es gewinnt die höchste Karte der angespielten Farbe – '
@@ -309,6 +322,8 @@ async function run(startGame) {
           + '<b>Daneben</b>: −10 für jeden Stich Unterschied.',
       btn: 'Weiter'
     });
+    // Bots wieder laufen lassen – die Proberunde geht normal weiter.
+    hold(false);
     if (!active) return;
   }
 

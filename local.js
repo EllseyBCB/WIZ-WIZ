@@ -23,6 +23,16 @@ let DIFF = 'normal';
 let TURN = 20;   // Zugzeit in Sekunden fuer den Menschen (0 = ohne Zeitlimit)
 let tutorialMode = false;   // Proberunde des Onboardings: keine Vollbild-Werbung, kein Zeitlimit
 
+// Onboarding-Halt: solange eine Erklaerblase (tutorial.js) offen ist, friert der
+// Ablauf nach einem fertigen Stich ein – so startet die naechste Runde NICHT im
+// Hintergrund (kein auto-oeffnendes Ansage-Fenster) und der Stich-Stapel bleibt
+// gefuellt, waehrend der "Stich"-/"Wertung"-Schritt darauf zeigt.
+let tutorialHold = false;
+export function setTutorialHold(v) { tutorialHold = !!v; }
+async function waitTutorialHold() {
+  while (tutorialHold && G && G.status === 'running') await sleep(120);
+}
+
 // Das Onboarding (tutorial.js) haengt sich an dieses Ereignis, um seine
 // Coachmarks mit dem echten Spielstand zu synchronisieren (Phase/am-Zug). Rein
 // additiv – ohne Zuhoerer passiert nichts.
@@ -227,6 +237,12 @@ async function afterPlay(res) {
     await sleep(TRICK_DELAY);
     hideTrickBanner();
     if (!G) return;   // waehrend des Banners verlassen -> nichts mehr zeichnen
+    // Onboarding: Board auf dem gerade fertig gespielten Stich eingefroren
+    // lassen, solange die "Stich"-/"Wertung"-Blase offen ist. Das haelt den
+    // Stich-Stapel gefuellt (Ring zeigt aufs Ziel, nicht auf den Platzhalter)
+    // und verhindert, dass Runde 2 im Hintergrund losgeht.
+    await waitTutorialHold();
+    if (!G) return;   // waehrend des Halts verlassen
   }
   paint();
   await maybeHalfway();
@@ -307,6 +323,7 @@ async function humanPlay(card) {
 function quit() {
   G = null;
   tutorialMode = false;
+  tutorialHold = false;   // etwaigen Onboarding-Halt loesen
   emitSoloState();   // status: 'gone' -> Onboarding kann aufraeumen
   localStorage.removeItem(LS_SOLO);
   hideSoloTimer();
@@ -325,6 +342,7 @@ export async function startLocal(numOpponents, humanName, difficulty = 'normal',
   const bots = [...BOT_NAMES].sort(() => Math.random() - 0.5).slice(0, numOpponents);
   G = newGame([humanName || 'Du', ...bots], shortCards);
   humanTurnKey = null;   // Zug-Erkennung frisch fuers neue Spiel
+  tutorialHold = false;  // frischer Start ohne haengengebliebenen Halt
   hideBanner();
   showScreen('game-view');
   if (!tutorialMode) {
