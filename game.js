@@ -123,6 +123,15 @@ function showGameOver(state, actions) {
 let qmTimer = null;
 function clearQmTimer() { if (qmTimer) { clearInterval(qmTimer); qmTimer = null; } }
 
+// Bot-Auffuellen: findet das Matchmaking binnen dieser Zeit nicht genug echte
+// Mitspieler (weniger als 3 -> kein Server-Countdown), fuellt der Host-Client die
+// freien Plaetze mit Computer-Gegnern auf und startet die Runde. So sieht ein
+// Solo-Installateur ohne Freunde in der App KEINEN toten Warte-Screen mehr.
+const BOTFILL_AFTER_MS = 18000;   // 18 s warten, dann mit Bots auffuellen
+let qmWaitGame = null;            // fuer welche Lobby laeuft die Wartezeit
+let qmWaitStart = 0;              // seit wann warten wir (stabil ueber Re-Renders)
+let qmBotFillFired = false;       // pro Lobby nur EINMAL ausloesen
+
 // Warteraum der Schnellen Runde: kein Host-Start – ab 3 Spielern zaehlt ein
 // Server-Countdown (starts_at) herunter, bei 4/4 startet es sofort. Jeder
 // Client stoesst nach Ablauf den Start an (Server: Doppel-Aufrufe = No-Ops).
@@ -156,6 +165,12 @@ function renderQuickWaitingRoom(root, state, actions) {
   box.appendChild(btns);
   root.appendChild(box);
 
+  // Wartezeit-Referenz stabil halten: nur beim ERSTEN Rendern dieser Lobby setzen
+  // (renderQuickWaitingRoom laeuft bei jedem Reload erneut). Neue Lobby -> Reset.
+  if (qmWaitGame !== game.id) {
+    qmWaitGame = game.id; qmWaitStart = Date.now(); qmBotFillFired = false;
+  }
+
   // Statuszeile: Suche / Countdown. Tickt lokal; der Server prueft den
   // tatsaechlichen Zeitpunkt (fruehe Aufrufe sind stille No-Ops).
   const status = box.querySelector('#qm-status');
@@ -164,6 +179,16 @@ function renderQuickWaitingRoom(root, state, actions) {
   const tick = () => {
     const n = players.length, max = game.max_players || 4;
     if (!startsAt) {
+      // Genug echte Mitspieler (>=3) setzen serverseitig starts_at -> dann laeuft
+      // der Countdown unten. Bleibt es darunter, fuellen wir nach BOTFILL_AFTER_MS
+      // mit Bots auf, damit niemand ewig wartet.
+      const waited = Date.now() - qmWaitStart;
+      if (!qmBotFillFired && waited >= BOTFILL_AFTER_MS) {
+        qmBotFillFired = true;
+        status.textContent = 'Kein Mitspieler gefunden – du spielst gegen Computer-Gegner weiter …';
+        actions.onBotFill?.();
+        return;
+      }
       status.textContent = `Suche Mitspieler … (${n}/${max}) – ab 3 geht's los.`;
       return;
     }

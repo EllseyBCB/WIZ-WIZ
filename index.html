@@ -961,6 +961,29 @@
     background: rgba(16,10,34,.95); border-top: 1px solid rgba(214,176,86,.45);
     -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   }
+  /* Natives AdMob-Banner: das Plugin haengt das Banner an die UNTERE
+     Safe-Area-Kante (safeAreaLayoutGuide.bottom), NICHT an den physischen
+     Bildschirmrand. Auf iPhones mit Home-Indicator bleibt darunter ein
+     Streifen in Hoehe env(safe-area-inset-bottom), durch den sonst der
+     Web-Inhalt durchblitzt. --ad-h meldet nur die reine Bannerhoehe.
+     Ist ein Banner aktiv (html.has-ad), muss die Tab-Leiste also um
+     Bannerhoehe + diesen Reststreifen nach oben und dessen padding-bottom
+     (das den Reststreifen sonst doppelt einrechnet) entfaellt. */
+  html.has-ad .tabbar {
+    bottom: calc(var(--ad-h, 0px) + env(safe-area-inset-bottom));
+    padding-bottom: 6px;
+  }
+  /* Fuellt den Reststreifen unter dem Banner bis zum echten Bildschirmrand
+     blickdicht (gleiche Farbe wie die Tab-Leiste), damit dort NICHTS vom
+     scrollenden Inhalt durchscheint. Liegt unter dem nativen Banner-View
+     (das Plugin zeichnet immer darueber), sichtbar nur im freien Streifen. */
+  #ad-safe-fill {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 39;
+    height: env(safe-area-inset-bottom);
+    background: rgba(16,10,34,.95);
+    display: none;
+  }
+  html.has-ad #ad-safe-fill { display: block; }
   .tab {
     flex: 1 1 0; min-width: 0;
     background: none; border: none; color: #cdb98a; cursor: pointer;
@@ -2320,8 +2343,8 @@
         </button>
         <button class="act-card" id="act-online" type="button">
           <img class="act-ic" src="./lobby/ic-online.png?v=6" alt="" aria-hidden="true">
-          <span class="act-title">Neues Spiel<br>(Online)</span>
-          <span class="act-sub">Erstelle ein neues Online-Spiel.</span>
+          <span class="act-title">Spiel mit<br>Freunden</span>
+          <span class="act-sub">Erstelle einen eigenen Raum für dich und deine Freunde.</span>
         </button>
         <button class="act-card" id="act-join" type="button">
           <img class="act-ic" src="./lobby/ic-join.png?v=6" alt="" aria-hidden="true">
@@ -2410,7 +2433,7 @@
       <div class="modal" id="online-modal" hidden>
         <div class="modal-card">
           <button class="modal-x" type="button" data-close aria-label="Schließen">✕</button>
-          <h2>Neues Spiel (online)</h2>
+          <h2>Spiel mit Freunden</h2>
           <label for="max-players">Maximale Spielerzahl</label>
           <select id="max-players">
             <option value="3">3</option>
@@ -2586,6 +2609,9 @@
       <button class="tab" type="button" data-nav="profil"><span class="tab-av" id="nav-avatar" aria-hidden="true"><img class="av-img" src="avatars/av01.png?v=7" alt=""></span>Profil</button>
     </nav>
   </section>
+  <!-- Blickdichter Fueller fuer den Streifen unter dem AdMob-Banner
+       (nur sichtbar, wenn ein Banner laeuft; per html.has-ad geschaltet). -->
+  <div id="ad-safe-fill" aria-hidden="true"></div>
 
   <!-- SPIEL -->
   <section id="game-view" class="view"></section>
@@ -2853,6 +2879,6 @@
   window.addEventListener('pagehide', () => { dropFocus(); armInputs(); });
   window.addEventListener('pageshow', () => { dropFocus(); window.scrollTo(0, 0); });
 </script>
-<script type="module" src="./app.js?v=168"></script>
+<script type="module" src="./app.js?v=169"></script>
 </body>
 </html>

@@ -134,23 +134,43 @@ Non-Consumables. Dieser Pfad ist im aktuellen Live-Shop **tot**:
   bewusst **nicht** entfernt, weil es sich um Zahlungscode handelt und eine
   Entfernung sorgfältig separat getestet werden sollte.
 
-### Bekannter Punkt: Magier-Bundle schaltet neue Kristall-Shop-Avatare nicht frei
+### Magier-Bundle schaltet neue Kristall-Shop-Kosmetik frei — GEFIXT (Deploy nötig)
 
 Das Magier-Bundle setzt lokal das Entitlement `magier` (siehe `cosmetics.js`
 → `isOwned`: „Bundle schaltet alles frei"). Das wirkt aber nur auf die
 **alten** cosmetics.js-Items (AVATAR_ITEMS/TABLE_ITEMS). Die **neuen**
 Shop-Kosmetika (SHOP_SECTIONS) hängen am **Server-Inventar**
-(`wizard_inventory`, gekauft via `wizard_buy_item`) und werden vom lokalen
-Bundle-Flag NICHT freigeschaltet.
+(`wizard_inventory`, gekauft via `wizard_buy_item`) und wurden vom lokalen
+Bundle-Flag früher NICHT freigeschaltet.
 
-Eine saubere Lösung ist hier **nicht** eingebaut, weil der Bundle-Kauf rein
-lokal über StoreKit läuft (kein Server-Call). Um die Bundle-Inhalte ins
-Server-Inventar zu schreiben, bräuchte es:
-1. eine neue serverseitige Funktion (z. B. `wizard_grant_bundle`), die die
-   gewünschten Bundle-Items in `wizard_inventory` einträgt, und
-2. einen Client-Aufruf dieser Funktion beim/nach dem Bundle-Kauf.
+**Behoben:**
+1. Neue serverseitige Funktion `public.wizard_grant_bundle(p_bundle)` in
+   `supabase/wizard_grant_bundle.sql` — trägt die Bundle-Kosmetik idempotent ins
+   `wizard_inventory` ein (SECURITY DEFINER, gefahrlos mehrfach aufrufbar).
+2. Client-Aufruf: `app.js` → `syncBundleGrant()` ruft die Funktion **nach dem
+   Bundle-Kauf** (in `buyShopItem`) und beim `iap-updated`-Event (also auch nach
+   „Kauf wiederherstellen" bzw. auf einem neuen Gerät). Wrapper in `db.js`
+   (`grantBundle`).
 
-Das ist eine bewusste **offene Design-Entscheidung** (welche Items gehören ins
-Bundle?) und sollte separat umgesetzt/getestet werden, bevor es live geht.
+> ⚠️ **Elia muss `supabase/wizard_grant_bundle.sql` einmal live deployen.**
+> Solange die Funktion nicht deployed ist, schlägt der RPC-Aufruf still fehl
+> (kein Absturz), das Bundle schaltet die neue Kosmetik dann aber noch nicht frei.
+
+**Bundle-Inhalt (Produktentscheidung, im SQL leicht änderbar — `v_items`):**
+kuratiertes „Magier"-Set aus 5 Gegenständen statt des ganzen Katalogs (der würde
+die Kristall-Ökonomie sprengen):
+
+| Item | Typ | Seltenheit | Kristall-Wert |
+|---|---|---|---|
+| `av_zauberer` | Avatar „Zauberer" | rare | 800 |
+| `av_schattenmagier` | Avatar „Schattenmagier" | legendary | 1500 |
+| `deck_runen` | Deck „Runen" | epic | 800 |
+| `table_magierturm` | Tisch „Magierturm" | rare | 1000 |
+| `back_krone` | Rückseite „Königskrone" | epic | 600 |
+
+Gegenwert ~4700 Kristalle für 9,99 € (das gleich teure Kristallpaket gibt 1400)
+plus Werbefrei (kommt weiter über das lokale Entitlement `magier`). Wer den
+Bundle-Inhalt ändern will: `v_items` in `wizard_grant_bundle.sql` anpassen und neu
+deployen.
 </content>
 </invoke>

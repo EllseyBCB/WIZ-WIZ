@@ -15,7 +15,12 @@ const TEST_IDS = {
   interstitial: { ios: 'ca-app-pub-3940256099942544/4411468910', android: 'ca-app-pub-3940256099942544/1033173712' },
   rewarded:     { ios: 'ca-app-pub-3940256099942544/1712485313', android: 'ca-app-pub-3940256099942544/5224354917' },
 };
-const EVERY_NTH_GAME = 1;   // Vollbild-Werbung nach jedem N-ten Spiel (1 = jedes)
+// Vollbild-Werbung nur nach jedem N-ten Spiel. Bei kurzen Blitz-Partien (~4 Min)
+// waere Werbung nach JEDEM Spiel (1) im Minutentakt -> schlecht fuer Retention
+// und Bewertungen. 3 = deutlich seltener, aber weiterhin Einnahmen. Zusammen mit
+// dem freiwilligen Rewarded-Video (Notizbloecke, siehe tokens.js) bleibt der
+// Ertrag erhalten, ohne die Nutzer zu vergraulen.
+const EVERY_NTH_GAME = 3;   // Vollbild-Werbung nach jedem N-ten Spiel (1 = jedes)
 
 const cap = () => window.Capacitor;
 export const isNative = () => !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
@@ -168,7 +173,15 @@ function showPreviewInterstitial() {
 // genau um die Bannerhoehe nach oben ruecken und nichts verdeckt wird.
 // (Der native Banner liegt sonst als Overlay ueber den Buttons.)
 function setAdVar(px) {
-  try { document.documentElement.style.setProperty('--ad-h', (px > 0 ? px : 0) + 'px'); } catch (_) {}
+  try {
+    const on = px > 0;
+    document.documentElement.style.setProperty('--ad-h', (on ? px : 0) + 'px');
+    // Das native Banner sitzt an der Safe-Area-Kante, nicht am Bildschirmrand.
+    // Nur wenn wirklich ein Banner laeuft, ruecken Tab-Leiste/Inhalt um den
+    // zusaetzlichen Safe-Area-Reststreifen hoch und der Fueller wird sichtbar
+    // (siehe html.has-ad-Regeln in index.html).
+    document.documentElement.classList.toggle('has-ad', on);
+  } catch (_) {}
 }
 let sizeListenerAdded = false;
 function ensureSizeListener(AdMob) {
@@ -284,9 +297,15 @@ async function showInterstitialNow() {
   } catch (e) { setStatus('Interstitial-Fehler: ' + (e?.message || e)); }
 }
 
-// Vollbild-Werbung vor Runde 1 bzw. zur Spielhaelfte (nur Solo-Modus).
-export async function preGameAd() { await showInterstitialNow(); }
-export async function midGameAd() { await showInterstitialNow(); }
+// Vor Runde 1 bzw. zur Spielhaelfte (nur Solo-Modus) gab es frueher jeweils eine
+// Vollbild-Werbung. Beides ist bewusst DEAKTIVIERT (No-Op): eine Werbung, BEVOR
+// man ueberhaupt spielt (preGameAd), und eine mitten in der kurzen Blitz-Partie
+// (midGameAd) sind die groessten Retention-Killer. Die einzige verbleibende
+// Vollbild-Werbung ist gameOverAd (gedrosselt: nur jedes 3. Spiel). Die Funktionen
+// bleiben als leere Huellen erhalten, damit ihre Aufrufer (local.js) unveraendert
+// laufen. Zum Reaktivieren: Rumpf wieder auf `await showInterstitialNow();` setzen.
+export async function preGameAd() { /* deaktiviert – siehe Kommentar oben */ }
+export async function midGameAd() { /* deaktiviert – siehe Kommentar oben */ }
 
 // Vollbild-Werbung am Spielende (gedrosselt ueber everyNthGame).
 export async function gameOverAd() {
