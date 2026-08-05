@@ -11,7 +11,7 @@ export const NAME_REJECTED_MSG = 'Dieser Name ist nicht erlaubt. Bitte wähle ei
 const SLUR_TERMS = [
   'nigger', 'nigga', 'niggr', 'negro', 'faggot', 'retard', 'wetback', 'sandnigger',
   'hurensohn', 'schwuchtel', 'schwuchtl', 'kanake', 'missgeburt', 'kinderficker',
-  'judensau', 'judensau', 'judenvergasen', 'hakenkreuz', 'heilhitler', 'sieghail',
+  'judensau', 'judenvergasen', 'hakenkreuz', 'heilhitler', 'sieghail',
   'kanacke', 'untermensch', 'vergasen',
 ];
 

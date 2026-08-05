@@ -44,7 +44,7 @@ export const ADMOB = {
   // Rewarded-Video ("Werbung ansehen -> Spiel freischalten"): leer = Google-
   // Test-Rewarded. Sobald in der AdMob-Konsole ein Anzeigenblock vom Typ
   // "Mit Praemie" angelegt ist, die ID hier eintragen.
-  rewardedIos: '',
+  rewardedIos: 'ca-app-pub-3811537285456646/8618548549',
   bannerAndroid: '',        // leer lassen, solange es keine Android-App gibt
   interstitialAndroid: '',
   rewardedAndroid: '',
